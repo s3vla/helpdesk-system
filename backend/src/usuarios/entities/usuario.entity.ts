@@ -1,0 +1,77 @@
+import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import { TipoUsuario } from '../../common/enums/tipo-usuario.enum';
+import { Chamado } from '../../chamados/entities/chamado.entity';
+import { Comentario } from '../../comentarios/entities/comentario.entity';
+
+// @Entity marca a classe como uma tabela do banco — o TypeORM lê essa classe
+// e (com `synchronize: true`, só em dev) cria/ajusta a tabela "usuario"
+// automaticamente a partir dela. Colaboradores e técnicos são a MESMA
+// tabela, diferenciados pela coluna `tipo` — é por isso que não existem
+// classes `Colaborador`/`Tecnico` separadas.
+@Entity()
+export class Usuario {
+  // @PrimaryGeneratedColumn cria a chave primária autoincremental (1, 2, 3…)
+  // — o "id" que identifica a linha de forma única na tabela.
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  // Nulo enquanto a conta está "resetada" (ver campo `resetadoEm` abaixo) —
+  // e-mails de cargo (ex: faturamento02@) podem ser reaproveitados por outra
+  // pessoa; ao resetar, nome/cargo/senha somem e o e-mail volta a aceitar
+  // Primeiro Acesso, reusando esta MESMA linha (nunca cria outra) — assim
+  // o histórico de chamados (que referencia este id) nunca fica órfão.
+  @Column({ type: 'text', nullable: true })
+  nome: string | null;
+
+  // `unique: true` faz o próprio banco recusar um segundo usuário com o
+  // mesmo e-mail (constraint UNIQUE) — é uma segunda camada de proteção
+  // além da validação que o DTO já faz na entrada da requisição.
+  @Column({ unique: true })
+  email: string;
+
+  // Nulo = conta resetada, aguardando alguém completar o Primeiro Acesso de
+  // novo. Nunca guardamos a senha em texto puro — só o hash gerado pelo
+  // bcrypt (ver AuthService).
+  @Column({ type: 'text', nullable: true })
+  senhaHash: string | null;
+
+  @Column({ type: 'text', nullable: true })
+  cargo: string | null;
+
+  // Preenchida pelo UsuariosService.resetar() com a data/hora do reset — só
+  // metadado informativo (pra um técnico ver "resetado há 3 dias" no
+  // painel); quem decide se a conta está "aguardando cadastro" de verdade é
+  // `senhaHash === null`, não este campo.
+  @Column({ type: 'datetime', nullable: true })
+  resetadoEm: Date | null;
+
+  // true só para os técnicos criados por seed (ver seed.service.ts) — a
+  // senha do .env é uma senha de "bootstrap", não a senha real de uso. O
+  // frontend força a tela de troca de senha antes de liberar o Painel TI
+  // enquanto isso for true; PATCH /auth/minha-senha zera esta flag.
+  @Column({ default: false })
+  deveTrocarSenha: boolean;
+
+  @Column()
+  departamento: string;
+
+  // `type: 'text'` + `enum` faz o TypeORM validar/serializar esse campo como
+  // um dos valores de TipoUsuario. No SQLite isso vira uma coluna de texto
+  // com um CHECK constraint; em Postgres viraria um tipo ENUM nativo — é a
+  // camada TypeORM que abstrai essa diferença entre bancos.
+  @Column({ type: 'text', enum: TipoUsuario })
+  tipo: TipoUsuario;
+
+  // @OneToMany não cria coluna nenhuma nessa tabela — é só a "outra ponta"
+  // do relacionamento declarado com @ManyToOne lá em Chamado/Comentario,
+  // usada quando queremos navegar de um Usuario para os chamados/comentários
+  // dele (ex: `usuario.chamadosAbertos`) sem escrever o JOIN manualmente.
+  @OneToMany(() => Chamado, (chamado) => chamado.solicitante)
+  chamadosAbertos: Chamado[];
+
+  @OneToMany(() => Chamado, (chamado) => chamado.tecnicoResponsavel)
+  chamadosAtendidos: Chamado[];
+
+  @OneToMany(() => Comentario, (comentario) => comentario.autor)
+  comentarios: Comentario[];
+}
