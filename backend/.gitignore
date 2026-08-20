@@ -1,0 +1,26 @@
+# dependências
+node_modules/
+
+# build
+dist/
+
+# variáveis de ambiente — nunca versionar credenciais reais (nem as de seed/dev)
+.env
+.env.*.local
+
+# banco de dados local (SQLite) — dados de teste não vão pro Git
+*.sqlite
+*.sqlite3
+
+# arquivos enviados por upload (print de erro) — conteúdo de usuário, não
+# faz parte do código-fonte. .gitkeep mantém a pasta existindo no clone.
+uploads/*
+!uploads/.gitkeep
+
+# logs e cobertura de testes
+*.log
+coverage/
+
+# editor / SO
+.vscode/
+.DS_Store
