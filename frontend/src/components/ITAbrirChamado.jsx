@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { estilos } from '../styles/theme'
+import { estilos, CORES_APP, CORES_PRIORIDADE } from '../styles/theme'
 import { useWindowWidth } from '../hooks/useWindowWidth'
 import { useAuth } from '../hooks/useAuth'
 import { abrirChamadoComoTecnico, buscarColaboradores, enviarImagem } from '../services/ticketService'
@@ -9,10 +9,16 @@ import SolicitanteSelect from './SolicitanteSelect'
 import { IconPaperclip } from './icons'
 
 const PRIORIDADES = [
-  { valor: 'baixa', label: 'Baixa', cor: '#22c55e' },
-  { valor: 'media', label: 'Média', cor: '#f59e0b' },
-  { valor: 'alta', label: 'Alta', cor: '#ef4444' },
+  { valor: 'baixa', label: 'Baixa', cor: CORES_PRIORIDADE.baixa.dot },
+  { valor: 'media', label: 'Média', cor: CORES_PRIORIDADE.media.dot },
+  { valor: 'alta', label: 'Alta', cor: CORES_PRIORIDADE.alta.fg },
 ]
+
+// Versão mais compacta de estilos.input, só pra este formulário e pro
+// CreateTicket.jsx (mesmo padrão visual) — não mexe no estilos.input
+// compartilhado porque outras telas (ResolutionModal, TrocarSenhaModal
+// etc.) usam o tamanho original e não foram pedidas nesse ajuste.
+const campoCompacto = { ...estilos.input, padding: '10px 12px', fontSize: 14 }
 
 // "Abrir chamado" do lado da Área Técnica — cenário "colega ligou/pediu
 // pessoalmente pro técnico abrir, sem passar pelo formulário ele mesmo".
@@ -72,11 +78,11 @@ function ITAbrirChamado({ onSubmit }) {
 
   return (
     <div className="animate-fade-up">
-      <div style={{ marginBottom: 28 }}>
-        <h1 style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: largura < 640 ? 24 : 28, color: '#f0f4ff', margin: '0 0 6px' }}>Abrir chamado</h1>
-        <p style={{ color: '#7b92b4', fontSize: 14, margin: 0, lineHeight: 1.6 }}>Abra um chamado em nome de um colaborador — para quando ele liga ou pede pessoalmente, sem passar pelo formulário.</p>
+      <div style={{ marginBottom: 18 }}>
+        <h1 style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: largura < 640 ? 20 : 22, color: CORES_APP.tinta, margin: '0 0 4px' }}>Abrir chamado</h1>
+        <p style={{ color: CORES_APP.textoFraco, fontSize: 14, margin: 0, lineHeight: 1.5 }}>Abra um chamado em nome de um colaborador — para quando ele liga ou pede pessoalmente, sem passar pelo formulário.</p>
       </div>
-      <div style={{ ...estilos.card, border: '1px solid rgba(0,120,81,0.14)', padding: largura < 640 ? 20 : 28, display: 'flex', flexDirection: 'column', gap: 22 }}>
+      <div style={{ ...estilos.card, border: '1px solid rgba(0,120,81,0.14)', padding: largura < 640 ? 16 : 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div>
           <label style={estilos.label}>Solicitante <span style={{ color: '#ef4444' }}>*</span></label>
           <SolicitanteSelect
@@ -89,27 +95,27 @@ function ITAbrirChamado({ onSubmit }) {
         <div>
           <label style={estilos.label}>O que o colaborador precisa? <span style={{ color: '#ef4444' }}>*</span></label>
           <textarea value={desc} onChange={e => setDesc(e.target.value)} placeholder="Descreva o problema com o máximo de detalhes possível..."
-            style={{ ...estilos.input, minHeight: 120, resize: 'vertical', lineHeight: 1.7 }} disabled={carregando} />
+            style={{ ...campoCompacto, minHeight: 76, resize: 'vertical', lineHeight: 1.5 }} disabled={carregando} />
         </div>
         <div>
-          <label style={estilos.label}>Qual mensagem de erro apareceu? <span style={{ color: '#4a5f7a', fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>opcional</span></label>
-          <input value={errMsg} onChange={e => setErrMsg(e.target.value)} placeholder="Ex: Erro 404, tela azul, acesso negado..." style={estilos.input} disabled={carregando} />
+          <label style={estilos.label}>Qual mensagem de erro apareceu? <span style={{ color: CORES_APP.textoSuave, fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>opcional</span></label>
+          <input value={errMsg} onChange={e => setErrMsg(e.target.value)} placeholder="Ex: Erro 404, tela azul, acesso negado..." style={campoCompacto} disabled={carregando} />
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: largura < 500 ? '1fr' : '1fr 1fr', gap: 20 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: largura < 500 ? '1fr' : '1fr 1fr', gap: 14 }}>
           <div>
             <label style={estilos.label}>Categoria</label>
             <CategoriaSelect valor={cat} onChange={setCat} disabled={carregando} />
           </div>
           <div>
             <label style={estilos.label}>Prioridade</label>
-            <div style={{ display: 'flex', gap: 7 }}>
+            <div style={{ display: 'flex', gap: 6 }}>
               {PRIORIDADES.map(p => (
                 <button key={p.valor} type="button" onClick={() => setPrio(p.valor)} disabled={carregando}
                   style={{
-                    background: prio === p.valor ? `${p.cor}1a` : 'rgba(255,255,255,0.04)',
-                    color: prio === p.valor ? p.cor : '#94a3b8',
-                    border: `1px solid ${prio === p.valor ? `${p.cor}4d` : 'rgba(255,255,255,0.08)'}`,
-                    borderRadius: 7, padding: '7px 12px', fontSize: 13, fontFamily: 'Outfit, sans-serif',
+                    background: prio === p.valor ? `${p.cor}1a` : CORES_APP.fundoCampo,
+                    color: prio === p.valor ? p.cor : CORES_APP.textoFraco,
+                    border: `1px solid ${prio === p.valor ? `${p.cor}4d` : CORES_APP.borda}`,
+                    borderRadius: 7, padding: '8px 10px', fontSize: 12.5, fontFamily: 'Outfit, sans-serif',
                     fontWeight: prio === p.valor ? 600 : 400, cursor: 'pointer', flex: 1, transition: 'all 0.15s',
                   }}>
                   {p.label}
@@ -119,25 +125,25 @@ function ITAbrirChamado({ onSubmit }) {
           </div>
         </div>
         <div>
-          <label style={estilos.label}>Print do erro <span style={{ color: '#4a5f7a', fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>opcional</span></label>
+          <label style={estilos.label}>Print do erro <span style={{ color: CORES_APP.textoSuave, fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>opcional</span></label>
           <div onClick={() => !carregando && fileRef.current?.click()}
-            style={{ border: `2px dashed ${arquivo ? 'rgba(0,120,81,0.4)' : 'rgba(255,255,255,0.1)'}`, borderRadius: 10, padding: '22px', textAlign: 'center', cursor: carregando ? 'default' : 'pointer', background: arquivo ? 'rgba(0,179,81,0.05)' : 'transparent', transition: 'all 0.2s' }}>
-            <div style={{ marginBottom: 6, color: arquivo ? '#00b351' : '#7b92b4', display: 'flex', justifyContent: 'center' }}>
-              <IconPaperclip width={22} height={22} />
-            </div>
-            <div style={{ color: arquivo ? '#00b351' : '#7b92b4', fontSize: 14 }}>{arquivo ? `${arquivo.name} — clique para trocar` : 'Clique para anexar imagem'}</div>
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, border: `2px dashed ${arquivo ? 'rgba(0,120,81,0.4)' : CORES_APP.borda}`, borderRadius: 10, padding: '10px 14px', textAlign: 'center', cursor: carregando ? 'default' : 'pointer', background: arquivo ? 'rgba(0,179,81,0.05)' : 'transparent', transition: 'all 0.2s' }}>
+            <span style={{ color: arquivo ? '#00b351' : CORES_APP.textoFraco, display: 'flex', flexShrink: 0 }}>
+              <IconPaperclip width={16} height={16} />
+            </span>
+            <span style={{ color: arquivo ? '#00b351' : CORES_APP.textoFraco, fontSize: 13 }}>{arquivo ? `${arquivo.name} — clique para trocar` : 'Clique para anexar imagem'}</span>
             <input ref={fileRef} type="file" accept="image/png, image/jpeg, image/webp" style={{ display: 'none' }}
               onChange={e => setArquivo(e.target.files?.[0] ?? null)} disabled={carregando} />
           </div>
         </div>
         <div>
-          <label style={estilos.label}>ID do AnyDesk (para acesso remoto) <span style={{ color: '#4a5f7a', fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>opcional</span></label>
-          <input value={anydeskId} onChange={e => setAnydeskId(e.target.value)} placeholder="Ex: 123 456 789" style={estilos.input} disabled={carregando} />
-          <p style={{ color: '#4a5f7a', fontSize: 12, margin: '6px 0 0' }}>Fica visível na tela inicial do AnyDesk.</p>
+          <label style={estilos.label}>ID do AnyDesk (para acesso remoto) <span style={{ color: CORES_APP.textoSuave, fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>opcional</span></label>
+          <input value={anydeskId} onChange={e => setAnydeskId(e.target.value)} placeholder="Ex: 123 456 789" style={campoCompacto} disabled={carregando} />
+          <p style={{ color: CORES_APP.textoSuave, fontSize: 12, margin: '4px 0 0' }}>Fica visível na tela inicial do AnyDesk.</p>
         </div>
-        {erro && <p style={{ color: '#f87171', fontSize: 13, margin: 0 }}>{erro}</p>}
+        {erro && <p style={{ color: CORES_APP.erro, fontSize: 13, margin: 0 }}>{erro}</p>}
         <button onClick={enviar} disabled={!podeEnviar}
-          style={{ ...estilos.btnPrimary, opacity: podeEnviar ? 1 : 0.45, cursor: podeEnviar ? 'pointer' : 'not-allowed', fontSize: 16 }}>
+          style={{ ...estilos.btnPrimary, padding: '11px 28px', opacity: podeEnviar ? 1 : 0.45, cursor: podeEnviar ? 'pointer' : 'not-allowed', fontSize: 15 }}>
           {textoBotao}
         </button>
       </div>

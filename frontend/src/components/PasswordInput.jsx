@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { estilos } from '../styles/theme'
+import { estilos, CORES_APP } from '../styles/theme'
 import { IconEye, IconEyeOff } from './icons'
 
 // Campo de senha com o "olhinho" de mostrar/ocultar — reaproveitado em toda
@@ -9,7 +9,12 @@ import { IconEye, IconEyeOff } from './icons'
 // controlados por quem usa este componente — só o atributo `type` do input
 // muda aqui dentro, o estado do texto em si mora no componente pai, como
 // sempre morou.
-function PasswordInput({ value, onChange, placeholder, disabled, onKeyDown, style }) {
+//
+// `iconColor` tem um default (CORES_APP.textoFraco) pros call sites que não
+// passam nada — mas as telas de autenticação (split-screen) passam
+// explicitamente `cores.azulMedio` de authTheme.js, que combina melhor
+// com aquele layout especificamente.
+function PasswordInput({ value, onChange, placeholder, disabled, onKeyDown, style, iconColor = CORES_APP.textoFraco }) {
   const [visivel, setVisivel] = useState(false)
 
   return (
@@ -32,7 +37,7 @@ function PasswordInput({ value, onChange, placeholder, disabled, onKeyDown, styl
         style={{
           position: 'absolute', right: 4, top: '50%', transform: 'translateY(-50%)',
           width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: 'none', border: 'none', color: '#7b92b4', cursor: disabled ? 'default' : 'pointer',
+          background: 'none', border: 'none', color: iconColor, cursor: disabled ? 'default' : 'pointer',
           padding: 0,
         }}
       >

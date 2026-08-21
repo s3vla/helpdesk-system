@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import Logo from './Logo'
 import { useWindowWidth } from '../hooks/useWindowWidth'
-import { IconMenu } from './icons'
+import { IconMenu, IconLock, IconLogOut } from './icons'
+import { CORES_TI, CORES_APP } from '../styles/theme'
+import { obterIniciais } from '../utils/formatters'
 
 // Sidebar fixa da Área Técnica (Chamados / Colaboradores / Soluções
 // Conhecidas). Abaixo de 768px vira um menu hambúrguer que sobrepõe a tela,
@@ -47,17 +49,17 @@ const ITENS_NAV = [
   },
 ]
 
-function ITLayout({ tela, onNav, onLogout, onTrocarSenha, children }) {
+function ITLayout({ tela, usuario, onNav, onLogout, onTrocarSenha, children }) {
   const largura = useWindowWidth()
   const mobile = largura < 768
   const [menuAberto, setMenuAberto] = useState(false)
 
   const sidebar = (
-    <aside style={{ width: 220, background: '#06101e', borderRight: '1px solid rgba(0,120,81,0.1)', display: 'flex', flexDirection: 'column', padding: '22px 14px', height: '100%', boxSizing: 'border-box' }}>
+    <aside style={{ width: 220, background: CORES_APP.card, borderRight: `1px solid ${CORES_APP.bordaSuave}`, display: 'flex', flexDirection: 'column', padding: '22px 14px', height: '100%', boxSizing: 'border-box' }}>
       <div style={{ marginBottom: 32, padding: '0 4px' }}><Logo size={34} /></div>
-      <div style={{ background: 'rgba(0,179,81,0.07)', border: '1px solid rgba(0,120,81,0.18)', borderRadius: 8, padding: '7px 11px', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 8 }}>
-        <span className="animate-pulse-dot" style={{ width: 7, height: 7, borderRadius: '50%', background: '#00b351', display: 'inline-block', flexShrink: 0 }} />
-        <span style={{ fontFamily: 'Outfit, sans-serif', fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', color: '#00b351', textTransform: 'uppercase' }}>Painel TI</span>
+      <div style={{ background: 'rgba(0,73,192,0.08)', border: '1px solid rgba(0,73,192,0.22)', borderRadius: 8, padding: '7px 11px', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span className="animate-pulse-dot" style={{ width: 7, height: 7, borderRadius: '50%', background: CORES_TI.accent, display: 'inline-block', flexShrink: 0 }} />
+        <span style={{ fontFamily: 'Outfit, sans-serif', fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', color: CORES_TI.accent, textTransform: 'uppercase' }}>Painel TI</span>
       </div>
       <nav style={{ display: 'flex', flexDirection: 'column', gap: 3, flex: 1 }}>
         {ITENS_NAV.map(item => {
@@ -65,8 +67,8 @@ function ITLayout({ tela, onNav, onLogout, onTrocarSenha, children }) {
           return (
             <button key={item.tela} onClick={() => { onNav(item.tela); setMenuAberto(false) }}
               style={{
-                background: ativo ? 'rgba(0,179,81,0.1)' : 'transparent',
-                color: ativo ? '#00b351' : '#7b92b4',
+                background: ativo ? 'rgba(0,73,192,0.1)' : 'transparent',
+                color: ativo ? CORES_TI.accent : CORES_APP.textoFraco,
                 border: 'none', borderRadius: 9, padding: '11px 13px', fontSize: 14,
                 fontFamily: 'Outfit, sans-serif', fontWeight: ativo ? 600 : 400, cursor: 'pointer',
                 textAlign: 'left', display: 'flex', alignItems: 'center', gap: 10, transition: 'all 0.15s',
@@ -76,12 +78,22 @@ function ITLayout({ tela, onNav, onLogout, onTrocarSenha, children }) {
           )
         })}
       </nav>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <button onClick={() => { onTrocarSenha(); setMenuAberto(false) }} style={{ background: 'none', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 9, padding: '10px 13px', color: '#7b92b4', fontFamily: 'Outfit, sans-serif', fontSize: 13, cursor: 'pointer', textAlign: 'left' }}>
-          Trocar senha
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {/* Só o nome — nível é atributo do CHAMADO (N1/N2/N3), não da
+            pessoa, não faz sentido rotular o técnico com um "Técnico N2". */}
+        {usuario?.name && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '0 2px 2px' }}>
+            <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#007851', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: 11, color: '#fff', flexShrink: 0 }}>
+              {obterIniciais(usuario.name)}
+            </div>
+            <span style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 600, fontSize: 13, color: CORES_APP.tinta, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{usuario.name}</span>
+          </div>
+        )}
+        <button onClick={() => { onTrocarSenha(); setMenuAberto(false) }} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: `1px solid ${CORES_APP.borda}`, borderRadius: 9, padding: '10px 13px', color: CORES_APP.textoFraco, fontFamily: 'Outfit, sans-serif', fontSize: 13, cursor: 'pointer', textAlign: 'left' }}>
+          <IconLock width={14} height={14} /> Trocar senha
         </button>
-        <button onClick={onLogout} style={{ background: 'none', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 9, padding: '10px 13px', color: '#4a5f7a', fontFamily: 'Outfit, sans-serif', fontSize: 13, cursor: 'pointer', textAlign: 'left' }}>
-          Sair
+        <button onClick={onLogout} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: `1px solid ${CORES_APP.borda}`, borderRadius: 9, padding: '10px 13px', color: CORES_APP.textoSuave, fontFamily: 'Outfit, sans-serif', fontSize: 13, cursor: 'pointer', textAlign: 'left' }}>
+          <IconLogOut width={14} height={14} /> Sair
         </button>
       </div>
     </aside>
@@ -89,10 +101,10 @@ function ITLayout({ tela, onNav, onLogout, onTrocarSenha, children }) {
 
   if (mobile) {
     return (
-      <div style={{ minHeight: '100vh', background: '#050d1a', display: 'flex', flexDirection: 'column' }}>
-        <header style={{ background: '#06101e', borderBottom: '1px solid rgba(0,120,81,0.1)', height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', position: 'sticky', top: 0, zIndex: 40, flexShrink: 0 }}>
+      <div style={{ minHeight: '100vh', background: CORES_APP.fundo, display: 'flex', flexDirection: 'column' }}>
+        <header style={{ background: CORES_APP.card, borderBottom: `1px solid ${CORES_APP.bordaSuave}`, height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', position: 'sticky', top: 0, zIndex: 40, flexShrink: 0 }}>
           <Logo size={30} />
-          <button onClick={() => setMenuAberto(v => !v)} style={{ background: 'none', border: 'none', color: '#7b92b4', cursor: 'pointer', display: 'flex' }}>
+          <button onClick={() => setMenuAberto(v => !v)} style={{ background: 'none', border: 'none', color: CORES_APP.textoFraco, cursor: 'pointer', display: 'flex' }}>
             <IconMenu width={22} height={22} />
           </button>
         </header>
@@ -109,7 +121,7 @@ function ITLayout({ tela, onNav, onLogout, onTrocarSenha, children }) {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#050d1a', display: 'flex' }}>
+    <div style={{ minHeight: '100vh', background: CORES_APP.fundo, display: 'flex' }}>
       <div style={{ width: 220, position: 'fixed', top: 0, left: 0, bottom: 0, zIndex: 40 }}>{sidebar}</div>
       <main style={{ flex: 1, marginLeft: 220, padding: '34px 32px', minHeight: '100vh', boxSizing: 'border-box' }}>{children}</main>
     </div>

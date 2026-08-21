@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import Logo from './Logo'
 import FirstAccessModal from './FirstAccessModal'
-import { estilos, IMAGEM_FUNDO_LOGIN } from '../styles/theme'
-import { useAuth } from '../hooks/useAuth'
-import { traduzirErroApi } from '../utils/traduzirErroApi'
+import BrandPanel from './auth/BrandPanel'
 import PasswordInput from './PasswordInput'
+import { estilosAuth, cores, botaoVerde } from '../styles/authTheme'
+import { useAuth } from '../hooks/useAuth'
+import { useWindowWidth } from '../hooks/useWindowWidth'
+import { traduzirErroApi } from '../utils/traduzirErroApi'
 
 // Tela de login do colaborador. Diferente da versão com dados mockados, não
 // dá mais pra "adivinhar" se um e-mail já tem conta só de olhar uma lista
@@ -12,6 +13,16 @@ import PasswordInput from './PasswordInput'
 // inexistente e senha errada (de propósito, ver AuthService no backend).
 // Por isso "Primeiro acesso" agora é um link explícito, não algo que abre
 // sozinho quando o login falha.
+//
+// Redesign visual (layout split-screen claro) sobre a MESMA lógica de
+// sempre — toda a validação/chamada de API abaixo é idêntica à versão
+// anterior (tema escuro), só a apresentação mudou. Duas coisas do design
+// de referência (Figma) que ficaram de fora de propósito, por não
+// existirem no sistema: link "Esqueci minha senha" (não existe fluxo de
+// reset por e-mail — só reset feito pelo técnico) e qualquer redirecionamento
+// próprio: quem decide se cai em "trocar senha" continua sendo
+// `usuario.deveTrocarSenha`, checado em App.jsx, nunca um campo
+// inventado tipo "senhaPadrao" do código de referência.
 function LoginScreen({ onLoginColaborador, onSwitchIT }) {
   const { login, mensagemSessao, limparMensagemSessao } = useAuth()
   const [email, setEmail] = useState('')
@@ -19,6 +30,8 @@ function LoginScreen({ onLoginColaborador, onSwitchIT }) {
   const [err, setErr] = useState('')
   const [carregando, setCarregando] = useState(false)
   const [mostrarPrimeiroAcesso, setMostrarPrimeiroAcesso] = useState(false)
+  const largura = useWindowWidth()
+  const mobile = largura < 900
 
   async function doLogin() {
     if (!email.toLowerCase().endsWith('@novatechagro.com.br')) {
@@ -46,63 +59,70 @@ function LoginScreen({ onLoginColaborador, onSwitchIT }) {
     }
   }
 
-  return (
-    <div style={{ minHeight: '100vh', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, background: '#060f1e' }}>
-      <img src={IMAGEM_FUNDO_LOGIN} alt="Lavoura Novatech" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.55 }} />
-      <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 620px 680px at 50% 50%, rgba(8,20,45,0.72) 0%, rgba(8,20,45,0.5) 40%, rgba(8,20,45,0.28) 70%, rgba(8,20,45,0.15) 100%)' }} />
+  // Primeiro acesso agora é uma tela cheia própria (troca de "roupa" do
+  // Figma: lá é uma rota separada, não um modal sobreposto) — mesmo
+  // componente/mesma lógica de sempre, só muda COMO ele é montado aqui.
+  if (mostrarPrimeiroAcesso) {
+    return (
+      <FirstAccessModal
+        emailInicial={email}
+        onSucesso={onLoginColaborador}
+        onFechar={() => setMostrarPrimeiroAcesso(false)}
+      />
+    )
+  }
 
-      <div style={{ position: 'relative', zIndex: 1, width: '100%', maxWidth: 420 }} className="animate-fade-up">
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 36 }}>
-          <Logo size={54} />
-        </div>
-        <div style={{ background: 'rgba(10,22,42,0.94)', border: '1px solid rgba(0,120,81,0.2)', borderRadius: 18, padding: '34px 30px', backdropFilter: 'blur(24px)' }}>
-          <h1 style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: 22, color: '#f0f4ff', margin: '0 0 6px' }}>Bem-vindo</h1>
-          <p style={{ color: '#7b92b4', fontSize: 14, margin: '0 0 26px' }}>Acesse com seu e-mail corporativo</p>
+  return (
+    <div style={mobile ? estilosAuth.paginaMobile : estilosAuth.pagina} className="animate-fade-up">
+      <BrandPanel />
+      <main style={estilosAuth.principal}>
+        <div style={estilosAuth.coluna}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <span style={estilosAuth.eyebrow}>ACESSO COLABORADOR</span>
+            <h2 style={estilosAuth.titulo}>Entrar no help desk</h2>
+            <p style={estilosAuth.texto}>Use o e-mail corporativo @novatechagro.com.br</p>
+          </div>
 
           {mensagemSessao && (
-            <div style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 10, padding: '10px 14px', marginBottom: 18, color: '#fbbf24', fontSize: 13 }}>
+            <div style={{ background: '#FDF3E7', border: '1px solid #F0D9B5', borderRadius: 10, padding: '10px 14px', color: '#8A5A1E', fontSize: 13 }}>
               {mensagemSessao}
             </div>
           )}
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div>
-              <label style={estilos.label}>E-mail corporativo</label>
-              <input type="email" value={email} onChange={e => setEmail(e.target.value)} onKeyDown={e => e.key === 'Enter' && doLogin()}
-                placeholder="seu.nome@novatechagro.com.br" style={estilos.input} disabled={carregando} />
-            </div>
-            <div>
-              <label style={estilos.label}>Senha</label>
-              <PasswordInput value={pass} onChange={e => setPass(e.target.value)} onKeyDown={e => e.key === 'Enter' && doLogin()}
-                placeholder="••••••••" disabled={carregando} />
-            </div>
-            {err && <p style={{ color: '#f87171', fontSize: 13, margin: 0 }}>{err}</p>}
-            <button onClick={doLogin} disabled={carregando} style={{ ...estilos.btnPrimary, marginTop: 6, opacity: carregando ? 0.6 : 1, cursor: carregando ? 'default' : 'pointer' }}>
+          <form style={estilosAuth.form} onSubmit={e => { e.preventDefault(); doLogin() }}>
+            <label style={estilosAuth.campo}>
+              <span style={estilosAuth.rotulo}>E-mail corporativo</span>
+              <input type="email" value={email} onChange={e => setEmail(e.target.value)}
+                placeholder="seu.nome@novatechagro.com.br" style={estilosAuth.input} disabled={carregando} />
+            </label>
+
+            <label style={estilosAuth.campo}>
+              <span style={estilosAuth.rotulo}>Senha</span>
+              <PasswordInput value={pass} onChange={e => setPass(e.target.value)}
+                placeholder="Sua senha" disabled={carregando}
+                style={{ ...estilosAuth.input, ...estilosAuth.inputSenha }} iconColor={cores.azulMedio} />
+            </label>
+
+            {err && <p style={{ color: cores.erro, fontSize: 13, margin: 0 }}>{err}</p>}
+
+            <button type="submit" disabled={carregando} style={{ ...botaoVerde, opacity: carregando ? 0.7 : 1, cursor: carregando ? 'default' : 'pointer' }}>
               {carregando ? 'Entrando...' : 'Entrar'}
             </button>
-          </div>
+          </form>
 
-          <div style={{ marginTop: 18, textAlign: 'center' }}>
-            <button onClick={() => setMostrarPrimeiroAcesso(true)} style={{ background: 'none', border: 'none', color: '#00b351', cursor: 'pointer', fontSize: 13 }}>
-              Primeiro acesso? Cadastre-se aqui
-            </button>
-          </div>
-
-          <div style={{ marginTop: 18, paddingTop: 22, borderTop: '1px solid rgba(255,255,255,0.07)', textAlign: 'center' }}>
-            <button onClick={onSwitchIT} style={{ background: 'none', border: 'none', color: '#7b92b4', cursor: 'pointer', fontSize: 13, textDecoration: 'underline', textDecorationColor: 'rgba(123,146,180,0.35)' }}>
-              Área Técnica — TI →
+          <div style={{ ...estilosAuth.divisor, display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <span style={{ fontSize: 14, color: cores.textoFraco }}>
+              Primeiro acesso?{' '}
+              <button type="button" onClick={() => setMostrarPrimeiroAcesso(true)} style={estilosAuth.link}>
+                Cadastre-se com seu e-mail corporativo
+              </button>
+            </span>
+            <button type="button" onClick={onSwitchIT} style={{ ...estilosAuth.link, color: cores.textoFraco, textAlign: 'left' }}>
+              Sou da equipe técnica — acessar painel de TI →
             </button>
           </div>
         </div>
-      </div>
-
-      {mostrarPrimeiroAcesso && (
-        <FirstAccessModal
-          emailInicial={email}
-          onSucesso={onLoginColaborador}
-          onFechar={() => setMostrarPrimeiroAcesso(false)}
-        />
-      )}
+      </main>
     </div>
   )
 }

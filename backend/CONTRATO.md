@@ -77,11 +77,11 @@ Request:
   "email": "rh@novatechagro.com.br",
   "senha": "MinhaSenh@123",
   "nome": "Nome de quem está assumindo o cargo",
-  "cargo": "Analista de RH",
   "departamento": "Recursos Humanos"
 }
 ```
 > `departamento` é opcional — se não vier, o backend usa `"Novatech Agro"` como padrão.
+> `cargo` também é aceito no corpo (opcional, string), mas a tela de Primeiro Acesso não coleta mais esse campo — fica `null` para contas novas.
 
 Não existe rota de cadastro de técnico — técnicos são provisionados por
 seed no backend, também restrito à lista fechada

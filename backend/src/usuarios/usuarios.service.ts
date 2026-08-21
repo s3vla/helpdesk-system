@@ -12,7 +12,9 @@ interface CriarUsuarioParams {
   nome: string;
   email: string;
   senhaHash: string;
-  cargo: string;
+  // Opcional porque a tela de Primeiro Acesso não coleta mais cargo — a
+  // coluna no banco já era nullable, então isso nunca exigiu migração.
+  cargo?: string | null;
   departamento: string;
   tipo: TipoUsuario;
   // Opcional porque só o seed de técnico usa — o valor padrão da coluna
@@ -24,7 +26,7 @@ interface CriarUsuarioParams {
 interface CompletarCadastroParams {
   nome: string;
   senhaHash: string;
-  cargo: string;
+  cargo?: string | null;
   departamento: string;
 }
 
