@@ -91,14 +91,14 @@ export class AuthService {
       ? await this.usuariosService.completarCadastro(existente.id, {
           nome: dto.nome,
           senhaHash,
-          cargo: dto.cargo,
+          cargo: dto.cargo ?? null,
           departamento,
         })
       : await this.usuariosService.criar({
           nome: dto.nome,
           email: dto.email.toLowerCase(),
           senhaHash,
-          cargo: dto.cargo,
+          cargo: dto.cargo ?? null,
           departamento,
           // Primeiro Acesso só existe pro lado do colaborador — técnicos
           // entram via seed (ver src/database/seed.service.ts).

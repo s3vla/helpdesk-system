@@ -111,6 +111,7 @@ function App() {
   return (
     <ITLayout
       tela={telaTI}
+      usuario={usuario}
       onNav={s => {
         setUsuarioSelecionado(null)
         setChamadoSelecionado(null)
@@ -120,7 +121,7 @@ function App() {
       onTrocarSenha={() => setMostrarTrocarSenha(true)}
     >
       {telaTI === 'it-dash' && (
-        <ITDashboard versaoDados={versaoDados} onSelect={setChamadoSelecionado} />
+        <ITDashboard versaoDados={versaoDados} onSelect={setChamadoSelecionado} onAbrirChamado={() => setTela('it-abrir-chamado')} />
       )}
       {telaTI === 'it-users' && (
         <ITUsers onSelect={u => { setUsuarioSelecionado(u); setTela('it-user') }} />

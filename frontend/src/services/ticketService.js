@@ -152,6 +152,7 @@ export async function buscarChamadosTI(token, filtros = {}) {
   if (filtros.status && filtros.status !== 'all') params.set('status', STATUS_PARA_API[filtros.status])
   if (filtros.nivel && filtros.nivel !== 'all') params.set('nivel', filtros.nivel)
   if (filtros.categoria && filtros.categoria !== 'all') params.set('categoria', CATEGORIA_PARA_API[filtros.categoria])
+  if (filtros.busca?.trim()) params.set('busca', filtros.busca.trim())
   const query = params.toString()
   const chamados = await chamarApi(`/chamados${query ? `?${query}` : ''}`, { token })
   return chamados.map(mapearChamado)

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { estilos } from '../styles/theme'
+import { estilos, CORES_APP } from '../styles/theme'
 import { obterIniciais } from '../utils/formatters'
 import { useAuth } from '../hooks/useAuth'
 import { buscarColaboradores, buscarChamadosDoColaborador } from '../services/ticketService'
@@ -52,7 +52,7 @@ function ITUsers({ onSelect }) {
     <div className="animate-fade-up">
       <div style={{ marginBottom: 26 }}>
         <h1 style={estilos.sectionTitle}>Colaboradores</h1>
-        <p style={{ color: '#7b92b4', fontSize: 14, margin: 0 }}>
+        <p style={{ color: CORES_APP.textoFraco, fontSize: 14, margin: 0 }}>
           {carregando ? 'Carregando...' : `${usuarios.length} colaboradores cadastrados`}
         </p>
       </div>
@@ -64,11 +64,11 @@ function ITUsers({ onSelect }) {
               <div key={usuario.id} onClick={() => onSelect(usuario)}
                 style={{ ...estilos.card, padding: '20px', cursor: 'pointer', opacity: usuario.emAguardoDeCadastro ? 0.7 : 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
-                  <div style={{ width: 46, height: 46, borderRadius: '50%', background: usuario.emAguardoDeCadastro ? 'rgba(255,255,255,0.08)' : '#007851', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: 16, color: '#fff', flexShrink: 0 }}>
+                  <div style={{ width: 46, height: 46, borderRadius: '50%', background: usuario.emAguardoDeCadastro ? CORES_APP.fundoCampo : '#007851', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: 16, color: '#fff', flexShrink: 0 }}>
                     {usuario.emAguardoDeCadastro ? '?' : obterIniciais(usuario.name)}
                   </div>
                   <div>
-                    <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: 15, color: usuario.emAguardoDeCadastro ? '#7b92b4' : '#f0f4ff' }}>
+                    <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: 15, color: usuario.emAguardoDeCadastro ? CORES_APP.textoFraco : CORES_APP.tinta }}>
                       {usuario.emAguardoDeCadastro ? usuario.email : usuario.name}
                     </div>
                     {usuario.emAguardoDeCadastro ? (
@@ -76,23 +76,23 @@ function ITUsers({ onSelect }) {
                         Aguardando novo cadastro
                       </span>
                     ) : (
-                      <div style={{ color: '#7b92b4', fontSize: 12, marginTop: 1 }}>{usuario.role}</div>
+                      <div style={{ color: CORES_APP.textoFraco, fontSize: 12, marginTop: 1 }}>{usuario.role}</div>
                     )}
                   </div>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 14, gap: 4 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: `1px solid ${CORES_APP.bordaSuave}`, paddingTop: 14, gap: 4 }}>
                   {[
-                    ['Total', c.total, '#f0f4ff'],
-                    ['Abertos', c.abertos, c.abertos > 0 ? '#f59e0b' : '#4a5f7a'],
+                    ['Total', c.total, CORES_APP.tinta],
+                    ['Abertos', c.abertos, c.abertos > 0 ? '#f59e0b' : CORES_APP.textoSuave],
                     ['Finalizados', c.finalizados, '#22c55e'],
                   ].map(([label, valor, cor]) => (
                     <div key={label} style={{ textAlign: 'center', flex: 1 }}>
                       <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: 22, color: cor, lineHeight: 1 }}>{valor}</div>
-                      <div style={{ color: '#4a5f7a', fontSize: 11, marginTop: 3 }}>{label}</div>
+                      <div style={{ color: CORES_APP.textoSuave, fontSize: 11, marginTop: 3 }}>{label}</div>
                     </div>
                   ))}
                 </div>
-                <div style={{ marginTop: 12, color: '#4a5f7a', fontSize: 12, borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: 10 }}>{usuario.dept}</div>
+                <div style={{ marginTop: 12, color: CORES_APP.textoSuave, fontSize: 12, borderTop: `1px solid ${CORES_APP.bordaSuave}`, paddingTop: 10 }}>{usuario.dept}</div>
               </div>
             )
           })}

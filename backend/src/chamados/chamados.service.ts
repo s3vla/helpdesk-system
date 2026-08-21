@@ -7,7 +7,7 @@ import {
 import { TipoUsuario } from '../common/enums/tipo-usuario.enum';
 import { TipoComentario } from '../common/enums/tipo-comentario.enum';
 import { InjectRepository } from '@nestjs/typeorm';
-import { FindOptionsWhere, In, Repository } from 'typeorm';
+import { FindOptionsWhere, In, Like, Repository } from 'typeorm';
 import { Chamado } from './entities/chamado.entity';
 import { Usuario } from '../usuarios/entities/usuario.entity';
 import { Comentario } from '../comentarios/entities/comentario.entity';
@@ -48,6 +48,19 @@ const RELACOES_PADRAO = {
 // buscarPorIdOuFalhar (com RELACOES_PADRAO) é chamado de novo no final,
 // como uma leitura fresca, sem essa armadilha de save().
 const RELACOES_PARA_ATUALIZAR = { solicitante: true, tecnicoResponsavel: true };
+
+// O "número do chamado" exibido no front (#1000+id, ver
+// frontend/src/utils/numeroChamado.js) nunca é gravado no banco — é sempre
+// derivado do id na hora de mostrar OU, aqui, na hora de buscar de volta.
+// Só tenta interpretar `busca` como número quando ela é puramente dígitos
+// (com ou sem "#" na frente); qualquer outra coisa (texto, "#12a" etc.)
+// devolve null e a busca segue só pelo caminho de texto livre.
+function extrairIdDoNumeroChamado(busca: string): number | null {
+  const semHash = busca.trim().replace(/^#/, '');
+  if (!/^\d+$/.test(semHash)) return null;
+  const id = parseInt(semHash, 10) - 1000;
+  return id > 0 ? id : null;
+}
 
 @Injectable()
 export class ChamadosService {
@@ -147,10 +160,27 @@ export class ChamadosService {
     // valor `undefined` sozinha (lança erro em vez disso), então não dá
     // pra simplesmente passar `{ status: filtros.status, ... }` quando um
     // filtro não foi enviado na query string.
-    const where: FindOptionsWhere<Chamado> = {};
-    if (filtros.status) where.status = filtros.status;
-    if (filtros.nivel) where.nivel = filtros.nivel;
-    if (filtros.categoria) where.categoria = filtros.categoria;
+    const base: FindOptionsWhere<Chamado> = {};
+    if (filtros.status) base.status = filtros.status;
+    if (filtros.nivel) base.nivel = filtros.nivel;
+    if (filtros.categoria) base.categoria = filtros.categoria;
+
+    const busca = filtros.busca?.trim();
+    let where: FindOptionsWhere<Chamado> | FindOptionsWhere<Chamado>[] = base;
+
+    if (busca) {
+      // Array de `where` = OR entre os elementos (cada um já herda os
+      // filtros de `base` via spread, então status/nível/categoria continuam
+      // valendo como AND de cada ramo do OR) — é assim que o TypeORM expressa
+      // "(status = X) AND (titulo LIKE ... OR descricao LIKE ... OR id = ...)"
+      // sem precisar de QueryBuilder pra este caso simples.
+      where = [
+        { ...base, titulo: Like(`%${busca}%`) },
+        { ...base, descricao: Like(`%${busca}%`) },
+      ];
+      const idDoNumero = extrairIdDoNumeroChamado(busca);
+      if (idDoNumero !== null) where.push({ ...base, id: idDoNumero });
+    }
 
     return this.chamadoRepository.find({
       where,
