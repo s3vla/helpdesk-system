@@ -10,12 +10,15 @@ import { numeroChamado } from '../utils/numeroChamado'
 import { LABEL_CATEGORIA } from '../utils/categorias'
 import StatusBadge from './StatusBadge'
 import AguardandoRespostaBadge from './AguardandoRespostaBadge'
+import SlaBadge from './SlaBadge'
+import SlaLegenda from './SlaLegenda'
 import EstadoRequisicao from './EstadoRequisicao'
 import { IconSearch, IconCalendar, IconClock, IconHeadset, IconCheckCircle, IconInfo, IconEdit } from './icons'
+import { calcularSituacaoSla } from '../utils/slaConfig'
 
 const FILTROS_STATUS = [['all', 'Todos'], ['parado', 'Parados'], ['andamento', 'Em andamento'], ['finalizado', 'Finalizados']]
 const FILTROS_NIVEL = [['all', 'N1–N3'], ['N1', 'N1'], ['N2', 'N2'], ['N3', 'N3']]
-const COLUNAS_TABELA = '64px 2fr 1fr 152px 108px 118px 76px'
+const COLUNAS_TABELA = '64px 2fr 1fr 152px 130px 108px 118px 76px'
 
 // Central de Chamados: busca no backend com os filtros já traduzidos para
 // os query params esperados pela API (GET /chamados?status=...&nivel=...&
@@ -24,6 +27,11 @@ function ITDashboard({ versaoDados, onSelect, onAbrirChamado }) {
   const { token, tratarErroApi } = useAuth()
   const [filtroStatus, setFiltroStatus] = useState('all')
   const [filtroNivel, setFiltroNivel] = useState('all')
+  // Diferente de status/nível (que viram query param pro backend), SLA é
+  // calculado inteiramente no frontend (ver utils/slaConfig.js) — o filtro
+  // aqui é só um .filter() em memória sobre a lista já carregada, sem
+  // request nova nem mudança na API.
+  const [filtroSla, setFiltroSla] = useState(false)
   const [buscaInput, setBuscaInput] = useState('')
   const [busca, setBusca] = useState('')
   const largura = useWindowWidth()
@@ -67,6 +75,14 @@ function ITDashboard({ versaoDados, onSelect, onAbrirChamado }) {
     clearTimeout(debounceRef.current)
     setBusca(buscaInput.trim())
   }
+
+  // Filtro rápido de SLA: só "estourado" entra (não "atenção" — esse é só
+  // um aviso prévio, ainda dentro do prazo). Aplicado sobre a lista já
+  // trazida pelo backend, então convive sem conflito com status/nível/busca
+  // (que continuam filtrando no servidor).
+  const chamadosVisiveis = filtroSla
+    ? chamados.filter(c => calcularSituacaoSla(c) === 'estourado')
+    : chamados
 
   const stats = [
     { label: 'Total no mês', valor: chamados.length, cor: CORES_TI.accent, icon: IconCalendar },
@@ -122,6 +138,11 @@ function ITDashboard({ versaoDados, onSelect, onAbrirChamado }) {
               {label}
             </button>
           ))}
+          <button onClick={() => setFiltroSla(v => !v)}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: filtroSla ? '#FBEDEA' : CORES_APP.fundoCampo, color: filtroSla ? '#B3402F' : CORES_APP.textoFraco, border: `1px solid ${filtroSla ? '#F2D8D2' : CORES_APP.borda}`, borderRadius: 999, padding: '6px 13px', fontSize: 12, fontFamily: 'Outfit, sans-serif', fontWeight: filtroSla ? 600 : 400, cursor: 'pointer', marginLeft: 6 }}>
+            <IconClock width={12} height={12} /> Prazo estourado
+          </button>
+          <SlaLegenda />
         </div>
 
         <div style={{ position: 'relative', flex: largura < 640 ? '1 1 100%' : '0 1 260px', minWidth: 200 }}>
@@ -138,18 +159,25 @@ function ITDashboard({ versaoDados, onSelect, onAbrirChamado }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {largura >= 900 && (
             <div style={{ display: 'grid', gridTemplateColumns: COLUNAS_TABELA, gap: 10, padding: '6px 16px', color: CORES_APP.textoSuave, fontFamily: 'Outfit, sans-serif', fontSize: 10, letterSpacing: '0.09em', textTransform: 'uppercase' }}>
-              <span>Nº</span><span>Chamado</span><span>Solicitante</span><span>Categoria</span><span>Última atualização</span><span>Status</span><span>Ações</span>
+              <span>Nº</span><span>Chamado</span><span>Solicitante</span><span>Categoria</span><span>Responsável</span><span>Última atualização</span><span>Status</span><span>Ações</span>
             </div>
           )}
-          {chamados.length === 0 && (
-            <div style={{ padding: '40px', textAlign: 'center', color: CORES_APP.textoSuave, fontSize: 14 }}>Nenhum chamado encontrado</div>
+          {chamadosVisiveis.length === 0 && (
+            <div style={{ padding: '40px', textAlign: 'center', color: CORES_APP.textoSuave, fontSize: 14 }}>
+              {filtroSla ? 'Nenhum chamado com prazo estourado' : 'Nenhum chamado encontrado'}
+            </div>
           )}
-          {chamados.map(chamado => {
+          {chamadosVisiveis.map(chamado => {
             const corPrioridade = CORES_PRIORIDADE[chamado.priority].dot
             const semResposta = chamado.status === 'andamento' && chamado.aguardandoRespostaDe === 'TECNICO'
+            const situacaoSla = calcularSituacaoSla(chamado)
+            // A borda de prioridade continua o padrão — SLA em risco/estourado
+            // só assume a borda quando há algo a avisar, pra não perder a cor
+            // de prioridade nos chamados tranquilos.
+            const corBorda = situacaoSla === 'estourado' ? '#B3402F' : situacaoSla === 'atencao' ? '#f59e0b' : corPrioridade
             return (
               <div key={chamado.id} onClick={() => onSelect(chamado)}
-                style={{ ...estilos.card, display: largura >= 900 ? 'grid' : 'flex', flexDirection: 'column', gridTemplateColumns: largura >= 900 ? COLUNAS_TABELA : undefined, gap: 10, padding: '14px 16px', cursor: 'pointer', alignItems: 'center', borderLeft: `3px solid ${corPrioridade}` }}>
+                style={{ ...estilos.card, display: largura >= 900 ? 'grid' : 'flex', flexDirection: 'column', gridTemplateColumns: largura >= 900 ? COLUNAS_TABELA : undefined, gap: 10, padding: '14px 16px', cursor: 'pointer', alignItems: 'center', borderLeft: `3px solid ${corBorda}` }}>
                 {largura >= 900 && (
                   <span style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: 12, color: CORES_APP.textoSuave, fontVariantNumeric: 'tabular-nums' }}>{numeroChamado(chamado.id)}</span>
                 )}
@@ -174,8 +202,12 @@ function ITDashboard({ versaoDados, onSelect, onAbrirChamado }) {
                       <div style={{ color: CORES_APP.textoSuave, fontSize: 11 }}>{chamado.solicitanteDept}</div>
                     </div>
                     <span style={{ color: CORES_APP.textoFraco, fontSize: 12, fontFamily: 'Outfit, sans-serif', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{LABEL_CATEGORIA[chamado.category]}</span>
+                    <span style={{ color: chamado.assignedTo ? CORES_APP.texto : CORES_APP.textoSuave, fontSize: 12, fontWeight: chamado.assignedTo ? 500 : 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{chamado.assignedTo ?? 'Não atribuído'}</span>
                     <span style={{ color: CORES_APP.textoFraco, fontSize: 12, whiteSpace: 'nowrap' }}>{tempoDecorrido(chamado.updated)}</span>
-                    <span style={{ justifySelf: 'start' }}><StatusBadge status={chamado.status} /></span>
+                    <span style={{ justifySelf: 'start', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                      <StatusBadge status={chamado.status} />
+                      <SlaBadge situacao={situacaoSla} />
+                    </span>
                     <div style={{ display: 'flex', gap: 6 }} onClick={e => e.stopPropagation()}>
                       <button type="button" onClick={() => onSelect(chamado)} title="Ver detalhe"
                         style={{ background: CORES_APP.fundoCampo, border: 'none', color: CORES_APP.textoFraco, width: 28, height: 28, borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
@@ -188,8 +220,9 @@ function ITDashboard({ versaoDados, onSelect, onAbrirChamado }) {
                     </div>
                   </>
                 ) : (
-                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 4 }}>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 4, alignItems: 'center' }}>
                     <StatusBadge status={chamado.status} />
+                    <SlaBadge situacao={situacaoSla} />
                     <span style={{ color: CORES_APP.textoFraco, fontSize: 12 }}>{chamado.solicitanteNome?.split(' ')[0]} · {LABEL_CATEGORIA[chamado.category]}</span>
                   </div>
                 )}
