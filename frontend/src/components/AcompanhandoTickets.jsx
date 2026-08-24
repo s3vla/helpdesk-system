@@ -63,8 +63,12 @@ function AcompanhandoTickets({ versaoDados, onSelect }) {
           <div style={{ display: 'grid', gridTemplateColumns: largura < 640 ? '1fr' : 'repeat(3, 1fr)', gap: 14 }}>
             {COLUNAS.map(coluna => {
               const cards = chamados.filter(c => c.status === coluna.status)
+              // minWidth:0 — sem isso, um título sem espaço nenhum força
+              // a track da grid (repeat(3, 1fr)) a crescer além do 1/3,
+              // desalinhando as 3 colunas (mesma correção de
+              // MyTickets.jsx, que usa este exato layout).
               return (
-                <div key={coluna.status} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div key={coluna.status} style={{ display: 'flex', flexDirection: 'column', gap: 10, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 14px', background: CORES_APP.fundoCampo, borderRadius: 10, border: `1px solid ${coluna.cor}30` }}>
                     <span style={{ width: 9, height: 9, borderRadius: '50%', background: coluna.cor, display: 'inline-block', flexShrink: 0 }} />
                     <span style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: 13, color: coluna.cor }}>{coluna.label}</span>
@@ -74,8 +78,16 @@ function AcompanhandoTickets({ versaoDados, onSelect }) {
                     ? <div style={{ padding: '22px 14px', textAlign: 'center', color: CORES_APP.textoSuave, fontSize: 13, border: `1px dashed ${CORES_APP.borda}`, borderRadius: 10 }}>Nenhum chamado</div>
                     : cards.map(chamado => (
                       <div key={chamado.id} onClick={() => onSelect(chamado)}
-                        style={{ ...estilos.card, borderLeft: `3px solid ${coluna.cor}`, padding: '14px 15px', cursor: 'pointer' }}>
-                        <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 600, fontSize: 14, color: CORES_APP.tinta, marginBottom: 4, lineHeight: 1.4 }}>
+                        style={{ ...estilos.card, borderLeft: `3px solid ${coluna.cor}`, padding: '14px 15px', cursor: 'pointer', minWidth: 0 }}>
+                        {/* Título truncado em no máximo 2 linhas (mesma
+                            correção de MyTickets.jsx) — sem isso, um
+                            resumo sem espaço nenhum estourava a largura do
+                            card, empurrando "Aberto por"/categoria/data
+                            pra fora e desalinhando a grid inteira. */}
+                        <div style={{
+                          fontFamily: 'Outfit, sans-serif', fontWeight: 600, fontSize: 14, color: CORES_APP.tinta, marginBottom: 4, lineHeight: 1.4,
+                          display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', overflowWrap: 'break-word',
+                        }}>
                           <span style={{ fontFamily: 'IBM Plex Mono, monospace', fontWeight: 500, fontSize: 12, color: CORES_APP.textoSuave, marginRight: 6 }}>{numeroChamado(chamado.id)}</span>
                           {chamado.summary}
                         </div>
