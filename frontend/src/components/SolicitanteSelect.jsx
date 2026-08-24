@@ -33,7 +33,7 @@ function SolicitanteSelect({ opcoes, valor, onChange, disabled }) {
           width: '100%', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
           background: CORES_APP.fundoCampo, color: selecionado ? CORES_APP.tinta : CORES_APP.placeholder,
           border: `1px solid ${aberto ? 'rgba(0,120,81,0.4)' : 'rgba(0,120,81,0.2)'}`,
-          borderRadius: 10, padding: '10px 12px', fontSize: 14, fontFamily: 'Inter, sans-serif', textAlign: 'left',
+          borderRadius: 10, padding: '13px 14px', fontSize: 15, fontFamily: 'Inter, sans-serif', textAlign: 'left',
           cursor: disabled ? 'default' : 'pointer', transition: 'all 0.15s',
         }}>
         {selecionado ? `${selecionado.name ?? '— (aguardando cadastro)'} · ${selecionado.email}` : 'Selecione o colaborador...'}

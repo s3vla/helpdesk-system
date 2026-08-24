@@ -19,7 +19,7 @@ function CategoriaSelect({ valor, onChange, disabled }) {
           width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
           background: CORES_APP.fundoCampo, color: '#00b351',
           border: `1px solid ${aberto ? 'rgba(0,120,81,0.4)' : CORES_APP.borda}`,
-          borderRadius: 8, padding: '9px 12px', fontSize: 14, fontFamily: 'Outfit, sans-serif', fontWeight: 600,
+          borderRadius: 8, padding: '12px 14px', fontSize: 15, fontFamily: 'Outfit, sans-serif', fontWeight: 600,
           cursor: disabled ? 'default' : 'pointer', transition: 'all 0.15s',
         }}>
         {LABEL_CATEGORIA[valor]}
