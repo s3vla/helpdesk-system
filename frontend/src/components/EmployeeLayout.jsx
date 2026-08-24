@@ -2,18 +2,25 @@ import { useState } from 'react'
 import Logo from './Logo'
 import { useWindowWidth } from '../hooks/useWindowWidth'
 import { obterIniciais } from '../utils/formatters'
-import { IconEye, IconMenu, IconLock, IconLogOut } from './icons'
+import { IconEye, IconMenu, IconLock, IconLogOut, IconSun, IconMoon } from './icons'
 import { CORES_APP } from '../styles/theme'
+import { useTheme } from '../hooks/useTheme'
 
 // Cabeçalho fixo do colaborador: logo, navegação (Novo Chamado / Meus
 // Chamados) e avatar com iniciais que abre um pequeno menu (Trocar senha /
 // Sair) — antes o clique no avatar deslogava direto; virou um menu porque
 // "Trocar senha" precisava de um lugar acessível pra qualquer usuário.
 // Em telas estreitas (mobile) os labels viram ícones para caber no espaço.
-function EmployeeLayout({ user, telaAtiva, onNav, onLogout, onTrocarSenha, children }) {
+// `larguraMaxima` tem default 840 (a largura de sempre, boa pra telas de
+// texto/lista como Meus Chamados) — só a tela "Abrir chamado" pede uma
+// largura maior (App.jsx passa um valor diferente ali), pra caber o
+// layout de duas colunas (formulário + Resumo da Solicitação) sem
+// espremer. Nenhuma outra tela do colaborador muda.
+function EmployeeLayout({ user, telaAtiva, onNav, onLogout, onTrocarSenha, larguraMaxima = 840, children }) {
   const largura = useWindowWidth()
   const mobile = largura < 640
   const [menuAberto, setMenuAberto] = useState(false)
+  const { modo, alternarTema } = useTheme()
 
   const itensNav = [
     { tela: 'emp-home', label: mobile ? '+' : 'Novo Chamado' },
@@ -55,6 +62,12 @@ function EmployeeLayout({ user, telaAtiva, onNav, onLogout, onTrocarSenha, child
             <>
               <div style={{ position: 'fixed', inset: 0, zIndex: 44 }} onClick={() => setMenuAberto(false)} />
               <div style={{ position: 'absolute', top: 42, right: 0, zIndex: 45, background: CORES_APP.popover, border: `1px solid ${CORES_APP.borda}`, borderRadius: 10, padding: 6, minWidth: 160, boxShadow: '0 8px 24px rgba(16,35,31,0.18)' }}>
+                <button onClick={alternarTema} aria-pressed={modo === 'escuro'}
+                  title={modo === 'claro' ? 'Ativar tema escuro' : 'Ativar tema claro'}
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left', background: 'none', border: 'none', color: CORES_APP.texto, fontSize: 13, fontFamily: 'Inter, sans-serif', padding: '9px 10px', borderRadius: 6, cursor: 'pointer' }}>
+                  {modo === 'claro' ? <IconMoon width={14} height={14} /> : <IconSun width={14} height={14} />}
+                  {modo === 'claro' ? 'Tema escuro' : 'Tema claro'}
+                </button>
                 <button onClick={() => { setMenuAberto(false); onTrocarSenha() }}
                   style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left', background: 'none', border: 'none', color: CORES_APP.texto, fontSize: 13, fontFamily: 'Inter, sans-serif', padding: '9px 10px', borderRadius: 6, cursor: 'pointer' }}>
                   <IconLock width={14} height={14} /> Trocar senha
@@ -68,7 +81,7 @@ function EmployeeLayout({ user, telaAtiva, onNav, onLogout, onTrocarSenha, child
           )}
         </div>
       </header>
-      <main style={{ flex: 1, padding: mobile ? '24px 16px' : '36px 28px', maxWidth: 840, width: '100%', margin: '0 auto', boxSizing: 'border-box' }}>
+      <main style={{ flex: 1, padding: mobile ? '24px 16px' : '36px 28px', maxWidth: larguraMaxima, width: '100%', margin: '0 auto', boxSizing: 'border-box' }}>
         {children}
       </main>
     </div>
