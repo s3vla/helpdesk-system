@@ -39,7 +39,7 @@ function DashboardTI() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const widgetsAtivos = widgets.filter(w => w.ativo)
+  const widgetsAtivos = (widgets ?? []).filter(w => w.ativo)
   const periodo = { dataInicio, dataFim }
 
   return (

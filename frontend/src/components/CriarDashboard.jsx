@@ -59,7 +59,7 @@ function CriarDashboard() {
     setCarregando(true)
     setErro('')
     try {
-      setWidgets(await buscarWidgets(token))
+      setWidgets((await buscarWidgets(token)) ?? [])
     } catch (e) {
       if (!tratarErroApi(e)) setErro(traduzirErroApi(e))
     } finally {

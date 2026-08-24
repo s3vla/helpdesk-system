@@ -19,6 +19,7 @@ export default defineConfig({
       '/usuarios': 'http://localhost:3000',
       '/solucoes-conhecidas': 'http://localhost:3000',
       '/uploads': 'http://localhost:3000',
+      '/dashboard': 'http://localhost:3000',
     },
   },
 })

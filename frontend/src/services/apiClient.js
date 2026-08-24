@@ -39,11 +39,33 @@ export async function chamarApi(caminho, { token, metodo = 'GET', corpo, comoFor
     throw new ErroApi(0, 'Não foi possível conectar ao servidor.')
   }
 
-  const dados = await resposta.json().catch(() => null)
+  // Lê como texto primeiro pra distinguir dois casos que `resposta.json()`
+  // direto trata igual (os dois lançam a mesma exceção de parse), mas que
+  // são bem diferentes na prática:
+  // - corpo VAZIO de propósito (ex: DELETE sem retorno) — não é erro, `dados`
+  //   fica `null` e segue o fluxo normal, como sempre foi;
+  // - corpo NÃO vazio mas ilegível como JSON — resposta truncada/corrompida
+  //   (ex: servidor reiniciando no meio da requisição em dev). Isso PRECISA
+  //   virar um erro de verdade: se tratássemos igual ao caso vazio, quem
+  //   chama receberia `null` como se fosse um dado válido — foi exatamente
+  //   isso que causou tela branca no Dashboard (ver DashboardTI.jsx).
+  const texto = await resposta.text()
+  let dados = null
+  if (texto) {
+    try {
+      dados = JSON.parse(texto)
+    } catch {
+      dados = undefined // sentinela: teve corpo, mas não deu pra entender
+    }
+  }
 
   if (!resposta.ok) {
     const mensagem = Array.isArray(dados?.message) ? dados.message[0] : (dados?.message ?? 'Ocorreu um erro inesperado.')
     throw new ErroApi(resposta.status, mensagem)
+  }
+
+  if (dados === undefined) {
+    throw new ErroApi(resposta.status, 'Resposta inválida do servidor — tente novamente.')
   }
 
   return dados
