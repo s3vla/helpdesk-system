@@ -1,32 +1,52 @@
 import { useState } from 'react'
-import { estilos } from '../styles/theme'
-import { useAuth } from '../hooks/useAuth'
-import { traduzirErroApi } from '../utils/traduzirErroApi'
+import BrandPanel from './auth/BrandPanel'
+import FundoDecorativo from './auth/FundoDecorativo'
+import EmailInput from './auth/EmailInput'
 import PasswordInput from './PasswordInput'
+import PasswordStrengthBar, { ConfirmacaoSenha } from './auth/PasswordStrengthBar'
+import { estilosAuth, cores, botaoVerde, botaoInativo, forcaSenha } from '../styles/authTheme'
+import { departamentoPorEmail } from '../utils/departamentoPorEmail'
+import { useAuth } from '../hooks/useAuth'
+import { useWindowWidth } from '../hooks/useWindowWidth'
+import { traduzirErroApi } from '../utils/traduzirErroApi'
 
-// Modal de "Primeiro Acesso": cadastra um colaborador novo direto pela API
+// Tela de "Primeiro Acesso": cadastra um colaborador novo direto pela API
 // (POST /auth/primeiro-acesso) e já entra logado com o token recebido de
 // volta — por isso chama useAuth().primeiroAcesso aqui dentro, em vez de só
 // coletar dados e devolver pro componente pai.
 //
-// Diferente da versão anterior (mockada), o backend exige senha — por isso
-// os campos de senha/confirmar senha foram adicionados aqui, exatamente
-// como o CONTRATO.md da API pedia. O e-mail também virou um campo editável
-// (pré-preenchido com o que a pessoa já tinha digitado no login, se algo):
-// como o backend nunca revela se um e-mail já existe ou não (resposta
-// genérica em caso de erro de login, por segurança), não dá mais pra
-// "detectar" automaticamente que alguém precisa de primeiro acesso.
+// O e-mail continua sendo um campo EDITÁVEL (não travado, sem selo de
+// "verificado") — diferente do design de referência (Figma), que assumia
+// um e-mail pré-verificado por convite. Aqui o backend nunca revela se um
+// e-mail já existe ou não (resposta genérica em caso de erro de login, por
+// segurança), então não dá pra "detectar"/travar isso automaticamente —
+// mostrar um selo de verificado seria enganoso. Departamento É travado
+// (readOnly) quando dá pra derivar do prefixo do e-mail via
+// departamentoPorEmail — nos casos sem mapeamento (ex: e-mail de pessoa,
+// não de setor), fica um campo comum, editável.
+//
+// Antes era um modal sobreposto (overlay); agora é uma tela cheia própria
+// (troca de "roupa" pro layout split-screen), mas continua sendo montada
+// do mesmo jeito por quem chama (LoginScreen troca pra ela em vez de
+// abrir por cima) — mesmas props, mesma lógica.
 function FirstAccessModal({ emailInicial, onSucesso, onFechar }) {
   const { primeiroAcesso } = useAuth()
   const [email, setEmail] = useState(emailInicial ?? '')
   const [name, setName] = useState('')
-  const [role, setRole] = useState('')
+  const [departamentoManual, setDepartamentoManual] = useState('')
   const [senha, setSenha] = useState('')
   const [confirmarSenha, setConfirmarSenha] = useState('')
   const [erro, setErro] = useState('')
   const [carregando, setCarregando] = useState(false)
+  const largura = useWindowWidth()
+  const mobile = largura < 900
 
-  const podeContinuar = email.trim() && name.trim() && role.trim() && senha && confirmarSenha
+  const departamentoAutomatico = departamentoPorEmail(email)
+  const departamentoTravado = departamentoAutomatico !== null
+  const departamento = departamentoTravado ? departamentoAutomatico : departamentoManual
+
+  const podeContinuar = email.trim() && name.trim() && senha && confirmarSenha
+  const forca = forcaSenha(senha)
 
   async function enviar() {
     if (!podeContinuar) return
@@ -45,7 +65,7 @@ function FirstAccessModal({ emailInicial, onSucesso, onFechar }) {
     setErro('')
     setCarregando(true)
     try {
-      await primeiroAcesso({ email: email.trim(), senha, nome: name.trim(), cargo: role.trim() })
+      await primeiroAcesso({ email: email.trim(), senha, nome: name.trim(), departamento: departamento.trim() || undefined })
       onSucesso()
     } catch (e) {
       setErro(traduzirErroApi(e))
@@ -55,44 +75,75 @@ function FirstAccessModal({ emailInicial, onSucesso, onFechar }) {
   }
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(4,10,22,0.93)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={onFechar}>
-      <div style={{ ...estilos.card, border: '1px solid rgba(0,120,81,0.25)', padding: '34px 30px', width: '100%', maxWidth: 400 }} className="animate-fade-up" onClick={e => e.stopPropagation()}>
-        <h2 style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: 21, color: '#f0f4ff', margin: '0 0 6px' }}>Primeiro acesso</h2>
-        <p style={{ color: '#7b92b4', fontSize: 14, margin: '0 0 26px', lineHeight: 1.6 }}>Precisamos de mais algumas informações para configurar sua conta.</p>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div>
-            <label style={estilos.label}>E-mail corporativo</label>
-            <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="seu.nome@novatechagro.com.br" style={estilos.input} disabled={carregando} />
+    <div style={mobile ? estilosAuth.paginaMobile : estilosAuth.pagina} className="animate-fade-up">
+      <BrandPanel />
+      <main style={mobile ? estilosAuth.principalMobile : estilosAuth.principal}>
+        <FundoDecorativo />
+        <div style={mobile ? estilosAuth.cartaoMobile : estilosAuth.cartao}>
+          <div style={estilosAuth.coluna}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <span style={estilosAuth.eyebrow}>PRIMEIRO ACESSO</span>
+              <h2 style={estilosAuth.titulo}>Complete seu cadastro</h2>
+              <p style={estilosAuth.texto}>Esses dados aparecem nos chamados que você abrir, para o time de TI saber quem procurar.</p>
+            </div>
+
+            <form style={estilosAuth.form} onSubmit={e => { e.preventDefault(); enviar() }}>
+              <label style={estilosAuth.campo}>
+                <span style={estilosAuth.rotulo}>E-mail corporativo</span>
+                <EmailInput value={email} onChange={e => setEmail(e.target.value)}
+                  placeholder="seu.nome@novatechagro.com.br" style={estilosAuth.input} disabled={carregando} iconColor={cores.azulMedio} />
+              </label>
+
+              <label style={estilosAuth.campo}>
+                <span style={estilosAuth.rotulo}>Nome completo</span>
+                <input value={name} onChange={e => setName(e.target.value)} placeholder="Seu nome completo" style={estilosAuth.input} disabled={carregando} />
+              </label>
+
+              <label style={estilosAuth.campo}>
+                <span style={estilosAuth.rotulo}>Departamento</span>
+                <input
+                  value={departamento}
+                  onChange={e => setDepartamentoManual(e.target.value)}
+                  placeholder={departamentoTravado ? undefined : 'Ex.: Financeiro'}
+                  readOnly={departamentoTravado}
+                  disabled={carregando}
+                  style={{ ...estilosAuth.input, ...(departamentoTravado ? { background: cores.fundoCampo, color: cores.texto, cursor: 'default' } : {}) }}
+                />
+              </label>
+
+              <label style={estilosAuth.campo}>
+                <span style={estilosAuth.rotulo}>Senha</span>
+                <PasswordInput value={senha} onChange={e => setSenha(e.target.value)} placeholder="Mínimo 8 caracteres" disabled={carregando}
+                  style={{ ...estilosAuth.input, ...estilosAuth.inputSenha }} iconColor={cores.azulMedio} />
+                <PasswordStrengthBar forca={forca} />
+              </label>
+
+              <label style={estilosAuth.campo}>
+                <span style={estilosAuth.rotulo}>Confirmar senha</span>
+                <PasswordInput value={confirmarSenha} onChange={e => setConfirmarSenha(e.target.value)} placeholder="Digite a senha novamente" disabled={carregando}
+                  style={{ ...estilosAuth.input, ...estilosAuth.inputSenha }} iconColor={cores.azulMedio} />
+                <ConfirmacaoSenha confirmar={confirmarSenha} nova={senha} />
+              </label>
+
+              {erro && <p style={{ color: cores.erro, fontSize: 13, margin: 0 }}>{erro}</p>}
+
+              <div style={{ display: 'flex', gap: 12, marginTop: 6 }}>
+                <button type="submit" disabled={!podeContinuar || carregando}
+                  style={{ ...(podeContinuar && !carregando ? botaoVerde : botaoInativo), flex: 1, marginTop: 0 }}>
+                  {carregando ? 'Criando conta...' : 'Criar conta'}
+                </button>
+                <button type="button" onClick={onFechar} disabled={carregando} style={{
+                  height: 52, padding: '0 20px', fontFamily: estilosAuth.pagina.fontFamily, fontSize: 15, fontWeight: 500,
+                  color: cores.textoFraco, background: 'transparent', border: `1px solid ${cores.borda}`, borderRadius: 10,
+                  cursor: carregando ? 'default' : 'pointer',
+                }}>
+                  Cancelar
+                </button>
+              </div>
+            </form>
           </div>
-          <div>
-            <label style={estilos.label}>Nome completo</label>
-            <input value={name} onChange={e => setName(e.target.value)} placeholder="Seu nome completo" style={estilos.input} disabled={carregando} />
-          </div>
-          <div>
-            <label style={estilos.label}>Cargo</label>
-            <input value={role} onChange={e => setRole(e.target.value)} placeholder="Ex: Analista de Campo" style={estilos.input} disabled={carregando} />
-          </div>
-          <div>
-            <label style={estilos.label}>Senha</label>
-            <PasswordInput value={senha} onChange={e => setSenha(e.target.value)} placeholder="Mínimo 8 caracteres" disabled={carregando} />
-          </div>
-          <div>
-            <label style={estilos.label}>Confirmar senha</label>
-            <PasswordInput value={confirmarSenha} onChange={e => setConfirmarSenha(e.target.value)} placeholder="Digite a senha novamente" disabled={carregando} />
-          </div>
-          {erro && <p style={{ color: '#f87171', fontSize: 13, margin: 0 }}>{erro}</p>}
-          <button
-            onClick={enviar}
-            disabled={!podeContinuar || carregando}
-            style={{ ...estilos.btnPrimary, marginTop: 6, opacity: podeContinuar && !carregando ? 1 : 0.45, cursor: podeContinuar && !carregando ? 'pointer' : 'not-allowed' }}
-          >
-            {carregando ? 'Criando conta...' : 'Continuar'}
-          </button>
-          <button onClick={onFechar} style={{ background: 'none', border: 'none', color: '#7b92b4', cursor: 'pointer', fontSize: 13 }}>
-            Cancelar
-          </button>
         </div>
-      </div>
+      </main>
     </div>
   )
 }

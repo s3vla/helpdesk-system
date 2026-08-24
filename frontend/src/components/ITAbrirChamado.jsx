@@ -1,18 +1,29 @@
 import { useEffect, useRef, useState } from 'react'
-import { estilos } from '../styles/theme'
+import { estilos, CORES_APP, CORES_PRIORIDADE } from '../styles/theme'
 import { useWindowWidth } from '../hooks/useWindowWidth'
 import { useAuth } from '../hooks/useAuth'
 import { abrirChamadoComoTecnico, buscarColaboradores, enviarImagem } from '../services/ticketService'
 import { traduzirErroApi } from '../utils/traduzirErroApi'
 import CategoriaSelect from './CategoriaSelect'
 import SolicitanteSelect from './SolicitanteSelect'
+import ResumoSolicitacao from './ResumoSolicitacao'
 import { IconPaperclip } from './icons'
 
 const PRIORIDADES = [
-  { valor: 'baixa', label: 'Baixa', cor: '#22c55e' },
-  { valor: 'media', label: 'Média', cor: '#f59e0b' },
-  { valor: 'alta', label: 'Alta', cor: '#ef4444' },
+  { valor: 'baixa', label: 'Baixa', cor: CORES_PRIORIDADE.baixa.dot },
+  { valor: 'media', label: 'Média', cor: CORES_PRIORIDADE.media.dot },
+  { valor: 'alta', label: 'Alta', cor: CORES_PRIORIDADE.alta.fg },
 ]
+
+// Mesmo tamanho de estilos.input (compactar demais deixou os campos
+// "achatados" — voltado ao padrão, só mantido como const local pro caso de
+// precisar customizar de novo sem mexer no estilos.input compartilhado).
+const campoCompacto = { ...estilos.input, padding: '13px 14px', fontSize: 15 }
+// Idem pro rótulo — marginBottom menor que estilos.label (7), só aqui e em
+// CreateTicket.jsx, pra bater com a densidade da Central de Chamados
+// (linhas da tabela, referência de espaçamento pedida) sem mexer no
+// estilos.label compartilhado, usado em telas que não pediram esse ajuste.
+const rotuloCompacto = { ...estilos.label, marginBottom: 5 }
 
 // "Abrir chamado" do lado da Área Técnica — cenário "colega ligou/pediu
 // pessoalmente pro técnico abrir, sem passar pelo formulário ele mesmo".
@@ -30,7 +41,7 @@ function ITAbrirChamado({ onSubmit }) {
   const [cat, setCat] = useState('Hardware')
   const [prio, setPrio] = useState('media')
   const [anydeskId, setAnydeskId] = useState('')
-  const [arquivo, setArquivo] = useState(null)
+  const [arquivos, setArquivos] = useState([])
   const [etapa, setEtapa] = useState(null) // null | 'enviando-imagem' | 'criando'
   const [erro, setErro] = useState('')
   const fileRef = useRef(null)
@@ -51,13 +62,18 @@ function ITAbrirChamado({ onSubmit }) {
     if (!solicitanteId || !desc.trim()) return
     setErro('')
     try {
-      let imagemUrl
-      if (arquivo) {
+      const imagensUrls = []
+      if (arquivos.length > 0) {
         setEtapa('enviando-imagem')
-        imagemUrl = await enviarImagem(token, arquivo)
+        // Sequencial (não Promise.all) — evita disparar todos os uploads
+        // de uma vez pro mesmo endpoint; mais fácil de estender depois pra
+        // mostrar progresso tipo "2 de 5", se um dia for preciso.
+        for (const arquivo of arquivos) {
+          imagensUrls.push(await enviarImagem(token, arquivo))
+        }
       }
       setEtapa('criando')
-      await abrirChamadoComoTecnico(token, { solicitanteId, descricao: desc, mensagemErro: errMsg, categoria: cat, prioridade: prio, imagemUrl, anydeskId })
+      await abrirChamadoComoTecnico(token, { solicitanteId, descricao: desc, mensagemErro: errMsg, categoria: cat, prioridade: prio, imagensUrls, anydeskId })
       onSubmit()
     } catch (e) {
       if (!tratarErroApi(e)) setErro(traduzirErroApi(e))
@@ -67,18 +83,29 @@ function ITAbrirChamado({ onSubmit }) {
   }
 
   const carregando = etapa !== null
-  const textoBotao = etapa === 'enviando-imagem' ? 'Enviando imagem...' : etapa === 'criando' ? 'Enviando chamado...' : 'Abrir chamado'
+  const textoBotao = etapa === 'enviando-imagem' ? 'Enviando imagens...' : etapa === 'criando' ? 'Enviando chamado...' : 'Abrir chamado'
   const podeEnviar = !!solicitanteId && desc.trim() && !carregando
+  // 2/3 pro formulário, 1/3 pro resumo (proporção literal via fr, não só
+  // aproximada por px) em telas largas o bastante pra caber as duas
+  // colunas sem apertar (coluna direita tem mínimo de 280px) — abaixo
+  // disso, empilha (mesmo padrão responsivo que o resto do app já usa via
+  // useWindowWidth). `maxWidth` + `margin: auto` no wrapper do grid é
+  // necessário aqui: diferente do lado colaborador (EmployeeLayout já
+  // limita a largura do <main>), o ITLayout NÃO limita — sem isso, o
+  // formulário esticaria a tela toda em monitores largos.
+  const duasColunas = largura >= 860
+  const LARGURA_MAXIMA = 1280
 
   return (
-    <div className="animate-fade-up">
-      <div style={{ marginBottom: 28 }}>
-        <h1 style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: largura < 640 ? 24 : 28, color: '#f0f4ff', margin: '0 0 6px' }}>Abrir chamado</h1>
-        <p style={{ color: '#7b92b4', fontSize: 14, margin: 0, lineHeight: 1.6 }}>Abra um chamado em nome de um colaborador — para quando ele liga ou pede pessoalmente, sem passar pelo formulário.</p>
+    <div className="animate-fade-up" style={{ maxWidth: LARGURA_MAXIMA, margin: '0 auto' }}>
+      <div style={{ marginBottom: 18 }}>
+        <h1 style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: largura < 640 ? 20 : 22, color: CORES_APP.tinta, margin: '0 0 4px' }}>Abrir chamado</h1>
+        <p style={{ color: CORES_APP.textoFraco, fontSize: 14, margin: 0, lineHeight: 1.5 }}>Abra um chamado em nome de um colaborador — para quando ele liga ou pede pessoalmente, sem passar pelo formulário.</p>
       </div>
-      <div style={{ ...estilos.card, border: '1px solid rgba(0,120,81,0.14)', padding: largura < 640 ? 20 : 28, display: 'flex', flexDirection: 'column', gap: 22 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: duasColunas ? 'minmax(0, 2fr) minmax(280px, 1fr)' : '1fr', gap: 24, alignItems: 'start' }}>
+      <div style={{ ...estilos.card, border: '1px solid rgba(0,120,81,0.14)', padding: largura < 640 ? 16 : 22, display: 'flex', flexDirection: 'column', gap: 10 }}>
         <div>
-          <label style={estilos.label}>Solicitante <span style={{ color: '#ef4444' }}>*</span></label>
+          <label style={rotuloCompacto}>Solicitante <span style={{ color: '#ef4444' }}>*</span></label>
           <SolicitanteSelect
             opcoes={colaboradores}
             valor={solicitanteId}
@@ -87,29 +114,29 @@ function ITAbrirChamado({ onSubmit }) {
           />
         </div>
         <div>
-          <label style={estilos.label}>O que o colaborador precisa? <span style={{ color: '#ef4444' }}>*</span></label>
+          <label style={rotuloCompacto}>O que o colaborador precisa? <span style={{ color: '#ef4444' }}>*</span></label>
           <textarea value={desc} onChange={e => setDesc(e.target.value)} placeholder="Descreva o problema com o máximo de detalhes possível..."
-            style={{ ...estilos.input, minHeight: 120, resize: 'vertical', lineHeight: 1.7 }} disabled={carregando} />
+            style={{ ...campoCompacto, minHeight: 96, resize: 'vertical', lineHeight: 1.5 }} disabled={carregando} />
         </div>
         <div>
-          <label style={estilos.label}>Qual mensagem de erro apareceu? <span style={{ color: '#4a5f7a', fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>opcional</span></label>
-          <input value={errMsg} onChange={e => setErrMsg(e.target.value)} placeholder="Ex: Erro 404, tela azul, acesso negado..." style={estilos.input} disabled={carregando} />
+          <label style={rotuloCompacto}>Qual mensagem de erro apareceu? <span style={{ color: CORES_APP.textoSuave, fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>opcional</span></label>
+          <input value={errMsg} onChange={e => setErrMsg(e.target.value)} placeholder="Ex: Erro 404, tela azul, acesso negado..." style={campoCompacto} disabled={carregando} />
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: largura < 500 ? '1fr' : '1fr 1fr', gap: 20 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: largura < 500 ? '1fr' : '1fr 1fr', gap: 10 }}>
           <div>
-            <label style={estilos.label}>Categoria</label>
+            <label style={rotuloCompacto}>Categoria</label>
             <CategoriaSelect valor={cat} onChange={setCat} disabled={carregando} />
           </div>
           <div>
-            <label style={estilos.label}>Prioridade</label>
-            <div style={{ display: 'flex', gap: 7 }}>
+            <label style={rotuloCompacto}>Prioridade</label>
+            <div style={{ display: 'flex', gap: 6 }}>
               {PRIORIDADES.map(p => (
                 <button key={p.valor} type="button" onClick={() => setPrio(p.valor)} disabled={carregando}
                   style={{
-                    background: prio === p.valor ? `${p.cor}1a` : 'rgba(255,255,255,0.04)',
-                    color: prio === p.valor ? p.cor : '#94a3b8',
-                    border: `1px solid ${prio === p.valor ? `${p.cor}4d` : 'rgba(255,255,255,0.08)'}`,
-                    borderRadius: 7, padding: '7px 12px', fontSize: 13, fontFamily: 'Outfit, sans-serif',
+                    background: prio === p.valor ? `${p.cor}1a` : CORES_APP.fundoCampo,
+                    color: prio === p.valor ? p.cor : CORES_APP.textoFraco,
+                    border: `1px solid ${prio === p.valor ? `${p.cor}4d` : CORES_APP.borda}`,
+                    borderRadius: 7, padding: '11px 12px', fontSize: 13.5, fontFamily: 'Outfit, sans-serif',
                     fontWeight: prio === p.valor ? 600 : 400, cursor: 'pointer', flex: 1, transition: 'all 0.15s',
                   }}>
                   {p.label}
@@ -119,27 +146,54 @@ function ITAbrirChamado({ onSubmit }) {
           </div>
         </div>
         <div>
-          <label style={estilos.label}>Print do erro <span style={{ color: '#4a5f7a', fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>opcional</span></label>
+          <label style={rotuloCompacto}>Prints do erro <span style={{ color: CORES_APP.textoSuave, fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>opcional</span></label>
           <div onClick={() => !carregando && fileRef.current?.click()}
-            style={{ border: `2px dashed ${arquivo ? 'rgba(0,120,81,0.4)' : 'rgba(255,255,255,0.1)'}`, borderRadius: 10, padding: '22px', textAlign: 'center', cursor: carregando ? 'default' : 'pointer', background: arquivo ? 'rgba(0,179,81,0.05)' : 'transparent', transition: 'all 0.2s' }}>
-            <div style={{ marginBottom: 6, color: arquivo ? '#00b351' : '#7b92b4', display: 'flex', justifyContent: 'center' }}>
-              <IconPaperclip width={22} height={22} />
-            </div>
-            <div style={{ color: arquivo ? '#00b351' : '#7b92b4', fontSize: 14 }}>{arquivo ? `${arquivo.name} — clique para trocar` : 'Clique para anexar imagem'}</div>
-            <input ref={fileRef} type="file" accept="image/png, image/jpeg, image/webp" style={{ display: 'none' }}
-              onChange={e => setArquivo(e.target.files?.[0] ?? null)} disabled={carregando} />
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, border: `2px dashed ${arquivos.length ? 'rgba(0,120,81,0.4)' : CORES_APP.borda}`, borderRadius: 10, padding: '22px 14px', textAlign: 'center', cursor: carregando ? 'default' : 'pointer', background: arquivos.length ? 'rgba(0,179,81,0.05)' : 'transparent', transition: 'all 0.2s' }}>
+            <span style={{ color: arquivos.length ? '#00b351' : CORES_APP.textoFraco, display: 'flex', flexShrink: 0 }}>
+              <IconPaperclip width={16} height={16} />
+            </span>
+            <span style={{ color: arquivos.length ? '#00b351' : CORES_APP.textoFraco, fontSize: 13 }}>
+              {arquivos.length ? `${arquivos.length} ${arquivos.length > 1 ? 'imagens' : 'imagem'} selecionada${arquivos.length > 1 ? 's' : ''} — clique para adicionar mais` : 'Clique para anexar imagens'}
+            </span>
+            <input ref={fileRef} type="file" accept="image/png, image/jpeg, image/webp" multiple style={{ display: 'none' }}
+              onChange={e => {
+                const novos = Array.from(e.target.files ?? [])
+                if (novos.length) setArquivos(prev => [...prev, ...novos])
+                // Zera o input pra poder selecionar o MESMO arquivo de novo
+                // depois de removê-lo da lista (senão o navegador ignora,
+                // já que o valor "não mudou" do ponto de vista dele).
+                e.target.value = ''
+              }} disabled={carregando} />
           </div>
+          {arquivos.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
+              {arquivos.map((arq, indice) => (
+                <div key={`${arq.name}-${indice}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, background: CORES_APP.fundoCampo, borderRadius: 8, padding: '7px 10px' }}>
+                  <span style={{ color: CORES_APP.texto, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{arq.name}</span>
+                  <button type="button" onClick={() => setArquivos(prev => prev.filter((_, i) => i !== indice))} disabled={carregando}
+                    title="Remover"
+                    style={{ background: 'none', border: 'none', color: CORES_APP.textoSuave, fontSize: 17, lineHeight: 1, cursor: carregando ? 'default' : 'pointer', flexShrink: 0, padding: 0 }}>
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
         <div>
-          <label style={estilos.label}>ID do AnyDesk (para acesso remoto) <span style={{ color: '#4a5f7a', fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>opcional</span></label>
-          <input value={anydeskId} onChange={e => setAnydeskId(e.target.value)} placeholder="Ex: 123 456 789" style={estilos.input} disabled={carregando} />
-          <p style={{ color: '#4a5f7a', fontSize: 12, margin: '6px 0 0' }}>Fica visível na tela inicial do AnyDesk.</p>
+          <label style={rotuloCompacto}>ID do AnyDesk (para acesso remoto) <span style={{ color: CORES_APP.textoSuave, fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>opcional</span></label>
+          <input value={anydeskId} onChange={e => setAnydeskId(e.target.value)} placeholder="Ex: 123 456 789" style={campoCompacto} disabled={carregando} />
+          <p style={{ color: CORES_APP.textoSuave, fontSize: 12, margin: '4px 0 0' }}>Fica visível na tela inicial do AnyDesk.</p>
         </div>
-        {erro && <p style={{ color: '#f87171', fontSize: 13, margin: 0 }}>{erro}</p>}
+        {erro && <p style={{ color: CORES_APP.erro, fontSize: 13, margin: 0 }}>{erro}</p>}
         <button onClick={enviar} disabled={!podeEnviar}
-          style={{ ...estilos.btnPrimary, opacity: podeEnviar ? 1 : 0.45, cursor: podeEnviar ? 'pointer' : 'not-allowed', fontSize: 16 }}>
+          style={{ ...estilos.btnPrimary, padding: '11px 28px', opacity: podeEnviar ? 1 : 0.45, cursor: podeEnviar ? 'pointer' : 'not-allowed', fontSize: 15 }}>
           {textoBotao}
         </button>
+      </div>
+      <div style={duasColunas ? { position: 'sticky', top: 20 } : undefined}>
+        <ResumoSolicitacao categoria={cat} prioridade={prio} arquivos={arquivos} />
+      </div>
       </div>
     </div>
   )

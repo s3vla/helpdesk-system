@@ -24,7 +24,12 @@ import { CriarChamadoDto } from './dto/criar-chamado.dto';
 import { AbrirChamadoTecnicoDto } from './dto/abrir-chamado-tecnico.dto';
 import { AtualizarStatusChamadoDto } from './dto/atualizar-status-chamado.dto';
 import { AtualizarNivelChamadoDto } from './dto/atualizar-nivel-chamado.dto';
+import { AtribuirChamadoDto } from './dto/atribuir-chamado.dto';
+import { LogAuditoriaService } from '../log-auditoria/log-auditoria.service';
+import { mapLogAuditoriaParaResposta } from '../log-auditoria/dto/log-auditoria-response.dto';
 import { FiltrosChamadoDto } from './dto/filtros-chamado.dto';
+import { PeriodoChamadoDto } from './dto/periodo-chamado.dto';
+import { MetricasChamadoDto } from './dto/metricas-chamado.dto';
 import { mapChamadoParaResposta } from './dto/chamado-response.dto';
 import { CriarComentarioDto } from '../comentarios/dto/criar-comentario.dto';
 import { mapComentarioParaResposta } from '../comentarios/dto/comentario-response.dto';
@@ -42,6 +47,7 @@ export class ChamadosController {
     private readonly comentariosService: ComentariosService,
     private readonly solucoesConhecidasService: SolucoesConhecidasService,
     private readonly observadoresService: ObservadoresService,
+    private readonly logAuditoriaService: LogAuditoriaService,
   ) {}
 
   // "Central de Chamados" — visão completa, só TI.
@@ -76,6 +82,25 @@ export class ChamadosController {
       usuarioAtual.sub,
     );
     return chamados.map(mapChamadoParaResposta);
+  }
+
+  // Motor genérico de agregação pro Dashboard TI configurável (ver
+  // DashboardWidget) — precisa vir ANTES de @Get(':id') pelo mesmo motivo
+  // de /meus e /observando acima: senão "metricas" seria capturado como
+  // valor de :id e o ParseIntPipe rejeitaria com 400 antes de chegar aqui.
+  @Get('metricas')
+  @Roles(TipoUsuario.TECNICO)
+  async obterMetricas(@Query() filtros: MetricasChamadoDto) {
+    return this.chamadosService.obterMetricas(filtros);
+  }
+
+  // Carve-out do agrupamento por categoria + palavra-chave — não cabe no
+  // motor genérico acima (ver ChamadosService.obterRepeticao). Mesmo
+  // motivo de posicionamento que /metricas.
+  @Get('repeticao')
+  @Roles(TipoUsuario.TECNICO)
+  async obterRepeticao(@Query() filtros: PeriodoChamadoDto) {
+    return this.chamadosService.obterRepeticao(filtros);
   }
 
   @Get(':id')
@@ -131,6 +156,22 @@ export class ChamadosController {
       dto,
       usuarioAtual,
     );
+    return mapChamadoParaResposta(chamado);
+  }
+
+  // Define/troca/remove o técnico responsável manualmente — diferente de
+  // PATCH /status (que só auto-atribui o próprio técnico logado), aqui
+  // qualquer técnico pode escolher QUALQUER técnico da lista pra atender,
+  // inclusive desatribuir (tecnicoId null). ChamadosService.atribuir valida
+  // que o id informado é de fato um TECNICO.
+  @Patch(':id/atribuir')
+  @Roles(TipoUsuario.TECNICO)
+  async atribuir(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: AtribuirChamadoDto,
+    @UsuarioAtual() usuarioAtual: JwtPayload,
+  ) {
+    const chamado = await this.chamadosService.atribuir(id, dto, usuarioAtual);
     return mapChamadoParaResposta(chamado);
   }
 
@@ -214,5 +255,16 @@ export class ChamadosController {
   async buscarSolucoesSugeridas(@Param('id', ParseIntPipe) id: number) {
     const chamado = await this.chamadosService.buscarPorIdOuFalhar(id);
     return this.solucoesConhecidasService.sugerirParaChamado(chamado);
+  }
+
+  // "Histórico de alterações" do painel de TI — só técnico, mesma razão de
+  // /solucoes-sugeridas: quem já passou pelo RolesGuard aqui sempre tem
+  // acesso a qualquer chamado, não precisa de checagem de dono.
+  @Get(':id/logs')
+  @Roles(TipoUsuario.TECNICO)
+  async listarLogsAuditoria(@Param('id', ParseIntPipe) id: number) {
+    await this.chamadosService.buscarPorIdOuFalhar(id);
+    const logs = await this.logAuditoriaService.listarPorChamado(id);
+    return logs.map(mapLogAuditoriaParaResposta);
   }
 }

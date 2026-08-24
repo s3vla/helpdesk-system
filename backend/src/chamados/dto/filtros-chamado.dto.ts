@@ -1,4 +1,4 @@
-import { IsEnum, IsOptional } from 'class-validator';
+import { IsEnum, IsOptional, IsString } from 'class-validator';
 import { StatusChamado } from '../../common/enums/status-chamado.enum';
 import { NivelChamado } from '../../common/enums/nivel-chamado.enum';
 import { CategoriaChamado } from '../../common/enums/categoria-chamado.enum';
@@ -19,4 +19,11 @@ export class FiltrosChamadoDto {
   @IsOptional()
   @IsEnum(CategoriaChamado, { message: 'Categoria inválida' })
   categoria?: CategoriaChamado;
+
+  // Texto livre — filtra por número do chamado (ver
+  // ChamadosService.listarTodos) ou por trecho contido em título/descrição.
+  // Sem validação de formato: qualquer string é uma busca válida.
+  @IsOptional()
+  @IsString()
+  busca?: string;
 }

@@ -5,10 +5,12 @@ import { EmailCorporativo } from '../../common/validators/email-corporativo.deco
 // cadastrados via seed, ver src/database/seed.service.ts) — por isso não
 // existe campo `tipo` aqui: o service decide isso, não quem chama a API.
 //
-// `departamento` é opcional porque a tela de Primeiro Acesso do front atual
-// só pede nome e cargo (ver src/components/FirstAccessModal.jsx do
-// frontend) — se não vier, o AuthService preenche com um valor padrão. Isso
-// evita quebrar a integração até o formulário do front ganhar esse campo.
+// `departamento` é opcional porque, se não vier, o AuthService preenche com
+// um valor padrão (na prática sempre vem — a tela do front deriva do
+// prefixo do e-mail, ver departamentoPorEmail.js). `cargo` também é
+// opcional: a tela de Primeiro Acesso não pede mais esse campo (removido de
+// propósito, a empresa não usa a informação); a coluna no banco já era
+// nullable, então contas novas simplesmente ficam sem cargo preenchido.
 export class PrimeiroAcessoDto {
   @EmailCorporativo()
   email: string;
@@ -21,9 +23,9 @@ export class PrimeiroAcessoDto {
   @IsNotEmpty({ message: 'Informe seu nome completo' })
   nome: string;
 
+  @IsOptional()
   @IsString()
-  @IsNotEmpty({ message: 'Informe seu cargo' })
-  cargo: string;
+  cargo?: string;
 
   @IsOptional()
   @IsString()

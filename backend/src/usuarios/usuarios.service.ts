@@ -12,7 +12,9 @@ interface CriarUsuarioParams {
   nome: string;
   email: string;
   senhaHash: string;
-  cargo: string;
+  // Opcional porque a tela de Primeiro Acesso não coleta mais cargo — a
+  // coluna no banco já era nullable, então isso nunca exigiu migração.
+  cargo?: string | null;
   departamento: string;
   tipo: TipoUsuario;
   // Opcional porque só o seed de técnico usa — o valor padrão da coluna
@@ -24,7 +26,7 @@ interface CriarUsuarioParams {
 interface CompletarCadastroParams {
   nome: string;
   senhaHash: string;
-  cargo: string;
+  cargo?: string | null;
   departamento: string;
 }
 
@@ -64,6 +66,16 @@ export class UsuariosService {
   async listarColaboradores(): Promise<Usuario[]> {
     return this.usuarioRepository.find({
       where: { tipo: TipoUsuario.COLABORADOR },
+    });
+  }
+
+  // GET /usuarios/tecnicos — popula o dropdown "Atribuído a" do painel de
+  // TI (TicketPanel). Existe separado de listarColaboradores() porque é
+  // literalmente o filtro oposto: aqui só quem PODE ser responsável por um
+  // chamado, nunca quem abre chamado.
+  async listarTecnicos(): Promise<Usuario[]> {
+    return this.usuarioRepository.find({
+      where: { tipo: TipoUsuario.TECNICO },
     });
   }
 

@@ -31,7 +31,7 @@ export class ChamadoResponseDto {
   // Só relevante com status === ANDAMENTO — vem null em qualquer outro
   // status (ver Chamado.aguardandoRespostaDe e ChamadosService).
   aguardandoRespostaDe: TipoUsuario | null;
-  imagemUrl: string | null;
+  imagensUrls: string[];
   // Visível pra colaborador (dono do chamado) e técnico igual, sem
   // tratamento diferenciado — é dado que o próprio colaborador informou,
   // então ele também precisa ver de volta pra confirmar que digitou certo.
@@ -73,7 +73,7 @@ export function mapChamadoParaResposta(chamado: Chamado): ChamadoResponseDto {
     nivel: chamado.nivel,
     status: chamado.status,
     aguardandoRespostaDe: chamado.aguardandoRespostaDe,
-    imagemUrl: chamado.imagemUrl,
+    imagensUrls: chamado.imagensUrls,
     anydeskId: chamado.anydeskId,
     dataAbertura: chamado.dataAbertura,
     dataAtualizacao: chamado.dataAtualizacao,

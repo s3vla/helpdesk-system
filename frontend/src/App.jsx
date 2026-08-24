@@ -12,12 +12,14 @@ import ITUsers from './components/ITUsers'
 import ITUserDetail from './components/ITUserDetail'
 import ITSolutions from './components/ITSolutions'
 import ITAbrirChamado from './components/ITAbrirChamado'
+import DashboardTI from './components/DashboardTI'
+import CriarDashboard from './components/CriarDashboard'
 import TicketPanel from './components/TicketPanel'
 import TrocarSenhaModal from './components/TrocarSenhaModal'
 import { useAuth } from './hooks/useAuth'
 
 const TELAS_COLABORADOR = ['emp-home', 'emp-tickets', 'emp-observing', 'emp-sent']
-const TELAS_TI = ['it-dash', 'it-users', 'it-user', 'it-solutions', 'it-abrir-chamado']
+const TELAS_TI = ['it-dash', 'it-users', 'it-user', 'it-solutions', 'it-abrir-chamado', 'it-metricas', 'it-metricas-config']
 
 // App.jsx só orquestra qual tela mostrar — não guarda mais usuários/chamados
 // centralizados (isso agora vive na API, cada tela busca o que precisa via
@@ -78,6 +80,7 @@ function App() {
         onNav={s => { setChamadoSelecionado(null); setTela(s) }}
         onLogout={aoDeslogar}
         onTrocarSenha={() => setMostrarTrocarSenha(true)}
+        larguraMaxima={telaColaborador === 'emp-home' ? 1280 : 840}
       >
         {telaColaborador === 'emp-sent' && (
           <TicketSent onNew={() => setTela('emp-home')} onView={() => setTela('emp-tickets')} />
@@ -111,6 +114,7 @@ function App() {
   return (
     <ITLayout
       tela={telaTI}
+      usuario={usuario}
       onNav={s => {
         setUsuarioSelecionado(null)
         setChamadoSelecionado(null)
@@ -120,7 +124,7 @@ function App() {
       onTrocarSenha={() => setMostrarTrocarSenha(true)}
     >
       {telaTI === 'it-dash' && (
-        <ITDashboard versaoDados={versaoDados} onSelect={setChamadoSelecionado} />
+        <ITDashboard versaoDados={versaoDados} onSelect={setChamadoSelecionado} onAbrirChamado={() => setTela('it-abrir-chamado')} />
       )}
       {telaTI === 'it-users' && (
         <ITUsers onSelect={u => { setUsuarioSelecionado(u); setTela('it-user') }} />
@@ -132,6 +136,8 @@ function App() {
       {telaTI === 'it-abrir-chamado' && (
         <ITAbrirChamado onSubmit={() => { aoAtualizarChamado(); setTela('it-dash') }} />
       )}
+      {telaTI === 'it-metricas' && <DashboardTI />}
+      {telaTI === 'it-metricas-config' && <CriarDashboard />}
       {chamadoSelecionado && (
         <TicketPanel
           chamadoInicial={chamadoSelecionado}

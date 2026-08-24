@@ -34,6 +34,16 @@ export class UsuariosController {
     return usuarios.map(mapUsuarioParaResposta);
   }
 
+  // Precisa vir ANTES de @Get(':id/chamados') só por hábito de organização
+  // — não colidem de fato (segmentos diferentes: /usuarios/tecnicos tem 1
+  // segmento, /usuarios/:id/chamados tem 2), mas mantém as rotas estáticas
+  // agrupadas antes das dinâmicas, mesmo padrão de chamados.controller.ts.
+  @Get('tecnicos')
+  async listarTecnicos() {
+    const tecnicos = await this.usuariosService.listarTecnicos();
+    return tecnicos.map(mapUsuarioParaResposta);
+  }
+
   @Get(':id/chamados')
   async listarChamadosDoUsuario(@Param('id', ParseIntPipe) id: number) {
     const chamados = await this.chamadosService.listarPorUsuario(id);

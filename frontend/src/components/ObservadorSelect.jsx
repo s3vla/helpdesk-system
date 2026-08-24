@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { IconSearch } from './icons'
+import { CORES_APP } from '../styles/theme'
 
 // Dropdown com busca pra adicionar um colaborador como observador ("Cc")
 // de um chamado — mesmo padrão de popover do CategoriaSelect/menu de
@@ -41,24 +42,24 @@ function ObservadorSelect({ opcoes, onAdicionar, disabled }) {
               encolhe pra caber no painel em telas estreitas (o painel some
               com 20px de padding de cada lado no mobile — os 48px de folga
               cobrem isso com uma margem extra). */}
-          <div style={{ position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 9, background: '#0d1b34', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: 8, width: 'min(260px, calc(100vw - 48px))', boxSizing: 'border-box', boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}>
+          <div style={{ position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 9, background: CORES_APP.popover, border: `1px solid ${CORES_APP.borda}`, borderRadius: 10, padding: 8, width: 'min(260px, calc(100vw - 48px))', boxSizing: 'border-box', boxShadow: '0 8px 24px rgba(16,35,31,0.18)' }}>
             <div style={{ position: 'relative', marginBottom: 6 }}>
-              <span style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: '#4a5f7a', display: 'flex', pointerEvents: 'none' }}><IconSearch width={13} height={13} /></span>
+              <span style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: CORES_APP.textoSuave, display: 'flex', pointerEvents: 'none' }}><IconSearch width={13} height={13} /></span>
               <input value={busca} onChange={e => setBusca(e.target.value)} autoFocus
                 placeholder="Buscar colaborador..."
-                style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 6, padding: '7px 9px 7px 28px', fontSize: 12, color: '#f0f4ff', fontFamily: 'Inter, sans-serif' }} />
+                style={{ width: '100%', boxSizing: 'border-box', background: CORES_APP.fundoCampo, border: `1px solid ${CORES_APP.borda}`, borderRadius: 6, padding: '7px 9px 7px 28px', fontSize: 12, color: CORES_APP.tinta, fontFamily: 'Inter, sans-serif' }} />
             </div>
             <div style={{ maxHeight: 220, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 2 }}>
               {filtradas.length === 0 && (
-                <div style={{ color: '#4a5f7a', fontSize: 12, padding: '10px 8px', textAlign: 'center' }}>Nenhum colaborador encontrado</div>
+                <div style={{ color: CORES_APP.textoSuave, fontSize: 12, padding: '10px 8px', textAlign: 'center' }}>Nenhum colaborador encontrado</div>
               )}
               {filtradas.map(u => (
                 <button key={u.id} type="button" onClick={() => { onAdicionar(u.id); fechar() }}
                   style={{ display: 'block', width: '100%', textAlign: 'left', background: 'transparent', border: 'none', borderRadius: 6, padding: '8px 9px', cursor: 'pointer' }}
-                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = CORES_APP.fundoCampo }}
                   onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}>
-                  <div style={{ color: '#f0f4ff', fontSize: 13, fontFamily: 'Outfit, sans-serif', fontWeight: 500 }}>{u.name ?? '— (aguardando cadastro)'}</div>
-                  <div style={{ color: '#7b92b4', fontSize: 11 }}>{u.email}</div>
+                  <div style={{ color: CORES_APP.tinta, fontSize: 13, fontFamily: 'Outfit, sans-serif', fontWeight: 500 }}>{u.name ?? '— (aguardando cadastro)'}</div>
+                  <div style={{ color: CORES_APP.textoFraco, fontSize: 11 }}>{u.email}</div>
                 </button>
               ))}
             </div>

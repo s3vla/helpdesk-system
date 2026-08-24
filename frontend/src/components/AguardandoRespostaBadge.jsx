@@ -1,4 +1,5 @@
 import { IconClock } from './icons'
+import { CORES_STATUS } from '../styles/theme'
 
 // Indicador de "de quem é a vez de responder", visível na lista de chamados
 // (Central de Chamados, Meus Chamados, Acompanhando) e no cabeçalho do
@@ -25,10 +26,13 @@ function AguardandoRespostaBadge({ status, aguardandoRespostaDe, isIT }) {
   // Só o técnico vendo o próprio lado pendente ganha o alerta mais forte —
   // é ação dele mesmo, faz sentido chamar mais atenção. Os outros três
   // casos usam o mesmo tom neutro (informativo, sem soar como cobrança).
+  // Reaproveita os mesmos tons de CORES_STATUS (andamento = âmbar, parado =
+  // cinza neutro) em vez de uma paleta própria — é o mesmo "estado neutro"
+  // visualmente, só que sinalizando outra coisa (aguardando resposta).
   const alerta = isIT && ehLadoProprio
-  const cor = alerta ? '#f59e0b' : '#94a3b8'
-  const bg = alerta ? 'rgba(245,158,11,0.14)' : 'rgba(100,116,139,0.15)'
-  const border = alerta ? 'rgba(245,158,11,0.3)' : 'rgba(100,116,139,0.25)'
+  const cor = alerta ? CORES_STATUS.andamento.fg : CORES_STATUS.parado.fg
+  const bg = alerta ? CORES_STATUS.andamento.bg : CORES_STATUS.parado.bg
+  const border = alerta ? 'rgba(245,158,11,0.3)' : 'rgba(138,150,163,0.35)'
 
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: bg, color: cor, border: `1px solid ${border}`, padding: '3px 10px 3px 8px', borderRadius: 99, fontSize: 12, fontWeight: alerta ? 700 : 600, fontFamily: 'Outfit, sans-serif', whiteSpace: 'nowrap' }}>

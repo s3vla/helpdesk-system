@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react'
 import { chamarApi, ErroApi } from '../services/apiClient'
 import { mapearUsuario } from '../services/ticketService'
 import { AuthContext } from './authContextInstance'
+import { useTheme } from '../hooks/useTheme'
 
 // Guarda o token JWT e o usuário logado SÓ em memória (useState) — nunca em
 // localStorage/sessionStorage. Motivo: qualquer script que rode na página
@@ -16,9 +17,18 @@ export function AuthProvider({ children }) {
   const [token, setToken] = useState(null)
   const [usuario, setUsuario] = useState(null)
   const [mensagemSessao, setMensagemSessao] = useState('')
+  // AuthProvider fica dentro do ThemeProvider (ver main.jsx), então dá pra
+  // consumir o contexto de tema daqui — é o que permite resetar o tema pro
+  // claro em todo login/logout, sem o ThemeProvider precisar saber nada
+  // sobre autenticação.
+  const { resetarTema } = useTheme()
 
-  async function login(email, senha) {
-    const resposta = await chamarApi('/auth/login', { metodo: 'POST', corpo: { email, senha } })
+  // `perfilEsperado` ('COLABORADOR' | 'TECNICO') vem de qual tela chamou —
+  // o backend recusa (403, ANTES de emitir token) se o `tipo` real do
+  // usuário não bater com isso, então nunca existe sessão criada pro perfil
+  // errado (ver AuthService.login no backend).
+  async function login(email, senha, perfilEsperado) {
+    const resposta = await chamarApi('/auth/login', { metodo: 'POST', corpo: { email, senha, perfilEsperado } })
     // mapearUsuario traduz o formato bruto da API (nome, cargo,
     // departamento) pro formato em inglês (name, role, dept) que
     // EmployeeLayout e as demais telas já usam desde o protótipo.
@@ -26,6 +36,7 @@ export function AuthProvider({ children }) {
     setToken(resposta.accessToken)
     setUsuario(usuarioMapeado)
     setMensagemSessao('')
+    resetarTema()
     return usuarioMapeado
   }
 
@@ -35,12 +46,14 @@ export function AuthProvider({ children }) {
     setToken(resposta.accessToken)
     setUsuario(usuarioMapeado)
     setMensagemSessao('')
+    resetarTema()
     return usuarioMapeado
   }
 
   function logout() {
     setToken(null)
     setUsuario(null)
+    resetarTema()
   }
 
   // Troca a senha de quem está logado. A API devolve um accessToken NOVO
@@ -67,11 +80,12 @@ export function AuthProvider({ children }) {
         setToken(null)
         setUsuario(null)
         setMensagemSessao('Sua sessão expirou. Faça login novamente.')
+        resetarTema()
         return true
       }
       return false
     },
-    [token],
+    [token, resetarTema],
   )
 
   function limparMensagemSessao() {

@@ -1,6 +1,7 @@
 /* Reset + fundação visual do Help Desk Novatech Agro.
-   Cada tela já define seu próprio background (navy escuro) via style inline,
-   então aqui só cuidamos do reset, da fonte padrão e das animações
+   Cada tela já define seu próprio background/texto (ver CORES_APP em
+   styles/theme.js, que resolve pra `var(--app-*)`) via style inline, então
+   aqui só cuidamos do reset, da fonte padrão e das animações
    compartilhadas (className="animate-...") usadas pelos componentes. */
 
 * {
@@ -17,8 +18,11 @@ body,
 
 body {
   font-family: 'Inter', sans-serif;
-  background: #060f1e;
-  color: #f0f4ff;
+  /* Fallback (tema claro) só pro instante antes do ThemeProvider escrever
+     as variáveis reais na raiz (ver context/ThemeContext.jsx) — os valores
+     de verdade vivem em styles/theme.js, não duplicar aqui. */
+  background: var(--app-fundo, #F4F6F5);
+  color: var(--app-texto, #3C4A46);
 }
 
 button,
