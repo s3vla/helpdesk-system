@@ -13,6 +13,8 @@ import { CriarComentarioDto } from './dto/criar-comentario.dto';
 import { TipoUsuario } from '../common/enums/tipo-usuario.enum';
 import { StatusChamado } from '../common/enums/status-chamado.enum';
 import { JwtPayload } from '../common/interfaces/jwt-payload.interface';
+import { LogAuditoriaService } from '../log-auditoria/log-auditoria.service';
+import { AcaoAuditoria } from '../common/enums/acao-auditoria.enum';
 
 @Injectable()
 export class ComentariosService {
@@ -25,6 +27,7 @@ export class ComentariosService {
     // alheio pra ler ou escrever nele.
     @InjectRepository(Chamado)
     private readonly chamadoRepository: Repository<Chamado>,
+    private readonly logAuditoriaService: LogAuditoriaService,
   ) {}
 
   // Centraliza a busca do chamado + a checagem de dono, usada tanto ao
@@ -113,6 +116,15 @@ export class ComentariosService {
       ehObservador,
     });
     const salvo = await this.comentarioRepository.save(comentario);
+
+    await this.logAuditoriaService.registrar({
+      chamadoId,
+      usuarioId: usuarioAtual.sub,
+      acao: AcaoAuditoria.COMENTARIO,
+      descricao: interno
+        ? 'Comentário interno adicionado'
+        : 'Comentário adicionado',
+    });
 
     // "Aguardando resposta de" troca automaticamente pro lado OPOSTO de
     // quem acabou de comentar — mas só durante atendimento ativo, e só se o

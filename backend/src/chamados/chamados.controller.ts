@@ -25,6 +25,8 @@ import { AbrirChamadoTecnicoDto } from './dto/abrir-chamado-tecnico.dto';
 import { AtualizarStatusChamadoDto } from './dto/atualizar-status-chamado.dto';
 import { AtualizarNivelChamadoDto } from './dto/atualizar-nivel-chamado.dto';
 import { AtribuirChamadoDto } from './dto/atribuir-chamado.dto';
+import { LogAuditoriaService } from '../log-auditoria/log-auditoria.service';
+import { mapLogAuditoriaParaResposta } from '../log-auditoria/dto/log-auditoria-response.dto';
 import { FiltrosChamadoDto } from './dto/filtros-chamado.dto';
 import { PeriodoChamadoDto } from './dto/periodo-chamado.dto';
 import { MetricasChamadoDto } from './dto/metricas-chamado.dto';
@@ -45,6 +47,7 @@ export class ChamadosController {
     private readonly comentariosService: ComentariosService,
     private readonly solucoesConhecidasService: SolucoesConhecidasService,
     private readonly observadoresService: ObservadoresService,
+    private readonly logAuditoriaService: LogAuditoriaService,
   ) {}
 
   // "Central de Chamados" — visão completa, só TI.
@@ -166,8 +169,9 @@ export class ChamadosController {
   async atribuir(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: AtribuirChamadoDto,
+    @UsuarioAtual() usuarioAtual: JwtPayload,
   ) {
-    const chamado = await this.chamadosService.atribuir(id, dto);
+    const chamado = await this.chamadosService.atribuir(id, dto, usuarioAtual);
     return mapChamadoParaResposta(chamado);
   }
 
@@ -251,5 +255,16 @@ export class ChamadosController {
   async buscarSolucoesSugeridas(@Param('id', ParseIntPipe) id: number) {
     const chamado = await this.chamadosService.buscarPorIdOuFalhar(id);
     return this.solucoesConhecidasService.sugerirParaChamado(chamado);
+  }
+
+  // "Histórico de alterações" do painel de TI — só técnico, mesma razão de
+  // /solucoes-sugeridas: quem já passou pelo RolesGuard aqui sempre tem
+  // acesso a qualquer chamado, não precisa de checagem de dono.
+  @Get(':id/logs')
+  @Roles(TipoUsuario.TECNICO)
+  async listarLogsAuditoria(@Param('id', ParseIntPipe) id: number) {
+    await this.chamadosService.buscarPorIdOuFalhar(id);
+    const logs = await this.logAuditoriaService.listarPorChamado(id);
+    return logs.map(mapLogAuditoriaParaResposta);
   }
 }

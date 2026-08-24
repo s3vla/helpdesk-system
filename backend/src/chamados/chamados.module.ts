@@ -8,6 +8,7 @@ import { ChamadosController } from './chamados.controller';
 import { ComentariosModule } from '../comentarios/comentarios.module';
 import { SolucoesConhecidasModule } from '../solucoes-conhecidas/solucoes-conhecidas.module';
 import { ObservadoresModule } from '../observadores/observadores.module';
+import { LogAuditoriaModule } from '../log-auditoria/log-auditoria.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { ObservadoresModule } from '../observadores/observadores.module';
     ComentariosModule,
     SolucoesConhecidasModule,
     ObservadoresModule,
+    LogAuditoriaModule,
   ],
   providers: [ChamadosService],
   controllers: [ChamadosController],

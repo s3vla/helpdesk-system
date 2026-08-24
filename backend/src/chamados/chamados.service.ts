@@ -16,6 +16,8 @@ import { AbrirChamadoTecnicoDto } from './dto/abrir-chamado-tecnico.dto';
 import { AtualizarStatusChamadoDto } from './dto/atualizar-status-chamado.dto';
 import { AtualizarNivelChamadoDto } from './dto/atualizar-nivel-chamado.dto';
 import { AtribuirChamadoDto } from './dto/atribuir-chamado.dto';
+import { LogAuditoriaService } from '../log-auditoria/log-auditoria.service';
+import { AcaoAuditoria } from '../common/enums/acao-auditoria.enum';
 import { FiltrosChamadoDto } from './dto/filtros-chamado.dto';
 import { PeriodoChamadoDto } from './dto/periodo-chamado.dto';
 import { MetricasChamadoDto } from './dto/metricas-chamado.dto';
@@ -58,6 +60,17 @@ const RELACOES_PADRAO = {
 // buscarPorIdOuFalhar (com RELACOES_PADRAO) é chamado de novo no final,
 // como uma leitura fresca, sem essa armadilha de save().
 const RELACOES_PARA_ATUALIZAR = { solicitante: true, tecnicoResponsavel: true };
+
+// Rótulo legível de status pro texto do log de auditoria (ex: 'Status
+// alterado de "Na fila" para "Em atendimento"') — só existe aqui, separado
+// do `label` de CORES_STATUS no frontend, porque o backend nunca importa
+// nada do frontend; é uma pequena duplicação intencional, não uma fonte de
+// verdade nova (o enum StatusChamado continua sendo isso).
+const LABEL_STATUS: Record<StatusChamado, string> = {
+  [StatusChamado.PARADO]: 'Na fila',
+  [StatusChamado.ANDAMENTO]: 'Em atendimento',
+  [StatusChamado.FINALIZADO]: 'Finalizado',
+};
 
 // O "número do chamado" exibido no front (#1000+id, ver
 // frontend/src/utils/numeroChamado.js) nunca é gravado no banco — é sempre
@@ -137,6 +150,10 @@ export class ChamadosService {
     // Mesma solução que ObservadoresService já usa pra essa mesma checagem.
     @InjectRepository(Usuario)
     private readonly usuarioRepository: Repository<Usuario>,
+    // Registra o log de auditoria em atualizarStatus, atribuir e
+    // reclassificarNivel — nunca em rota de leitura (ver
+    // LogAuditoriaService.registrar).
+    private readonly logAuditoriaService: LogAuditoriaService,
   ) {}
 
   async criar(
@@ -473,6 +490,11 @@ export class ChamadosService {
     });
     if (!chamado) throw new NotFoundException('Chamado não encontrado');
 
+    // Capturado ANTES de qualquer mutação — precisamos do valor de verdade
+    // pra log de auditoria no final (REABERTURA quando o chamado estava
+    // FINALIZADO, MUDANCA_STATUS nos demais casos).
+    const statusAnterior = chamado.status;
+
     // Regra: só entra em ANDAMENTO se ninguém mais estiver atendendo, ou se
     // quem está pedindo for o próprio técnico já responsável — impede que um
     // segundo técnico "roube" um chamado que já está sendo atendido.
@@ -541,6 +563,24 @@ export class ChamadosService {
 
     chamado.status = dto.status;
     await this.chamadoRepository.save(chamado);
+
+    // Só grava log quando o status realmente muda — uma chamada idempotente
+    // (ex: ANDAMENTO chamado de novo pelo mesmo técnico já responsável) não
+    // é uma ação nova, é o mesmo estado confirmado de novo.
+    if (statusAnterior !== dto.status) {
+      const reabertura = statusAnterior === StatusChamado.FINALIZADO;
+      await this.logAuditoriaService.registrar({
+        chamadoId: id,
+        usuarioId: tecnicoAtual.sub,
+        acao: reabertura
+          ? AcaoAuditoria.REABERTURA
+          : AcaoAuditoria.MUDANCA_STATUS,
+        descricao: reabertura
+          ? `Chamado reaberto (estava "${LABEL_STATUS[statusAnterior]}") — novo status: "${LABEL_STATUS[dto.status]}"`
+          : `Status alterado de "${LABEL_STATUS[statusAnterior]}" para "${LABEL_STATUS[dto.status]}"`,
+      });
+    }
+
     return this.buscarPorIdOuFalhar(id);
   }
 
@@ -551,9 +591,22 @@ export class ChamadosService {
   // null). `tecnicoId` ausente/null desatribui; um id presente precisa
   // apontar pra um usuário tipo TECNICO — nunca um colaborador, mesmo que o
   // id exista e esteja ativo.
-  async atribuir(id: number, dto: AtribuirChamadoDto): Promise<Chamado> {
-    const chamado = await this.chamadoRepository.findOne({ where: { id } });
+  async atribuir(
+    id: number,
+    dto: AtribuirChamadoDto,
+    usuarioAtual: JwtPayload,
+  ): Promise<Chamado> {
+    // Carrega `tecnicoResponsavel` (não incluído por padrão num findOne sem
+    // `relations`) só pra poder citar o nome de quem estava atendendo antes
+    // na descrição do log — sem isso, o texto ficaria genérico demais
+    // ("Atribuído a Fulano") sem contar o "de quem" numa troca.
+    const chamado = await this.chamadoRepository.findOne({
+      where: { id },
+      relations: { tecnicoResponsavel: true },
+    });
     if (!chamado) throw new NotFoundException('Chamado não encontrado');
+
+    const responsavelAnterior = chamado.tecnicoResponsavel;
 
     if (dto.tecnicoId === null || dto.tecnicoId === undefined) {
       chamado.tecnicoResponsavel = null;
@@ -570,6 +623,26 @@ export class ChamadosService {
     }
 
     await this.chamadoRepository.save(chamado);
+
+    const idAnterior = responsavelAnterior?.id ?? null;
+    const idNovo = chamado.tecnicoResponsavel?.id ?? null;
+    if (idAnterior !== idNovo) {
+      let descricao: string;
+      if (!responsavelAnterior && chamado.tecnicoResponsavel) {
+        descricao = `Atribuído a ${chamado.tecnicoResponsavel.nome}`;
+      } else if (responsavelAnterior && !chamado.tecnicoResponsavel) {
+        descricao = `Chamado desatribuído (estava com ${responsavelAnterior.nome})`;
+      } else {
+        descricao = `Responsável alterado de ${responsavelAnterior!.nome} para ${chamado.tecnicoResponsavel!.nome}`;
+      }
+      await this.logAuditoriaService.registrar({
+        chamadoId: id,
+        usuarioId: usuarioAtual.sub,
+        acao: AcaoAuditoria.ATRIBUICAO,
+        descricao,
+      });
+    }
+
     return this.buscarPorIdOuFalhar(id);
   }
 
@@ -606,6 +679,18 @@ export class ChamadosService {
         tipo: TipoComentario.NIVEL_AJUSTADO,
       });
       await this.comentarioRepository.save(comentario);
+
+      // Mesma mudança, duas trilhas: o comentário automático acima
+      // alimenta o "Histórico de nível" já existente no painel; este
+      // registro aqui alimenta o novo "Histórico de alterações" (log de
+      // auditoria geral, ver GET /chamados/:id/logs) — nenhum dos dois
+      // substitui o outro.
+      await this.logAuditoriaService.registrar({
+        chamadoId: id,
+        usuarioId: tecnicoAtual.sub,
+        acao: AcaoAuditoria.EDICAO,
+        descricao: `Nível alterado de ${nivelAnterior} para ${dto.nivel}`,
+      });
     }
 
     return this.buscarPorIdOuFalhar(id);
