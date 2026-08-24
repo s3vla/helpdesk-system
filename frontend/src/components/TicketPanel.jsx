@@ -350,7 +350,15 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
       <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: mobile ? 'stretch' : 'center', justifyContent: 'center', padding: mobile ? 0 : 28 }} onClick={onClose}>
         <div style={{ position: 'absolute', inset: 0, background: CORES_APP.overlay, backdropFilter: 'blur(4px)' }} />
         <div
-          style={{ position: 'relative', width: mobile ? '100%' : '78%', maxWidth: 1080, height: mobile ? '100%' : '88vh', background: CORES_APP.card, border: mobile ? 'none' : `1px solid ${CORES_APP.borda}`, borderRadius: mobile ? 0 : 18, overflowY: 'auto', padding: mobile ? 20 : 36, display: 'flex', flexDirection: 'column', gap: 22, boxShadow: mobile ? 'none' : '0 24px 70px rgba(16,35,31,0.22)' }}
+          // `height` fixo em 88vh (não mais usado no desktop) fazia o modal
+          // sempre ocupar quase a tela inteira, mesmo com pouco conteúdo
+          // (ex: chamado sem comentário nenhum) — sobrava um vazio enorme
+          // embaixo. `maxHeight` resolve isso: o modal cresce com o
+          // conteúdo real e só é limitado (com scroll interno, já existente
+          // via overflowY) quando o conteúdo é MAIOR que 88vh. No mobile
+          // continua `height:100%` de propósito — ali é uma tela cheia tipo
+          // página, não um modal que deve encolher pro conteúdo.
+          style={{ position: 'relative', width: mobile ? '100%' : '78%', maxWidth: 1080, height: mobile ? '100%' : undefined, maxHeight: mobile ? undefined : '88vh', background: CORES_APP.card, border: mobile ? 'none' : `1px solid ${CORES_APP.borda}`, borderRadius: mobile ? 0 : 18, overflowY: 'auto', padding: mobile ? 20 : 36, display: 'flex', flexDirection: 'column', gap: 22, boxShadow: mobile ? 'none' : '0 24px 70px rgba(16,35,31,0.22)' }}
           onClick={e => e.stopPropagation()}
         >
           {/* Cabeçalho — fora das duas colunas, contexto compartilhado por
@@ -400,7 +408,13 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
                   salvando={salvandoObservador}
                 />
               </div>
-              <h2 style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: 19, color: CORES_APP.tinta, margin: 0, lineHeight: 1.4 }}>
+              {/* overflowWrap: um título/descrição sem espaço nenhum (ex:
+                  colado de um sistema, ou uma URL) não tem onde quebrar
+                  linha por padrão — o texto estoura a largura do container
+                  em vez de virar linha. Aplicado aqui e na Descrição
+                  (abaixo) pelo mesmo motivo; título curto normal (o caso
+                  comum) não muda em nada. */}
+              <h2 style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: 19, color: CORES_APP.tinta, margin: 0, lineHeight: 1.4, overflowWrap: 'break-word' }}>
                 <span style={{ fontFamily: 'IBM Plex Mono, monospace', fontWeight: 500, fontSize: 14, color: CORES_APP.textoSuave, marginRight: 8 }}>{numeroChamado(chamado.id)}</span>
                 {chamado.summary}
               </h2>
@@ -483,7 +497,7 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
                           </button>
                           {aberta && (
                             <div style={{ padding: '0 12px 12px' }}>
-                              <p style={{ color: '#6366f1', fontSize: 13, margin: 0, lineHeight: 1.65, whiteSpace: 'pre-wrap' }}>{s.resolutionText}</p>
+                              <p style={{ color: '#6366f1', fontSize: 13, margin: 0, lineHeight: 1.65, whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }}>{s.resolutionText}</p>
                               <p style={{ color: CORES_APP.textoSuave, fontSize: 11, margin: '6px 0 0' }}>Categoria já apareceu {s.ocorrenciasCategoria}x</p>
                             </div>
                           )}
@@ -547,7 +561,7 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
 
               <div>
                 <div style={estilos.label}>Descrição</div>
-                <p style={{ color: CORES_APP.texto, fontSize: 14, lineHeight: 1.75, margin: 0, whiteSpace: 'pre-wrap' }}>{chamado.description}</p>
+                <p style={{ color: CORES_APP.texto, fontSize: 14, lineHeight: 1.75, margin: 0, whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }}>{chamado.description}</p>
               </div>
 
               {chamado.errorMsg && (
@@ -557,11 +571,23 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
                 </div>
               )}
 
-              {chamado.imagemUrl && (
+              {chamado.imagens.length > 0 && (
                 <div style={{ background: CORES_APP.fundoCampo, border: '1px solid rgba(0,120,81,0.14)', borderRadius: 10, padding: 14 }}>
-                  <div style={estilos.label}>Print anexado</div>
-                  <img src={`${URL_BASE}${chamado.imagemUrl}`} alt="Print do erro" onClick={() => setImagemAmpliada(`${URL_BASE}${chamado.imagemUrl}`)}
-                    style={{ maxWidth: '100%', maxHeight: 260, borderRadius: 8, display: 'block', cursor: 'zoom-in' }} />
+                  <div style={estilos.label}>{chamado.imagens.length > 1 ? `Prints anexados (${chamado.imagens.length})` : 'Print anexado'}</div>
+                  {/* Uma imagem só: preview grande, mesmo tamanho de antes.
+                      Mais de uma: grade de miniaturas — cada uma abre no
+                      lightbox igual, só muda o tamanho de exibição aqui. */}
+                  {chamado.imagens.length === 1 ? (
+                    <img src={`${URL_BASE}${chamado.imagens[0]}`} alt="Print do erro" onClick={() => setImagemAmpliada(`${URL_BASE}${chamado.imagens[0]}`)}
+                      style={{ maxWidth: '100%', maxHeight: 260, borderRadius: 8, display: 'block', cursor: 'zoom-in' }} />
+                  ) : (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                      {chamado.imagens.map((url, indice) => (
+                        <img key={url} src={`${URL_BASE}${url}`} alt={`Print do erro ${indice + 1}`} onClick={() => setImagemAmpliada(`${URL_BASE}${url}`)}
+                          style={{ width: 96, height: 96, objectFit: 'cover', borderRadius: 8, cursor: 'zoom-in' }} />
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -579,7 +605,7 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
                       <span style={{ color: CORES_APP.textoSuave, fontSize: 11 }}>por {chamado.resolution.resolvedBy}</span>
                     </div>
                   </div>
-                  <p style={{ color: CORES_APP.texto, fontSize: 14, margin: 0, lineHeight: 1.75, whiteSpace: 'pre-wrap' }}>{chamado.resolution.text}</p>
+                  <p style={{ color: CORES_APP.texto, fontSize: 14, margin: 0, lineHeight: 1.75, whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }}>{chamado.resolution.text}</p>
                   {/* Chamado reaberto depois de já ter sido finalizado uma
                       vez: a solução original fica visível e intacta (regra
                       de negócio combinada — reabrir e finalizar de novo não
@@ -663,20 +689,35 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
                 largo demais pra ler confortavelmente — em vez de esticar
                 até a borda do painel, trava a largura em 760px e centraliza
                 (maxWidth + margin:auto) só nesse caso; expandida (ou no
-                mobile), continua ocupando a coluna toda normalmente. */}
+                mobile), continua ocupando a coluna toda normalmente.
+
+                IMPORTANTE: o `overflowY:auto` NÃO fica neste container —
+                fica só no bloco da lista de comentários, logo abaixo.
+                `position:sticky` e `overflow:auto` no MESMO elemento não
+                se comportam bem juntos (o elemento vira seu próprio
+                contexto de rolagem, o que quebra o sticky relativo ao
+                ancestral rolável de verdade, que é o modal) — era isso que
+                fazia o modal INTEIRO rolar, empurrando o composer
+                (textarea/anexar/comentar) pra fora da área visível, em vez
+                de só a lista rolar por dentro. */}
             <div style={{
               display: 'flex', flexDirection: 'column', gap: 16, minWidth: 0,
               position: mobile ? undefined : 'sticky',
               top: mobile ? undefined : 0,
               alignSelf: mobile ? undefined : 'start',
               maxHeight: mobile ? undefined : `calc(88vh - 94px - ${alturaCabecalho}px)`,
-              overflowY: mobile ? 'visible' : 'auto',
-              paddingRight: mobile ? 0 : 6,
               width: !mobile && !sidebarExpandida ? '100%' : undefined,
               maxWidth: !mobile && !sidebarExpandida ? 760 : undefined,
               margin: !mobile && !sidebarExpandida ? '0 auto' : undefined,
             }}>
-              <div>
+              {/* Só este bloco (label + lista) rola por dentro — `flex:'1
+                  1 auto'` + `minHeight:0` é o que permite o overflow
+                  funcionar dentro de uma coluna flex (sem minHeight:0 o
+                  item nunca encolhe abaixo do próprio conteúdo, e o scroll
+                  nunca chega a disparar). O composer, abaixo, fica FORA
+                  deste bloco — sempre visível, nunca dentro da área que
+                  rola. */}
+              <div style={{ flex: mobile ? undefined : '1 1 auto', minHeight: mobile ? undefined : 0, overflowY: mobile ? 'visible' : 'auto', paddingRight: mobile ? 0 : 6 }}>
                 <div style={estilos.label}>Histórico de comentários {comentariosReais.length > 0 && `(${comentariosReais.length})`}</div>
                 {carregandoComentarios ? (
                   <div style={{ color: CORES_APP.textoFraco, fontSize: 13, textAlign: 'center', padding: '16px 0' }}>Carregando comentários...</div>
@@ -701,7 +742,7 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
                           </span>
                           <span style={{ color: CORES_APP.textoSuave, fontSize: 12 }}>{formatarData(c.date)} {formatarHora(c.date)}</span>
                         </div>
-                        {c.text && <p style={{ color: CORES_APP.texto, fontSize: 14, margin: 0, lineHeight: 1.65, whiteSpace: 'pre-wrap' }}>{c.text}</p>}
+                        {c.text && <p style={{ color: CORES_APP.texto, fontSize: 14, margin: 0, lineHeight: 1.65, whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }}>{c.text}</p>}
                         {c.imagemUrl && (
                           <img src={`${URL_BASE}${c.imagemUrl}`} alt="Imagem anexada ao comentário" onClick={() => setImagemAmpliada(`${URL_BASE}${c.imagemUrl}`)}
                             style={{ maxWidth: '100%', maxHeight: 200, borderRadius: 8, display: 'block', marginTop: 9, cursor: 'zoom-in' }} />
@@ -712,6 +753,10 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
                 )}
               </div>
 
+              {/* Composer — flexShrink:0 garante que nunca encolhe nem
+                  entra na área de scroll acima; sempre visível, embaixo
+                  do modal, independente de quantos comentários existem. */}
+              <div style={{ flexShrink: 0 }}>
               {chamadoFinalizado ? (
                 <div style={{ background: CORES_APP.fundoCampo, border: `1px dashed ${CORES_APP.borda}`, borderRadius: 10, padding: '14px 16px', textAlign: 'center' }}>
                   <p style={{ color: CORES_APP.textoFraco, fontSize: 13, margin: 0 }}>Chamado finalizado — reabra para comentar</p>
@@ -761,6 +806,7 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
                   </div>
                 </div>
               )}
+              </div>
             </div>
           </div>
         </div>
