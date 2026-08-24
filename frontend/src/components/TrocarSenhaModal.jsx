@@ -5,6 +5,7 @@ import { useWindowWidth } from '../hooks/useWindowWidth'
 import { traduzirErroApi } from '../utils/traduzirErroApi'
 import PasswordInput from './PasswordInput'
 import BrandPanel from './auth/BrandPanel'
+import FundoDecorativo from './auth/FundoDecorativo'
 import PasswordStrengthBar, { ConfirmacaoSenha } from './auth/PasswordStrengthBar'
 import { estilosAuth, cores, botaoVerde, botaoInativo, forcaSenha } from '../styles/authTheme'
 
@@ -63,43 +64,46 @@ function TrocarSenhaModal({ obrigatorio, onFechar, onSucesso }) {
     return (
       <div style={mobile ? estilosAuth.paginaMobile : estilosAuth.pagina} className="animate-fade-up">
         <BrandPanel />
-        <main style={estilosAuth.principal}>
-          <div style={{ ...estilosAuth.coluna, gap: 26 }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <span style={estilosAuth.eyebrow}>ETAPA 1 DE 1</span>
-              <h2 style={estilosAuth.titulo}>Criar sua senha</h2>
-              <p style={estilosAuth.texto}>Você entrou com a senha temporária. Defina uma senha própria para continuar.</p>
+        <main style={mobile ? estilosAuth.principalMobile : estilosAuth.principal}>
+          <FundoDecorativo />
+          <div style={mobile ? estilosAuth.cartaoMobile : estilosAuth.cartao}>
+            <div style={estilosAuth.coluna}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <span style={estilosAuth.eyebrow}>ETAPA 1 DE 1</span>
+                <h2 style={estilosAuth.titulo}>Criar sua senha</h2>
+                <p style={estilosAuth.texto}>Você entrou com a senha temporária. Defina uma senha própria para continuar.</p>
+              </div>
+
+              <form style={estilosAuth.form} onSubmit={e => { e.preventDefault(); enviar() }}>
+                <label style={estilosAuth.campo}>
+                  <span style={estilosAuth.rotulo}>Senha temporária</span>
+                  <PasswordInput value={senhaAtual} onChange={e => setSenhaAtual(e.target.value)} placeholder="A senha que você recebeu" disabled={carregando}
+                    style={{ ...estilosAuth.input, ...estilosAuth.inputSenha }} iconColor={cores.azulMedio} />
+                </label>
+
+                <label style={estilosAuth.campo}>
+                  <span style={estilosAuth.rotulo}>Nova senha</span>
+                  <PasswordInput value={novaSenha} onChange={e => setNovaSenha(e.target.value)} placeholder="Mínimo 8 caracteres" disabled={carregando}
+                    style={{ ...estilosAuth.input, ...estilosAuth.inputSenha }} iconColor={cores.azulMedio} />
+                  <PasswordStrengthBar forca={forca} />
+                </label>
+
+                <label style={estilosAuth.campo}>
+                  <span style={estilosAuth.rotulo}>Confirmar nova senha</span>
+                  <PasswordInput value={confirmarNovaSenha} onChange={e => setConfirmarNovaSenha(e.target.value)} placeholder="Digite a nova senha novamente" disabled={carregando}
+                    style={{ ...estilosAuth.input, ...estilosAuth.inputSenha }} iconColor={cores.azulMedio} />
+                  <ConfirmacaoSenha confirmar={confirmarNovaSenha} nova={novaSenha} />
+                </label>
+
+                {erro && <p style={{ color: cores.erro, fontSize: 13, margin: 0 }}>{erro}</p>}
+
+                <button type="submit" disabled={!podeEnviar || carregando} style={podeEnviar && !carregando ? botaoVerde : botaoInativo}>
+                  {carregando ? 'Trocando...' : 'Salvar e continuar'}
+                </button>
+
+                <span style={{ fontSize: 13, color: cores.textoSuave }}>A senha temporária deixa de funcionar depois desta etapa.</span>
+              </form>
             </div>
-
-            <form style={estilosAuth.form} onSubmit={e => { e.preventDefault(); enviar() }}>
-              <label style={estilosAuth.campo}>
-                <span style={estilosAuth.rotulo}>Senha temporária</span>
-                <PasswordInput value={senhaAtual} onChange={e => setSenhaAtual(e.target.value)} placeholder="A senha que você recebeu" disabled={carregando}
-                  style={{ ...estilosAuth.input, ...estilosAuth.inputSenha }} iconColor={cores.azulMedio} />
-              </label>
-
-              <label style={estilosAuth.campo}>
-                <span style={estilosAuth.rotulo}>Nova senha</span>
-                <PasswordInput value={novaSenha} onChange={e => setNovaSenha(e.target.value)} placeholder="Mínimo 8 caracteres" disabled={carregando}
-                  style={{ ...estilosAuth.input, ...estilosAuth.inputSenha }} iconColor={cores.azulMedio} />
-                <PasswordStrengthBar forca={forca} />
-              </label>
-
-              <label style={estilosAuth.campo}>
-                <span style={estilosAuth.rotulo}>Confirmar nova senha</span>
-                <PasswordInput value={confirmarNovaSenha} onChange={e => setConfirmarNovaSenha(e.target.value)} placeholder="Digite a nova senha novamente" disabled={carregando}
-                  style={{ ...estilosAuth.input, ...estilosAuth.inputSenha }} iconColor={cores.azulMedio} />
-                <ConfirmacaoSenha confirmar={confirmarNovaSenha} nova={novaSenha} />
-              </label>
-
-              {erro && <p style={{ color: cores.erro, fontSize: 13, margin: 0 }}>{erro}</p>}
-
-              <button type="submit" disabled={!podeEnviar || carregando} style={podeEnviar && !carregando ? botaoVerde : botaoInativo}>
-                {carregando ? 'Trocando...' : 'Salvar e continuar'}
-              </button>
-
-              <span style={{ fontSize: 13, color: cores.textoSuave }}>A senha temporária deixa de funcionar depois desta etapa.</span>
-            </form>
           </div>
         </main>
       </div>

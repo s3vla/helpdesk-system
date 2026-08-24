@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import BrandPanel from './auth/BrandPanel'
+import FundoDecorativo from './auth/FundoDecorativo'
+import EmailInput from './auth/EmailInput'
 import PasswordInput from './PasswordInput'
 import PasswordStrengthBar, { ConfirmacaoSenha } from './auth/PasswordStrengthBar'
 import { estilosAuth, cores, botaoVerde, botaoInativo, forcaSenha } from '../styles/authTheme'
@@ -75,68 +77,71 @@ function FirstAccessModal({ emailInicial, onSucesso, onFechar }) {
   return (
     <div style={mobile ? estilosAuth.paginaMobile : estilosAuth.pagina} className="animate-fade-up">
       <BrandPanel />
-      <main style={estilosAuth.principal}>
-        <div style={{ ...estilosAuth.coluna, gap: 26 }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <span style={estilosAuth.eyebrow}>PRIMEIRO ACESSO</span>
-            <h2 style={estilosAuth.titulo}>Complete seu cadastro</h2>
-            <p style={estilosAuth.texto}>Esses dados aparecem nos chamados que você abrir, para o time de TI saber quem procurar.</p>
-          </div>
-
-          <form style={estilosAuth.form} onSubmit={e => { e.preventDefault(); enviar() }}>
-            <label style={estilosAuth.campo}>
-              <span style={estilosAuth.rotulo}>E-mail corporativo</span>
-              <input type="email" value={email} onChange={e => setEmail(e.target.value)}
-                placeholder="seu.nome@novatechagro.com.br" style={estilosAuth.input} disabled={carregando} />
-            </label>
-
-            <label style={estilosAuth.campo}>
-              <span style={estilosAuth.rotulo}>Nome completo</span>
-              <input value={name} onChange={e => setName(e.target.value)} placeholder="Seu nome completo" style={estilosAuth.input} disabled={carregando} />
-            </label>
-
-            <label style={estilosAuth.campo}>
-              <span style={estilosAuth.rotulo}>Departamento</span>
-              <input
-                value={departamento}
-                onChange={e => setDepartamentoManual(e.target.value)}
-                placeholder={departamentoTravado ? undefined : 'Ex.: Financeiro'}
-                readOnly={departamentoTravado}
-                disabled={carregando}
-                style={{ ...estilosAuth.input, ...(departamentoTravado ? { background: cores.fundoCampo, color: cores.texto, cursor: 'default' } : {}) }}
-              />
-            </label>
-
-            <label style={estilosAuth.campo}>
-              <span style={estilosAuth.rotulo}>Senha</span>
-              <PasswordInput value={senha} onChange={e => setSenha(e.target.value)} placeholder="Mínimo 8 caracteres" disabled={carregando}
-                style={{ ...estilosAuth.input, ...estilosAuth.inputSenha }} iconColor={cores.azulMedio} />
-              <PasswordStrengthBar forca={forca} />
-            </label>
-
-            <label style={estilosAuth.campo}>
-              <span style={estilosAuth.rotulo}>Confirmar senha</span>
-              <PasswordInput value={confirmarSenha} onChange={e => setConfirmarSenha(e.target.value)} placeholder="Digite a senha novamente" disabled={carregando}
-                style={{ ...estilosAuth.input, ...estilosAuth.inputSenha }} iconColor={cores.azulMedio} />
-              <ConfirmacaoSenha confirmar={confirmarSenha} nova={senha} />
-            </label>
-
-            {erro && <p style={{ color: cores.erro, fontSize: 13, margin: 0 }}>{erro}</p>}
-
-            <div style={{ display: 'flex', gap: 12, marginTop: 6 }}>
-              <button type="submit" disabled={!podeContinuar || carregando}
-                style={{ ...(podeContinuar && !carregando ? botaoVerde : botaoInativo), flex: 1, marginTop: 0 }}>
-                {carregando ? 'Criando conta...' : 'Criar conta'}
-              </button>
-              <button type="button" onClick={onFechar} disabled={carregando} style={{
-                height: 52, padding: '0 20px', fontFamily: estilosAuth.pagina.fontFamily, fontSize: 15, fontWeight: 500,
-                color: cores.textoFraco, background: 'transparent', border: `1px solid ${cores.borda}`, borderRadius: 10,
-                cursor: carregando ? 'default' : 'pointer',
-              }}>
-                Cancelar
-              </button>
+      <main style={mobile ? estilosAuth.principalMobile : estilosAuth.principal}>
+        <FundoDecorativo />
+        <div style={mobile ? estilosAuth.cartaoMobile : estilosAuth.cartao}>
+          <div style={estilosAuth.coluna}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <span style={estilosAuth.eyebrow}>PRIMEIRO ACESSO</span>
+              <h2 style={estilosAuth.titulo}>Complete seu cadastro</h2>
+              <p style={estilosAuth.texto}>Esses dados aparecem nos chamados que você abrir, para o time de TI saber quem procurar.</p>
             </div>
-          </form>
+
+            <form style={estilosAuth.form} onSubmit={e => { e.preventDefault(); enviar() }}>
+              <label style={estilosAuth.campo}>
+                <span style={estilosAuth.rotulo}>E-mail corporativo</span>
+                <EmailInput value={email} onChange={e => setEmail(e.target.value)}
+                  placeholder="seu.nome@novatechagro.com.br" style={estilosAuth.input} disabled={carregando} iconColor={cores.azulMedio} />
+              </label>
+
+              <label style={estilosAuth.campo}>
+                <span style={estilosAuth.rotulo}>Nome completo</span>
+                <input value={name} onChange={e => setName(e.target.value)} placeholder="Seu nome completo" style={estilosAuth.input} disabled={carregando} />
+              </label>
+
+              <label style={estilosAuth.campo}>
+                <span style={estilosAuth.rotulo}>Departamento</span>
+                <input
+                  value={departamento}
+                  onChange={e => setDepartamentoManual(e.target.value)}
+                  placeholder={departamentoTravado ? undefined : 'Ex.: Financeiro'}
+                  readOnly={departamentoTravado}
+                  disabled={carregando}
+                  style={{ ...estilosAuth.input, ...(departamentoTravado ? { background: cores.fundoCampo, color: cores.texto, cursor: 'default' } : {}) }}
+                />
+              </label>
+
+              <label style={estilosAuth.campo}>
+                <span style={estilosAuth.rotulo}>Senha</span>
+                <PasswordInput value={senha} onChange={e => setSenha(e.target.value)} placeholder="Mínimo 8 caracteres" disabled={carregando}
+                  style={{ ...estilosAuth.input, ...estilosAuth.inputSenha }} iconColor={cores.azulMedio} />
+                <PasswordStrengthBar forca={forca} />
+              </label>
+
+              <label style={estilosAuth.campo}>
+                <span style={estilosAuth.rotulo}>Confirmar senha</span>
+                <PasswordInput value={confirmarSenha} onChange={e => setConfirmarSenha(e.target.value)} placeholder="Digite a senha novamente" disabled={carregando}
+                  style={{ ...estilosAuth.input, ...estilosAuth.inputSenha }} iconColor={cores.azulMedio} />
+                <ConfirmacaoSenha confirmar={confirmarSenha} nova={senha} />
+              </label>
+
+              {erro && <p style={{ color: cores.erro, fontSize: 13, margin: 0 }}>{erro}</p>}
+
+              <div style={{ display: 'flex', gap: 12, marginTop: 6 }}>
+                <button type="submit" disabled={!podeContinuar || carregando}
+                  style={{ ...(podeContinuar && !carregando ? botaoVerde : botaoInativo), flex: 1, marginTop: 0 }}>
+                  {carregando ? 'Criando conta...' : 'Criar conta'}
+                </button>
+                <button type="button" onClick={onFechar} disabled={carregando} style={{
+                  height: 52, padding: '0 20px', fontFamily: estilosAuth.pagina.fontFamily, fontSize: 15, fontWeight: 500,
+                  color: cores.textoFraco, background: 'transparent', border: `1px solid ${cores.borda}`, borderRadius: 10,
+                  cursor: carregando ? 'default' : 'pointer',
+                }}>
+                  Cancelar
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       </main>
     </div>
