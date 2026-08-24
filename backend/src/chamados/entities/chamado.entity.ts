@@ -58,11 +58,16 @@ export class Chamado {
   @Column({ type: 'text', enum: TipoUsuario, nullable: true })
   aguardandoRespostaDe: TipoUsuario | null;
 
-  // Guarda a URL relativa devolvida por POST /uploads (ex:
-  // "/uploads/uuid.png"), não mais só um boolean — o arquivo em si fica
-  // salvo em disco (ver UploadsController) e servido estaticamente.
-  @Column({ type: 'text', nullable: true })
-  imagemUrl: string | null;
+  // Lista das URLs relativas devolvidas por POST /uploads (ex:
+  // "/uploads/uuid.png"), uma por arquivo anexado ao abrir o chamado — os
+  // arquivos em si ficam salvos em disco (ver UploadsController) e
+  // servidos estaticamente, aqui só guardamos os caminhos. `simple-json`
+  // serializa o array como texto na coluna sozinho — não precisa de uma
+  // tabela própria só pra isso (não há necessidade de consultar/filtrar
+  // por imagem individual em lugar nenhum do sistema). Sempre um array
+  // (nunca null) — vazio quando nenhum arquivo foi anexado.
+  @Column({ type: 'simple-json', default: '[]' })
+  imagensUrls: string[];
 
   // Preenchido pelo próprio colaborador ao abrir o chamado, opcional, sem
   // validação de formato rígida (o ID do AnyDesk pode ter espaços/traços
