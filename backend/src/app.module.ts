@@ -13,11 +13,13 @@ import { SolucoesConhecidasModule } from './solucoes-conhecidas/solucoes-conheci
 import { SeedModule } from './database/seed.module';
 import { UploadsModule } from './uploads/uploads.module';
 import { ObservadoresModule } from './observadores/observadores.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 import { Usuario } from './usuarios/entities/usuario.entity';
 import { Chamado } from './chamados/entities/chamado.entity';
 import { Comentario } from './comentarios/entities/comentario.entity';
 import { SolucaoConhecida } from './solucoes-conhecidas/entities/solucao-conhecida.entity';
 import { ChamadoObservador } from './observadores/entities/chamado-observador.entity';
+import { DashboardWidget } from './dashboard/entities/dashboard-widget.entity';
 
 @Module({
   imports: [
@@ -46,6 +48,7 @@ import { ChamadoObservador } from './observadores/entities/chamado-observador.en
           Comentario,
           SolucaoConhecida,
           ChamadoObservador,
+          DashboardWidget,
         ],
         // synchronize:true faz o TypeORM criar/ajustar as tabelas a partir
         // das entities automaticamente — ótimo pra aprender e prototipar,
@@ -68,6 +71,7 @@ import { ChamadoObservador } from './observadores/entities/chamado-observador.en
     ObservadoresModule,
     SeedModule,
     UploadsModule,
+    DashboardModule,
   ],
   controllers: [AppController],
   providers: [
