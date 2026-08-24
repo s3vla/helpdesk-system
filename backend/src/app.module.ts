@@ -14,12 +14,14 @@ import { SeedModule } from './database/seed.module';
 import { UploadsModule } from './uploads/uploads.module';
 import { ObservadoresModule } from './observadores/observadores.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { LogAuditoriaModule } from './log-auditoria/log-auditoria.module';
 import { Usuario } from './usuarios/entities/usuario.entity';
 import { Chamado } from './chamados/entities/chamado.entity';
 import { Comentario } from './comentarios/entities/comentario.entity';
 import { SolucaoConhecida } from './solucoes-conhecidas/entities/solucao-conhecida.entity';
 import { ChamadoObservador } from './observadores/entities/chamado-observador.entity';
 import { DashboardWidget } from './dashboard/entities/dashboard-widget.entity';
+import { LogAuditoria } from './log-auditoria/entities/log-auditoria.entity';
 
 @Module({
   imports: [
@@ -49,6 +51,7 @@ import { DashboardWidget } from './dashboard/entities/dashboard-widget.entity';
           SolucaoConhecida,
           ChamadoObservador,
           DashboardWidget,
+          LogAuditoria,
         ],
         // synchronize:true faz o TypeORM criar/ajustar as tabelas a partir
         // das entities automaticamente — ótimo pra aprender e prototipar,
@@ -72,6 +75,7 @@ import { DashboardWidget } from './dashboard/entities/dashboard-widget.entity';
     SeedModule,
     UploadsModule,
     DashboardModule,
+    LogAuditoriaModule,
   ],
   controllers: [AppController],
   providers: [
