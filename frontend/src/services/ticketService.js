@@ -21,7 +21,12 @@ const STATUS_PARA_API = { parado: 'PARADO', andamento: 'ANDAMENTO', finalizado: 
 const STATUS_DA_API = { PARADO: 'parado', ANDAMENTO: 'andamento', FINALIZADO: 'finalizado' }
 const PRIORIDADE_PARA_API = { baixa: 'BAIXA', media: 'MEDIA', alta: 'ALTA' }
 const CATEGORIA_PARA_API = { Hardware: 'HARDWARE', Software: 'SOFTWARE', Rede: 'REDE', Acesso: 'ACESSO', Outro: 'OUTRO' }
-const CATEGORIA_DA_API = { HARDWARE: 'Hardware', SOFTWARE: 'Software', REDE: 'Rede', ACESSO: 'Acesso', OUTRO: 'Outro' }
+// Exportada (diferente de STATUS_DA_API/PRIORIDADE_PARA_API) porque
+// WidgetRenderer.jsx também precisa traduzir uma categoria bruta vinda de
+// GET /chamados/metricas antes de aplicar LABEL_CATEGORIA (utils/categorias.js) —
+// diferente de status/prioridade, a capitalização de categoria não sai só
+// de um .toLowerCase() (ex: "HARDWARE" -> "Hardware", não "hardware").
+export const CATEGORIA_DA_API = { HARDWARE: 'Hardware', SOFTWARE: 'Software', REDE: 'Rede', ACESSO: 'Acesso', OUTRO: 'Outro' }
 
 // Exportada (diferente das outras funções de mapeamento) porque o
 // AuthContext também precisa dela: o usuário devolvido por /auth/login e
@@ -71,13 +76,15 @@ function mapearChamado(c) {
     created: new Date(c.dataAbertura),
     updated: new Date(c.dataAtualizacao),
     assignedTo: c.tecnicoResponsavel?.nome,
+    assignedToId: c.tecnicoResponsavel ? String(c.tecnicoResponsavel.id) : null,
     // Auditoria: só existe quando um TÉCNICO abriu este chamado em nome do
     // colaborador (POST /chamados/tecnico) — null no fluxo normal. Nunca
     // é o "dono" do chamado, isso continua sendo `userId`/`solicitanteNome`
     // acima; ver TicketPanel (indicação "Aberto por ..." só pro lado TI).
     abertoPorTecnicoNome: c.abertoPorTecnico?.nome,
-    hasImage: !!c.imagemUrl,
-    imagemUrl: c.imagemUrl,
+    // Sempre um array (a API nunca manda null aqui, ver Chamado.imagensUrls
+    // no backend) — vazio quando nenhum arquivo foi anexado.
+    imagens: c.imagensUrls,
     anydeskId: c.anydeskId,
     // "Cc" do chamado — ver adicionarObservador/removerObservador. Sempre
     // um array (a API nunca manda null aqui).
@@ -111,6 +118,31 @@ function mapearComentario(c) {
     // isso pra mostrar esse histórico separado da conversa de verdade, em
     // vez de misturado nela.
     isLevelChange: c.tipo === 'NIVEL_AJUSTADO',
+  }
+}
+
+// Rótulo em português de cada `acao` do log de auditoria — mesma ideia de
+// STATUS_DA_API/CATEGORIA_DA_API acima, só que pra um enum que só existe
+// pro "Histórico de alterações" (painel de TI).
+const LABEL_ACAO_AUDITORIA = {
+  MUDANCA_STATUS: 'Status alterado',
+  REABERTURA: 'Chamado reaberto',
+  ATRIBUICAO: 'Responsável alterado',
+  EDICAO: 'Campo editado',
+  COMENTARIO: 'Comentário',
+}
+
+function mapearLogAuditoria(l) {
+  return {
+    id: String(l.id),
+    acao: l.acao,
+    acaoLabel: LABEL_ACAO_AUDITORIA[l.acao] ?? l.acao,
+    description: l.descricao,
+    date: new Date(l.dataHora),
+    // Usuário pode ter sido resetado desde então (ver `emAguardoDeCadastro`
+    // em outros mapeamentos) — mesmo fallback já usado em MyTickets.jsx pro
+    // solicitante nesse caso.
+    userName: l.usuario?.nome ?? '— (conta resetada)',
   }
 }
 
@@ -166,7 +198,7 @@ export async function buscarChamado(token, chamadoId) {
 // Deriva o título a partir dos primeiros caracteres da descrição — o
 // formulário de abertura de chamado nunca teve um campo de título separado,
 // então mantemos esse mesmo comportamento do protótipo original.
-export async function criarChamado(token, { descricao, mensagemErro, categoria, prioridade, imagemUrl, anydeskId }) {
+export async function criarChamado(token, { descricao, mensagemErro, categoria, prioridade, imagensUrls, anydeskId }) {
   const chamado = await chamarApi('/chamados', {
     token,
     metodo: 'POST',
@@ -176,7 +208,7 @@ export async function criarChamado(token, { descricao, mensagemErro, categoria, 
       mensagemErro: mensagemErro || undefined,
       categoria: CATEGORIA_PARA_API[categoria],
       prioridade: PRIORIDADE_PARA_API[prioridade],
-      imagemUrl: imagemUrl || undefined,
+      imagensUrls: imagensUrls?.length ? imagensUrls : undefined,
       anydeskId: anydeskId || undefined,
     },
   })
@@ -188,7 +220,7 @@ export async function criarChamado(token, { descricao, mensagemErro, categoria, 
 // `solicitanteId`. Ainda deriva o título a partir da descrição, mesma
 // regra do formulário do colaborador (nunca existiu campo de título
 // separado em nenhum dos dois fluxos).
-export async function abrirChamadoComoTecnico(token, { solicitanteId, descricao, mensagemErro, categoria, prioridade, imagemUrl, anydeskId }) {
+export async function abrirChamadoComoTecnico(token, { solicitanteId, descricao, mensagemErro, categoria, prioridade, imagensUrls, anydeskId }) {
   const chamado = await chamarApi('/chamados/tecnico', {
     token,
     metodo: 'POST',
@@ -199,7 +231,7 @@ export async function abrirChamadoComoTecnico(token, { solicitanteId, descricao,
       mensagemErro: mensagemErro || undefined,
       categoria: CATEGORIA_PARA_API[categoria],
       prioridade: PRIORIDADE_PARA_API[prioridade],
-      imagemUrl: imagemUrl || undefined,
+      imagensUrls: imagensUrls?.length ? imagensUrls : undefined,
       anydeskId: anydeskId || undefined,
     },
   })
@@ -233,6 +265,19 @@ export async function atualizarNivelChamado(token, chamadoId, nivel) {
   return mapearChamado(chamado)
 }
 
+// Define/troca/remove (null) o técnico responsável — diferente de
+// atualizarStatusChamado(status: 'andamento'), que só auto-atribui o
+// próprio técnico logado, esta permite escolher QUALQUER técnico da lista
+// (ver buscarTecnicos abaixo). `tecnicoId: null` desatribui.
+export async function atribuirChamado(token, chamadoId, tecnicoId) {
+  const chamado = await chamarApi(`/chamados/${chamadoId}/atribuir`, {
+    token,
+    metodo: 'PATCH',
+    corpo: { tecnicoId: tecnicoId ? Number(tecnicoId) : null },
+  })
+  return mapearChamado(chamado)
+}
+
 // "Cc" do chamado — adiciona/remove um colaborador como observador, sem
 // transferir a titularidade (o solicitante continua sendo quem abriu).
 // Ambas retornam o Chamado atualizado (já com a lista de observadores nova).
@@ -261,6 +306,13 @@ export async function buscarSolucoesSugeridas(token, chamadoId) {
   return sugestoes.map(mapearSugestao)
 }
 
+// "Histórico de alterações" (painel de TI, TicketPanel isIT) — trilha de
+// auditoria somente leitura, separada do "Histórico de comentários".
+export async function buscarLogsAuditoria(token, chamadoId) {
+  const logs = await chamarApi(`/chamados/${chamadoId}/logs`, { token })
+  return logs.map(mapearLogAuditoria)
+}
+
 // ── Comentários ──────────────────────────────────────────────────────────
 
 export async function buscarComentarios(token, chamadoId) {
@@ -281,6 +333,14 @@ export async function criarComentario(token, chamadoId, { texto, interno, imagem
 
 export async function buscarColaboradores(token) {
   const usuarios = await chamarApi('/usuarios', { token })
+  return usuarios.map(mapearUsuario)
+}
+
+// Popula o dropdown "Atribuído a" no painel de atendimento (TicketPanel,
+// isIT) — filtro oposto de buscarColaboradores: só quem pode ser
+// responsável por um chamado.
+export async function buscarTecnicos(token) {
+  const usuarios = await chamarApi('/usuarios/tecnicos', { token })
   return usuarios.map(mapearUsuario)
 }
 
