@@ -53,6 +53,21 @@ export class AuthService {
       throw new UnauthorizedException('E-mail ou senha inválidos');
     }
 
+    // Checagem de área SÓ depois de confirmar e-mail+senha — nesta altura
+    // quem chamou já provou ser dono da conta, então revelar "esta conta é
+    // de outra área" não ajuda enumeração (diferente do bloco acima, que
+    // teria que ficar genérico). Bloqueia ANTES de gerar qualquer token: a
+    // sessão nunca chega a existir para o tipo errado, então não tem como o
+    // frontend "vazar" pro painel errado depois — o `tipo` da resposta,
+    // quando ela existe, é sempre o mesmo perfil que a pessoa pediu.
+    if (usuario.tipo !== dto.perfilEsperado) {
+      throw new ForbiddenException(
+        usuario.tipo === TipoUsuario.TECNICO
+          ? 'Esta conta pertence à equipe técnica. Utilize o login de Técnico/TI.'
+          : 'Esta conta é de colaborador. Utilize o login de Colaborador.',
+      );
+    }
+
     return this.gerarRespostaAutenticada(usuario);
   }
 
