@@ -1,4 +1,10 @@
-import { IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import {
+  IsArray,
+  IsEnum,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 import { CategoriaChamado } from '../../common/enums/categoria-chamado.enum';
 import { PrioridadeChamado } from '../../common/enums/prioridade-chamado.enum';
 
@@ -26,12 +32,14 @@ export class CriarChamadoDto {
   @IsEnum(PrioridadeChamado, { message: 'Prioridade inválida' })
   prioridade: PrioridadeChamado;
 
-  // Preenchido só depois de um upload bem-sucedido em POST /uploads — o
-  // front sobe o arquivo primeiro, recebe a URL de volta, e só então manda
-  // essa URL aqui. Esta rota nunca recebe o arquivo em si.
+  // Preenchida só depois de um ou mais uploads bem-sucedidos em POST
+  // /uploads — o front sobe cada arquivo primeiro (um POST por arquivo),
+  // recebe a URL de volta, e só então manda a lista aqui. Esta rota nunca
+  // recebe o arquivo em si.
   @IsOptional()
-  @IsString()
-  imagemUrl?: string;
+  @IsArray()
+  @IsString({ each: true })
+  imagensUrls?: string[];
 
   // Sem @Matches nem formato fixo de propósito: o ID do AnyDesk varia (só
   // números, ou com espaços/traços dependendo de como a pessoa copiou da
