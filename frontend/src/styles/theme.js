@@ -42,33 +42,77 @@ export const CORES_TI = {
   accentBorda: '#CFDDF7',
 }
 
-// Paleta clara do sistema INTEIRO — mesma paleta já aprovada e usada em
-// authTheme.js pras 4 telas de login, reaproveitada aqui ao pé da letra
-// (não é uma paleta nova) agora que o tema escuro foi aposentado em todo o
-// resto do sistema também. `card`/`popover` são o mesmo branco — nomes
-// diferentes só pra deixar claro a intenção de cada uso (superfície de
-// conteúdo vs. menu/dropdown flutuante) nos componentes que os consomem.
-export const CORES_APP = {
+// Tokens de fundo/texto do sistema INTEIRO (pós-login — as telas de auth
+// continuam fixas no tema claro de authTheme.js, ver LoginScreen.jsx),
+// estruturados por modo. TEMA_CLARO é a mesma paleta já aprovada e usada em
+// authTheme.js. TEMA_ESCURO é uma paleta NOVA (não existe mais histórico de
+// Git neste projeto pra recuperar os valores antigos) — mesma família de
+// cinza-esverdeado da paleta clara (ecoa `tinta`/#10231F), só invertida em
+// luminosidade, pra manter a mesma "personalidade" visual da marca.
+// Chaves em kebab-case: cada uma vira a variável CSS `--app-<chave>`
+// (ver ThemeProvider), então os nomes aqui são a fonte da verdade — não
+// duplicar esses valores em nenhum outro arquivo (index.css inclusive).
+export const TEMA_CLARO = {
   fundo: '#F4F6F5',
-  fundoCampo: '#EFF3F1',
+  'fundo-campo': '#EFF3F1',
   card: '#FFFFFF',
   popover: '#FFFFFF',
-  // Tom mais escuro que `texto` — reservado pra título/heading de maior
-  // destaque (h1/h2), mesma distinção que authTheme.js já fazia entre
-  // `tinta` e `texto`.
   tinta: '#10231F',
   texto: '#3C4A46',
-  textoFraco: '#5C6B67',
-  textoSuave: '#7A8783',
+  'texto-fraco': '#5C6B67',
+  'texto-suave': '#7A8783',
   placeholder: '#9AA5A2',
   borda: '#D2DAD7',
-  bordaSuave: '#E3E8E6',
-  // Fundo de modal (ResolutionModal, ImageLightbox, TrocarSenhaModal
-  // voluntário) — precisa continuar escurecendo o que está atrás mesmo
-  // sobre uma página agora clara, então é um tom escuro translúcido (a cor
-  // "tinta" da paleta em baixa opacidade), não branco.
+  'borda-suave': '#E3E8E6',
   overlay: 'rgba(16,35,31,0.45)',
   erro: '#C0392B',
+}
+
+export const TEMA_ESCURO = {
+  fundo: '#0F1613',
+  'fundo-campo': '#17211D',
+  card: '#1A2622',
+  popover: '#22312B',
+  tinta: '#F4F7F5',
+  texto: '#D7E0DC',
+  'texto-fraco': '#A9B6B1',
+  'texto-suave': '#7E8C87',
+  placeholder: '#5B6863',
+  borda: '#2C3A35',
+  'borda-suave': '#22302B',
+  // Overlay de modal precisa continuar escurecendo o que está atrás mesmo
+  // com a página já escura — usa um tom quase preto (não a `tinta` deste
+  // modo, que agora é clara) em opacidade mais alta que no claro.
+  overlay: 'rgba(4,10,8,0.6)',
+  erro: '#E5584A',
+}
+
+// CORES_APP nunca muda de valor em si — cada campo é uma referência a uma
+// variável CSS (funciona em qualquer `style` inline, mesmo sem CSS-in-JS).
+// Quem muda é o VALOR da variável, escrito no elemento raiz pelo
+// ThemeProvider (context/ThemeContext.jsx) sempre que o modo alterna. Isso
+// evita reescrever os ~20 componentes que já importam CORES_APP direto.
+// `card`/`popover` continuam nomes diferentes só pra deixar clara a
+// intenção de cada uso (superfície de conteúdo vs. menu/dropdown
+// flutuante) nos componentes que os consomem, mesmo hoje sendo o mesmo
+// branco no tema claro.
+export const CORES_APP = {
+  fundo: 'var(--app-fundo)',
+  fundoCampo: 'var(--app-fundo-campo)',
+  card: 'var(--app-card)',
+  popover: 'var(--app-popover)',
+  // Tom mais contrastante que `texto` — reservado pra título/heading de
+  // maior destaque (h1/h2), mesma distinção que authTheme.js já fazia
+  // entre `tinta` e `texto`.
+  tinta: 'var(--app-tinta)',
+  texto: 'var(--app-texto)',
+  textoFraco: 'var(--app-texto-fraco)',
+  textoSuave: 'var(--app-texto-suave)',
+  placeholder: 'var(--app-placeholder)',
+  borda: 'var(--app-borda)',
+  bordaSuave: 'var(--app-borda-suave)',
+  overlay: 'var(--app-overlay)',
+  erro: 'var(--app-erro)',
 }
 
 // Objetos de estilo inline reutilizáveis (sem CSS-in-JS externo, só objetos JS
