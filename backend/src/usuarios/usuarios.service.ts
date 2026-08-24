@@ -69,6 +69,16 @@ export class UsuariosService {
     });
   }
 
+  // GET /usuarios/tecnicos — popula o dropdown "Atribuído a" do painel de
+  // TI (TicketPanel). Existe separado de listarColaboradores() porque é
+  // literalmente o filtro oposto: aqui só quem PODE ser responsável por um
+  // chamado, nunca quem abre chamado.
+  async listarTecnicos(): Promise<Usuario[]> {
+    return this.usuarioRepository.find({
+      where: { tipo: TipoUsuario.TECNICO },
+    });
+  }
+
   // Preenche uma conta que estava resetada (nome/cargo/senha nulos) com os
   // dados de quem está assumindo aquele e-mail agora — reaproveita a MESMA
   // linha (mesmo id), então o histórico de chamados vinculado a ela nunca
