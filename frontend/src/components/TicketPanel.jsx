@@ -3,7 +3,7 @@ import { estilos, CORES_STATUS, CORES_APP } from '../styles/theme'
 import { useWindowWidth } from '../hooks/useWindowWidth'
 import { useAuth } from '../hooks/useAuth'
 import { formatarData, formatarHora, obterIniciais, tempoDecorrido } from '../utils/formatters'
-import { adicionarObservador, atribuirChamado, atualizarNivelChamado, atualizarStatusChamado, buscarChamado, buscarColaboradores, buscarComentarios, buscarSolucoesSugeridas, buscarTecnicos, criarComentario, enviarImagem, removerObservador } from '../services/ticketService'
+import { adicionarObservador, atribuirChamado, atualizarNivelChamado, atualizarStatusChamado, buscarChamado, buscarColaboradores, buscarComentarios, buscarLogsAuditoria, buscarSolucoesSugeridas, buscarTecnicos, criarComentario, enviarImagem, removerObservador } from '../services/ticketService'
 import { traduzirErroApi } from '../utils/traduzirErroApi'
 import { URL_BASE } from '../services/apiClient'
 import { LABEL_CATEGORIA } from '../utils/categorias'
@@ -131,6 +131,14 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
   const [tecnicos, setTecnicos] = useState([])
   const [salvandoAtribuicao, setSalvandoAtribuicao] = useState(false)
   const [mensagemAtribuicao, setMensagemAtribuicao] = useState('')
+  // "Histórico de alterações" — aba somente leitura, só existe pro lado TI
+  // (ver isIT mais abaixo). `abaHistorico` decide o que a coluna direita
+  // mostra; o colaborador nunca vê o seletor de abas, então pra ele
+  // continua sempre 'comentarios', igual era antes desta feature.
+  const [abaHistorico, setAbaHistorico] = useState('comentarios')
+  const [logs, setLogs] = useState([])
+  const [carregandoLogs, setCarregandoLogs] = useState(true)
+  const [erroLogs, setErroLogs] = useState('')
   // Sempre nasce expandida (regra 1/3), exceto se ESTE MESMO chamado já
   // tinha sido aberto (e recolhido) antes nesta sessão (regra 4, bônus) —
   // ver comentário em `estadoSidebarPorChamado` acima.
@@ -179,6 +187,29 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
     buscarComentariosDoChamado()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chamado.id])
+
+  async function buscarLogsDoChamado() {
+    setCarregandoLogs(true)
+    setErroLogs('')
+    try {
+      setLogs(await buscarLogsAuditoria(token, chamado.id))
+    } catch (e) {
+      if (!tratarErroApi(e)) setErroLogs(traduzirErroApi(e))
+    } finally {
+      setCarregandoLogs(false)
+    }
+  }
+
+  // Só busca pro lado TI (rota é @Roles(TECNICO) no backend — colaborador
+  // receberia 403). Mesmo padrão de "busca uma vez, quando o chamado muda"
+  // do histórico de comentários acima, independente de qual aba está
+  // aberta no momento — evita um segundo carregamento visível ao trocar de
+  // aba pela primeira vez.
+  useEffect(() => {
+    if (!isIT) return
+    buscarLogsDoChamado()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chamado.id, isIT])
 
   // Sugestões de chamados parecidos: só faz sentido pro técnico, e só
   // enquanto o chamado ainda está em aberto (uma vez finalizado, a seção
@@ -771,45 +802,97 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
                   nunca chega a disparar). O composer, abaixo, fica FORA
                   deste bloco — sempre visível, nunca dentro da área que
                   rola. */}
+              {/* Seletor de abas: só existe pro lado TI — colaborador nunca
+                  vê "Histórico de alterações" (só técnico/suporte, conforme
+                  pedido), então pra ele a coluna continua exatamente igual
+                  a antes desta feature, sem esse seletor. */}
+              {isIT && (
+                <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                  {[['comentarios', 'Comentários'], ['alteracoes', 'Histórico de alterações']].map(([valor, label]) => {
+                    const ativo = abaHistorico === valor
+                    return (
+                      <button key={valor} type="button" onClick={() => setAbaHistorico(valor)}
+                        style={{ background: ativo ? 'rgba(0,73,192,0.1)' : CORES_APP.fundoCampo, color: ativo ? CORES_APP.tinta : CORES_APP.textoFraco, border: `1px solid ${ativo ? 'rgba(0,73,192,0.3)' : CORES_APP.borda}`, borderRadius: 999, padding: '6px 13px', fontSize: 12, fontFamily: 'Outfit, sans-serif', fontWeight: ativo ? 600 : 400, cursor: 'pointer' }}>
+                        {label}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+
               <div style={{ flex: mobile ? undefined : '1 1 auto', minHeight: mobile ? undefined : 0, overflowY: mobile ? 'visible' : 'auto', paddingRight: mobile ? 0 : 6 }}>
-                <div style={estilos.label}>Histórico de comentários {comentariosReais.length > 0 && `(${comentariosReais.length})`}</div>
-                {carregandoComentarios ? (
-                  <div style={{ color: CORES_APP.textoFraco, fontSize: 13, textAlign: 'center', padding: '16px 0' }}>Carregando comentários...</div>
-                ) : erroComentarios ? (
-                  <p style={{ color: CORES_APP.erro, fontSize: 13, margin: 0 }}>{erroComentarios}</p>
-                ) : comentariosReais.length === 0 ? (
-                  <div style={{ color: CORES_APP.textoSuave, fontSize: 13, textAlign: 'center', padding: '16px 0' }}>Nenhuma atualização ainda</div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    {comentariosReais.map(c => (
-                      <div key={c.id} style={{ background: c.internal ? 'rgba(99,102,241,0.08)' : CORES_APP.fundoCampo, border: `1px solid ${c.internal ? 'rgba(99,102,241,0.18)' : CORES_APP.borda}`, borderRadius: 10, padding: '11px 13px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, flexWrap: 'wrap', gap: 4 }}>
-                          <span style={{ color: c.internal ? '#818cf8' : '#00b351', fontFamily: 'Outfit, sans-serif', fontWeight: 600, fontSize: 13 }}>
-                            {c.author}
-                            {/* "Cc" identifica quem comentou como observador,
-                                não o solicitante original — evita confusão
-                                sobre quem é o dono do chamado. */}
-                            {c.isObserver && (
-                              <span style={{ marginLeft: 6, background: 'rgba(129,140,248,0.15)', color: '#6366f1', padding: '1px 6px', borderRadius: 99, fontSize: 10, fontWeight: 700, verticalAlign: 'middle' }}>Cc</span>
-                            )}
-                            {c.internal && <span style={{ fontSize: 10, opacity: 0.75, marginLeft: 6 }}>(interno)</span>}
-                          </span>
-                          <span style={{ color: CORES_APP.textoSuave, fontSize: 12 }}>{formatarData(c.date)} {formatarHora(c.date)}</span>
-                        </div>
-                        {c.text && <p style={{ color: CORES_APP.texto, fontSize: 14, margin: 0, lineHeight: 1.65, whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }}>{c.text}</p>}
-                        {c.imagemUrl && (
-                          <img src={`${URL_BASE}${c.imagemUrl}`} alt="Imagem anexada ao comentário" onClick={() => setImagemAmpliada(`${URL_BASE}${c.imagemUrl}`)}
-                            style={{ maxWidth: '100%', maxHeight: 200, borderRadius: 8, display: 'block', marginTop: 9, cursor: 'zoom-in' }} />
-                        )}
+                {abaHistorico === 'alteracoes' ? (
+                  <>
+                    <div style={estilos.label}>Histórico de alterações {logs.length > 0 && `(${logs.length})`}</div>
+                    {carregandoLogs ? (
+                      <div style={{ color: CORES_APP.textoFraco, fontSize: 13, textAlign: 'center', padding: '16px 0' }}>Carregando histórico...</div>
+                    ) : erroLogs ? (
+                      <p style={{ color: CORES_APP.erro, fontSize: 13, margin: 0 }}>{erroLogs}</p>
+                    ) : logs.length === 0 ? (
+                      <div style={{ color: CORES_APP.textoSuave, fontSize: 13, textAlign: 'center', padding: '16px 0' }}>Nenhuma alteração registrada ainda</div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        {logs.map(log => (
+                          <div key={log.id} style={{ background: CORES_APP.fundoCampo, border: `1px solid ${CORES_APP.borda}`, borderRadius: 10, padding: '11px 13px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, flexWrap: 'wrap', gap: 4 }}>
+                              <span style={{ color: '#6366f1', fontFamily: 'Outfit, sans-serif', fontWeight: 600, fontSize: 13 }}>
+                                {log.userName}
+                                <span style={{ marginLeft: 6, background: 'rgba(99,102,241,0.12)', color: '#6366f1', padding: '1px 8px', borderRadius: 99, fontSize: 10, fontWeight: 700, verticalAlign: 'middle' }}>{log.acaoLabel}</span>
+                              </span>
+                              <span style={{ color: CORES_APP.textoSuave, fontSize: 12 }}>{formatarData(log.date)} {formatarHora(log.date)}</span>
+                            </div>
+                            <p style={{ color: CORES_APP.texto, fontSize: 14, margin: 0, lineHeight: 1.65 }}>{log.description}</p>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <div style={estilos.label}>Histórico de comentários {comentariosReais.length > 0 && `(${comentariosReais.length})`}</div>
+                    {carregandoComentarios ? (
+                      <div style={{ color: CORES_APP.textoFraco, fontSize: 13, textAlign: 'center', padding: '16px 0' }}>Carregando comentários...</div>
+                    ) : erroComentarios ? (
+                      <p style={{ color: CORES_APP.erro, fontSize: 13, margin: 0 }}>{erroComentarios}</p>
+                    ) : comentariosReais.length === 0 ? (
+                      <div style={{ color: CORES_APP.textoSuave, fontSize: 13, textAlign: 'center', padding: '16px 0' }}>Nenhuma atualização ainda</div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        {comentariosReais.map(c => (
+                          <div key={c.id} style={{ background: c.internal ? 'rgba(99,102,241,0.08)' : CORES_APP.fundoCampo, border: `1px solid ${c.internal ? 'rgba(99,102,241,0.18)' : CORES_APP.borda}`, borderRadius: 10, padding: '11px 13px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, flexWrap: 'wrap', gap: 4 }}>
+                              <span style={{ color: c.internal ? '#818cf8' : '#00b351', fontFamily: 'Outfit, sans-serif', fontWeight: 600, fontSize: 13 }}>
+                                {c.author}
+                                {/* "Cc" identifica quem comentou como observador,
+                                    não o solicitante original — evita confusão
+                                    sobre quem é o dono do chamado. */}
+                                {c.isObserver && (
+                                  <span style={{ marginLeft: 6, background: 'rgba(129,140,248,0.15)', color: '#6366f1', padding: '1px 6px', borderRadius: 99, fontSize: 10, fontWeight: 700, verticalAlign: 'middle' }}>Cc</span>
+                                )}
+                                {c.internal && <span style={{ fontSize: 10, opacity: 0.75, marginLeft: 6 }}>(interno)</span>}
+                              </span>
+                              <span style={{ color: CORES_APP.textoSuave, fontSize: 12 }}>{formatarData(c.date)} {formatarHora(c.date)}</span>
+                            </div>
+                            {c.text && <p style={{ color: CORES_APP.texto, fontSize: 14, margin: 0, lineHeight: 1.65, whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }}>{c.text}</p>}
+                            {c.imagemUrl && (
+                              <img src={`${URL_BASE}${c.imagemUrl}`} alt="Imagem anexada ao comentário" onClick={() => setImagemAmpliada(`${URL_BASE}${c.imagemUrl}`)}
+                                style={{ maxWidth: '100%', maxHeight: 200, borderRadius: 8, display: 'block', marginTop: 9, cursor: 'zoom-in' }} />
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
 
               {/* Composer — flexShrink:0 garante que nunca encolhe nem
                   entra na área de scroll acima; sempre visível, embaixo
-                  do modal, independente de quantos comentários existem. */}
+                  do modal, independente de quantos comentários existem.
+                  Escondido na aba "Histórico de alterações" — não faz
+                  sentido comentar enquanto se está olhando o log
+                  (somente leitura), e essa aba nem existe pro colaborador. */}
+              {abaHistorico === 'comentarios' && (
               <div style={{ flexShrink: 0 }}>
               {chamadoFinalizado ? (
                 <div style={{ background: CORES_APP.fundoCampo, border: `1px dashed ${CORES_APP.borda}`, borderRadius: 10, padding: '14px 16px', textAlign: 'center' }}>
@@ -861,6 +944,7 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
                 </div>
               )}
               </div>
+              )}
             </div>
           </div>
         </div>
