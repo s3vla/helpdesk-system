@@ -2,17 +2,16 @@
 // todas as telas de login e nos layouts internos. `size` controla a escala
 // inteira (texto incluso); `showText` esconde "NOVATECH AGRO" em telas estreitas.
 //
-// Cores ajustadas pro tema claro (fundo branco/cinza claro em todo o
-// sistema agora) — SÓ a cor mudou, a animação (className="animate-spin-*")
-// continua exatamente a mesma. O anel externo e o ponto central seguem
-// #007851 (mesmo verde escuro usado nos botões de confirmação — já tinha
-// contraste bom em qualquer fundo). O anel interno, que era #4ade80 (verde
-// claro, pensado pra contrastar contra navy escuro), ficava apagado sobre
-// fundo claro — trocado por #00B351, o verde médio já usado como accent em
-// outros lugares do tema claro (authTheme.js), mantendo os dois anéis
-// visualmente distintos entre si. O texto "NOVATECH" era quase branco
-// (#f0f4ff, pensado pra fundo escuro) — trocado pro tom mais escuro da
-// paleta clara (CORES_APP.tinta), senão ficaria ilegível sobre fundo claro.
+import { CORES_APP } from '../styles/theme'
+
+// O anel externo e o ponto central seguem #007851 (mesmo verde escuro usado
+// nos botões de confirmação — já tem contraste bom em qualquer fundo,
+// claro ou escuro). O anel interno usa #00B351, o verde médio já usado
+// como accent em outros lugares do tema (authTheme.js), mantendo os dois
+// anéis visualmente distintos entre si. O texto "NOVATECH" usa
+// CORES_APP.tinta (não um hex fixo) justamente pra acompanhar o tema
+// ativo — travado em `tinta`, ficaria ilegível assim que o tema escuro
+// entrasse (mesmo tom escuro sobre fundo de card também escuro).
 function Logo({ size = 44, showText = true }) {
   const cx = size / 2
   return (
@@ -38,7 +37,7 @@ function Logo({ size = 44, showText = true }) {
       </div>
       {showText && (
         <div style={{ lineHeight: 1 }}>
-          <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800, letterSpacing: '0.13em', color: '#10231F', fontSize: size * 0.47 }}>NOVATECH</div>
+          <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800, letterSpacing: '0.13em', color: CORES_APP.tinta, fontSize: size * 0.47 }}>NOVATECH</div>
           <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 500, letterSpacing: '0.3em', color: '#007851', fontSize: size * 0.23, marginTop: 2 }}>AGRO</div>
         </div>
       )}

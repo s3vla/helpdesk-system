@@ -23,7 +23,14 @@ export const cores = {
   placeholder: '#9AA5A2',
   borda: '#D2DAD7',
   bordaSuave: '#E3E8E6',
-  fundo: '#F4F6F5',
+  // Levemente puxado pro azul (não é mais um cinza neutro) — o lado claro
+  // das 4 telas de auth estava "seco" demais com um cinza chapado; esse
+  // tingimento é quase imperceptível sozinho, mas some a sensação de vazio
+  // clínico quando combinado com a textura diagonal + os círculos de canto
+  // (ver FundoDecorativo.jsx). `fundoCampo` fica de fora de propósito — é
+  // usado dentro do card (campo readOnly do Primeiro Acesso), não na
+  // página, então não precisa do mesmo tingimento.
+  fundo: '#F2F5F8',
   fundoCampo: '#EFF3F1',
   branco: '#FFFFFF',
   erro: '#C0392B',
@@ -47,22 +54,60 @@ export const estilosAuth = {
     background: cores.fundo,
     fontFamily: fonte,
   },
+  // `position: relative` + `overflow: hidden` são pro FundoDecorativo (ver
+  // components/auth/FundoDecorativo.jsx), que cobre o `<main>` inteiro
+  // deitado atrás do card — sem isso os círculos de canto (que estouram a
+  // borda de propósito, mesmo truque de BrandPanel.jsx) criariam scroll.
   principal: {
+    position: 'relative',
+    overflow: 'hidden',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     padding: '48px 40px',
     boxSizing: 'border-box',
   },
-  coluna: { width: '100%', maxWidth: 424, display: 'flex', flexDirection: 'column', gap: 28 },
+  principalMobile: {
+    position: 'relative',
+    overflow: 'hidden',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '28px 20px',
+    boxSizing: 'border-box',
+  },
+  // Card flutuante do formulário, "pousado" sobre o cinza claro de
+  // `pagina`/`paginaMobile` — antes o formulário ficava direto sobre o
+  // fundo da página, sem nenhuma superfície própria. `coluna` (o miolo:
+  // eyebrow/título, form, divisor de links) vive DENTRO deste card agora.
+  // `position: relative` + `zIndex: 1` erguem o card acima do
+  // FundoDecorativo (que fica em zIndex 0 dentro do mesmo `<main>`).
+  cartao: {
+    position: 'relative', zIndex: 1,
+    width: '100%', maxWidth: 424, boxSizing: 'border-box',
+    background: cores.branco, border: `1px solid ${cores.bordaSuave}`,
+    borderRadius: 18, padding: '36px 34px',
+    boxShadow: '0 16px 40px rgba(16,35,31,0.10)',
+  },
+  cartaoMobile: {
+    position: 'relative', zIndex: 1,
+    width: '100%', maxWidth: 424, boxSizing: 'border-box',
+    background: cores.branco, border: `1px solid ${cores.bordaSuave}`,
+    borderRadius: 16, padding: '28px 22px',
+    boxShadow: '0 10px 28px rgba(16,35,31,0.10)',
+  },
+  coluna: { display: 'flex', flexDirection: 'column', gap: 22 },
   eyebrow: { fontFamily: fonteMono, fontSize: 11, letterSpacing: '0.18em', color: cores.azulMedio },
   titulo: { margin: 0, fontSize: 30, fontWeight: 600, letterSpacing: '-0.02em', color: cores.tinta },
   texto: { margin: 0, fontSize: 15, lineHeight: 1.5, color: cores.textoFraco },
-  form: { display: 'flex', flexDirection: 'column', gap: 18 },
-  campo: { display: 'flex', flexDirection: 'column', gap: 7 },
+  // Densidade alinhada ao mesmo ajuste já feito nos formulários de chamado
+  // (CreateTicket.jsx/ITAbrirChamado.jsx): gaps menores entre label→input→
+  // próximo campo, e campo um pouco mais baixo (46px, não mais 50px).
+  form: { display: 'flex', flexDirection: 'column', gap: 14 },
+  campo: { display: 'flex', flexDirection: 'column', gap: 6 },
   rotulo: { fontSize: 13, fontWeight: 500, color: cores.texto },
   input: {
-    height: 50,
+    height: 46,
     padding: '0 16px',
     fontFamily: fonte,
     fontSize: 15,
@@ -88,8 +133,14 @@ export const estilosAuth = {
     cursor: 'pointer',
     transition: 'background .15s',
   },
-  divisor: { paddingTop: 22, borderTop: `1px solid ${cores.bordaSuave}` },
-  link: { fontSize: 14, color: cores.azul, textDecoration: 'none', cursor: 'pointer', background: 'none', border: 0 },
+  divisor: { paddingTop: 18, borderTop: `1px solid ${cores.bordaSuave}` },
+  // `padding: 0` é necessário mesmo com background/border zerados — sem
+  // isso, o <button> herda o padding padrão do navegador (varia por
+  // browser/SO), que passava despercebido nos outros usos deste estilo
+  // (sempre com texto normal ao redor achatando o efeito) mas inflava
+  // visivelmente o respiro do link "Sou da equipe técnica", que é 100%
+  // botão, sem nenhum texto solto ao redor pra disfarçar.
+  link: { fontSize: 14, color: cores.azul, textDecoration: 'none', cursor: 'pointer', background: 'none', border: 0, padding: 0 },
 }
 
 export const botaoVerde = { ...estilosAuth.botao, background: cores.verdeEscuro }
