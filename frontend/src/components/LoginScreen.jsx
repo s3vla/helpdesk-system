@@ -1,7 +1,10 @@
 import { useState } from 'react'
 import FirstAccessModal from './FirstAccessModal'
 import BrandPanel from './auth/BrandPanel'
+import FundoDecorativo from './auth/FundoDecorativo'
+import EmailInput from './auth/EmailInput'
 import PasswordInput from './PasswordInput'
+import { IconChevronRight } from './icons'
 import { estilosAuth, cores, botaoVerde } from '../styles/authTheme'
 import { useAuth } from '../hooks/useAuth'
 import { useWindowWidth } from '../hooks/useWindowWidth'
@@ -46,11 +49,10 @@ function LoginScreen({ onLoginColaborador, onSwitchIT }) {
     limparMensagemSessao()
     setCarregando(true)
     try {
-      const usuarioLogado = await login(email, pass)
-      if (usuarioLogado.tipo !== 'COLABORADOR') {
-        setErr('Essas credenciais são de um técnico — use a Área Técnica para entrar.')
-        return
-      }
+      // 'COLABORADOR' é o perfil que ESTA tela representa — o backend
+      // recusa com 403 (mensagem própria, capturada no catch abaixo) se a
+      // conta informada for de técnico, antes de criar qualquer sessão.
+      await login(email, pass, 'COLABORADOR')
       onLoginColaborador()
     } catch (erro) {
       setErr(traduzirErroApi(erro))
@@ -75,51 +77,55 @@ function LoginScreen({ onLoginColaborador, onSwitchIT }) {
   return (
     <div style={mobile ? estilosAuth.paginaMobile : estilosAuth.pagina} className="animate-fade-up">
       <BrandPanel />
-      <main style={estilosAuth.principal}>
-        <div style={estilosAuth.coluna}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <span style={estilosAuth.eyebrow}>ACESSO COLABORADOR</span>
-            <h2 style={estilosAuth.titulo}>Entrar no help desk</h2>
-            <p style={estilosAuth.texto}>Use o e-mail corporativo @novatechagro.com.br</p>
-          </div>
-
-          {mensagemSessao && (
-            <div style={{ background: '#FDF3E7', border: '1px solid #F0D9B5', borderRadius: 10, padding: '10px 14px', color: '#8A5A1E', fontSize: 13 }}>
-              {mensagemSessao}
+      <main style={mobile ? estilosAuth.principalMobile : estilosAuth.principal}>
+        <FundoDecorativo />
+        <div style={mobile ? estilosAuth.cartaoMobile : estilosAuth.cartao}>
+          <div style={estilosAuth.coluna}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <span style={estilosAuth.eyebrow}>ACESSO COLABORADOR</span>
+              <h2 style={estilosAuth.titulo}>Entrar no help desk</h2>
+              <p style={estilosAuth.texto}>Use o e-mail corporativo @novatechagro.com.br</p>
             </div>
-          )}
 
-          <form style={estilosAuth.form} onSubmit={e => { e.preventDefault(); doLogin() }}>
-            <label style={estilosAuth.campo}>
-              <span style={estilosAuth.rotulo}>E-mail corporativo</span>
-              <input type="email" value={email} onChange={e => setEmail(e.target.value)}
-                placeholder="seu.nome@novatechagro.com.br" style={estilosAuth.input} disabled={carregando} />
-            </label>
+            {mensagemSessao && (
+              <div style={{ background: '#FDF3E7', border: '1px solid #F0D9B5', borderRadius: 10, padding: '10px 14px', color: '#8A5A1E', fontSize: 13 }}>
+                {mensagemSessao}
+              </div>
+            )}
 
-            <label style={estilosAuth.campo}>
-              <span style={estilosAuth.rotulo}>Senha</span>
-              <PasswordInput value={pass} onChange={e => setPass(e.target.value)}
-                placeholder="Sua senha" disabled={carregando}
-                style={{ ...estilosAuth.input, ...estilosAuth.inputSenha }} iconColor={cores.azulMedio} />
-            </label>
+            <form style={estilosAuth.form} onSubmit={e => { e.preventDefault(); doLogin() }}>
+              <label style={estilosAuth.campo}>
+                <span style={estilosAuth.rotulo}>E-mail corporativo</span>
+                <EmailInput value={email} onChange={e => setEmail(e.target.value)}
+                  placeholder="seu.nome@novatechagro.com.br" style={estilosAuth.input} disabled={carregando} iconColor={cores.azulMedio} />
+              </label>
 
-            {err && <p style={{ color: cores.erro, fontSize: 13, margin: 0 }}>{err}</p>}
+              <label style={estilosAuth.campo}>
+                <span style={estilosAuth.rotulo}>Senha</span>
+                <PasswordInput value={pass} onChange={e => setPass(e.target.value)}
+                  placeholder="Sua senha" disabled={carregando}
+                  style={{ ...estilosAuth.input, ...estilosAuth.inputSenha }} iconColor={cores.azulMedio} />
+              </label>
 
-            <button type="submit" disabled={carregando} style={{ ...botaoVerde, opacity: carregando ? 0.7 : 1, cursor: carregando ? 'default' : 'pointer' }}>
-              {carregando ? 'Entrando...' : 'Entrar'}
-            </button>
-          </form>
+              {err && <p style={{ color: cores.erro, fontSize: 13, margin: 0 }}>{err}</p>}
 
-          <div style={{ ...estilosAuth.divisor, display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <span style={{ fontSize: 14, color: cores.textoFraco }}>
-              Primeiro acesso?{' '}
-              <button type="button" onClick={() => setMostrarPrimeiroAcesso(true)} style={estilosAuth.link}>
-                Cadastre-se com seu e-mail corporativo
+              <button type="submit" disabled={carregando} style={{ ...botaoVerde, opacity: carregando ? 0.7 : 1, cursor: carregando ? 'default' : 'pointer' }}>
+                {carregando ? 'Entrando...' : 'Entrar'}
               </button>
-            </span>
-            <button type="button" onClick={onSwitchIT} style={{ ...estilosAuth.link, color: cores.textoFraco, textAlign: 'left' }}>
-              Sou da equipe técnica — acessar painel de TI →
-            </button>
+            </form>
+
+            <div style={{ ...estilosAuth.divisor, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <span style={{ fontSize: 14, color: cores.textoFraco }}>
+                Primeiro acesso?{' '}
+                <button type="button" onClick={() => setMostrarPrimeiroAcesso(true)} style={estilosAuth.link}>
+                  Cadastre-se com seu e-mail corporativo
+                </button>
+              </span>
+              <button type="button" onClick={onSwitchIT} style={{ ...estilosAuth.link, color: cores.textoFraco, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span>Sou da equipe técnica — acessar painel de TI</span>
+                <IconChevronRight width={14} height={14} style={{ flexShrink: 0 }} />
+              </button>
+            </div>
           </div>
         </div>
       </main>
