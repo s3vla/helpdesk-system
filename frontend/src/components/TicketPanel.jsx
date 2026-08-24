@@ -3,7 +3,7 @@ import { estilos, CORES_STATUS, CORES_APP } from '../styles/theme'
 import { useWindowWidth } from '../hooks/useWindowWidth'
 import { useAuth } from '../hooks/useAuth'
 import { formatarData, formatarHora, obterIniciais, tempoDecorrido } from '../utils/formatters'
-import { adicionarObservador, atualizarNivelChamado, atualizarStatusChamado, buscarChamado, buscarColaboradores, buscarComentarios, buscarSolucoesSugeridas, criarComentario, enviarImagem, removerObservador } from '../services/ticketService'
+import { adicionarObservador, atribuirChamado, atualizarNivelChamado, atualizarStatusChamado, buscarChamado, buscarColaboradores, buscarComentarios, buscarSolucoesSugeridas, buscarTecnicos, criarComentario, enviarImagem, removerObservador } from '../services/ticketService'
 import { traduzirErroApi } from '../utils/traduzirErroApi'
 import { URL_BASE } from '../services/apiClient'
 import { LABEL_CATEGORIA } from '../utils/categorias'
@@ -128,6 +128,9 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
   const [enviandoImagemComentario, setEnviandoImagemComentario] = useState(false)
   const [colaboradores, setColaboradores] = useState([])
   const [salvandoObservador, setSalvandoObservador] = useState(false)
+  const [tecnicos, setTecnicos] = useState([])
+  const [salvandoAtribuicao, setSalvandoAtribuicao] = useState(false)
+  const [mensagemAtribuicao, setMensagemAtribuicao] = useState('')
   // Sempre nasce expandida (regra 1/3), exceto se ESTE MESMO chamado já
   // tinha sido aberto (e recolhido) antes nesta sessão (regra 4, bônus) —
   // ver comentário em `estadoSidebarPorChamado` acima.
@@ -208,6 +211,19 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isIT])
 
+  // Lista de técnicos pra montar as opções do dropdown "Atribuído a" — só o
+  // técnico precisa disso, mesmo padrão de `colaboradores` acima (busca uma
+  // vez só, a lista de técnicos não muda com o painel aberto).
+  useEffect(() => {
+    if (!isIT) return
+    let cancelado = false
+    buscarTecnicos(token)
+      .then(resultado => { if (!cancelado) setTecnicos(resultado) })
+      .catch(() => { if (!cancelado) setTecnicos([]) })
+    return () => { cancelado = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isIT])
+
   // Minimizar/expandir é sempre uma ação manual (clique aqui) — nunca
   // acontece sozinho por tempo ou rolagem. Guarda a escolha no Map de
   // sessão pra, se ESTE chamado for reaberto depois, lembrar o que o
@@ -245,6 +261,27 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
       if (!tratarErroApi(e)) setErroAcao(traduzirErroApi(e))
     } finally {
       setSalvandoObservador(false)
+    }
+  }
+
+  // Define/troca/remove o técnico responsável — `novoTecnicoId` vazio
+  // ('') do <select> vira null (desatribuir). Mensagem de sucesso some
+  // sozinha depois de um tempo, mesmo padrão "feedback discreto" já usado
+  // no resto do painel (sem toast/lib nova pra isso).
+  async function atribuirTecnicoAoChamado(novoTecnicoId) {
+    setErroAcao('')
+    setMensagemAtribuicao('')
+    setSalvandoAtribuicao(true)
+    try {
+      const atualizado = await atribuirChamado(token, chamado.id, novoTecnicoId || null)
+      setChamado(atualizado)
+      onAtualizado()
+      setMensagemAtribuicao(atualizado.assignedTo ? `Atribuído a ${atualizado.assignedTo}` : 'Chamado desatribuído')
+      setTimeout(() => setMensagemAtribuicao(''), 3000)
+    } catch (e) {
+      if (!tratarErroApi(e)) setErroAcao(traduzirErroApi(e))
+    } finally {
+      setSalvandoAtribuicao(false)
     }
   }
 
@@ -525,7 +562,24 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
                   <div style={{ color: CORES_APP.tinta, fontWeight: 500, fontSize: 14 }}>{formatarData(chamado.created)}</div>
                   <div style={{ color: CORES_APP.textoFraco, fontSize: 12, marginTop: 1 }}>{formatarHora(chamado.created)}</div>
                 </div>
-                {chamado.assignedTo && (
+                {/* Lado TI: dropdown editável, sempre visível (mesmo sem
+                    responsável ainda) pra permitir atribuir. Lado
+                    colaborador: continua exatamente como antes — texto
+                    somente-leitura, só aparece quando já tem responsável. */}
+                {isIT ? (
+                  <div style={{ background: CORES_APP.fundoCampo, borderRadius: 10, padding: '11px 13px' }}>
+                    <div style={estilos.label}>Atribuído a</div>
+                    <select value={chamado.assignedToId ?? ''} disabled={salvandoAtribuicao || tecnicos.length === 0}
+                      onChange={e => atribuirTecnicoAoChamado(e.target.value)}
+                      style={{ width: '100%', background: 'transparent', color: chamado.assignedTo ? '#00b351' : CORES_APP.textoFraco, fontWeight: 500, fontSize: 14, fontFamily: 'Inter, sans-serif', border: 'none', outline: 'none', padding: 0, cursor: salvandoAtribuicao ? 'default' : 'pointer' }}>
+                      <option value="">Não atribuído</option>
+                      {tecnicos.map(t => (
+                        <option key={t.id} value={t.id}>{t.name}</option>
+                      ))}
+                    </select>
+                    {mensagemAtribuicao && <div style={{ color: '#00b351', fontSize: 11, marginTop: 4 }}>{mensagemAtribuicao}</div>}
+                  </div>
+                ) : chamado.assignedTo && (
                   <div style={{ background: CORES_APP.fundoCampo, borderRadius: 10, padding: '11px 13px' }}>
                     <div style={estilos.label}>Responsável TI</div>
                     <div style={{ color: '#00b351', fontWeight: 500, fontSize: 14 }}>{chamado.assignedTo}</div>

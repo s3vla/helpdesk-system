@@ -24,6 +24,7 @@ import { CriarChamadoDto } from './dto/criar-chamado.dto';
 import { AbrirChamadoTecnicoDto } from './dto/abrir-chamado-tecnico.dto';
 import { AtualizarStatusChamadoDto } from './dto/atualizar-status-chamado.dto';
 import { AtualizarNivelChamadoDto } from './dto/atualizar-nivel-chamado.dto';
+import { AtribuirChamadoDto } from './dto/atribuir-chamado.dto';
 import { FiltrosChamadoDto } from './dto/filtros-chamado.dto';
 import { PeriodoChamadoDto } from './dto/periodo-chamado.dto';
 import { MetricasChamadoDto } from './dto/metricas-chamado.dto';
@@ -152,6 +153,21 @@ export class ChamadosController {
       dto,
       usuarioAtual,
     );
+    return mapChamadoParaResposta(chamado);
+  }
+
+  // Define/troca/remove o técnico responsável manualmente — diferente de
+  // PATCH /status (que só auto-atribui o próprio técnico logado), aqui
+  // qualquer técnico pode escolher QUALQUER técnico da lista pra atender,
+  // inclusive desatribuir (tecnicoId null). ChamadosService.atribuir valida
+  // que o id informado é de fato um TECNICO.
+  @Patch(':id/atribuir')
+  @Roles(TipoUsuario.TECNICO)
+  async atribuir(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: AtribuirChamadoDto,
+  ) {
+    const chamado = await this.chamadosService.atribuir(id, dto);
     return mapChamadoParaResposta(chamado);
   }
 

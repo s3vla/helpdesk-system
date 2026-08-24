@@ -15,6 +15,7 @@ import { CriarChamadoDto } from './dto/criar-chamado.dto';
 import { AbrirChamadoTecnicoDto } from './dto/abrir-chamado-tecnico.dto';
 import { AtualizarStatusChamadoDto } from './dto/atualizar-status-chamado.dto';
 import { AtualizarNivelChamadoDto } from './dto/atualizar-nivel-chamado.dto';
+import { AtribuirChamadoDto } from './dto/atribuir-chamado.dto';
 import { FiltrosChamadoDto } from './dto/filtros-chamado.dto';
 import { PeriodoChamadoDto } from './dto/periodo-chamado.dto';
 import { MetricasChamadoDto } from './dto/metricas-chamado.dto';
@@ -539,6 +540,35 @@ export class ChamadosService {
     }
 
     chamado.status = dto.status;
+    await this.chamadoRepository.save(chamado);
+    return this.buscarPorIdOuFalhar(id);
+  }
+
+  // PATCH /chamados/:id/atribuir — define ou troca o técnico responsável
+  // manualmente (diferente da auto-atribuição implícita de
+  // atualizarStatus: aqui um técnico escolhe QUALQUER técnico da lista,
+  // incluindo si mesmo ou outro colega, e pode desatribuir de volta pra
+  // null). `tecnicoId` ausente/null desatribui; um id presente precisa
+  // apontar pra um usuário tipo TECNICO — nunca um colaborador, mesmo que o
+  // id exista e esteja ativo.
+  async atribuir(id: number, dto: AtribuirChamadoDto): Promise<Chamado> {
+    const chamado = await this.chamadoRepository.findOne({ where: { id } });
+    if (!chamado) throw new NotFoundException('Chamado não encontrado');
+
+    if (dto.tecnicoId === null || dto.tecnicoId === undefined) {
+      chamado.tecnicoResponsavel = null;
+    } else {
+      const tecnico = await this.usuarioRepository.findOne({
+        where: { id: dto.tecnicoId },
+      });
+      if (!tecnico || tecnico.tipo !== TipoUsuario.TECNICO) {
+        throw new BadRequestException(
+          'Só é possível atribuir chamados a técnicos de TI',
+        );
+      }
+      chamado.tecnicoResponsavel = tecnico;
+    }
+
     await this.chamadoRepository.save(chamado);
     return this.buscarPorIdOuFalhar(id);
   }
