@@ -7,7 +7,7 @@ import {
 import { TipoUsuario } from '../common/enums/tipo-usuario.enum';
 import { TipoComentario } from '../common/enums/tipo-comentario.enum';
 import { InjectRepository } from '@nestjs/typeorm';
-import { FindOptionsWhere, In, Like, Repository } from 'typeorm';
+import { Between, FindOptionsWhere, In, Like, Repository } from 'typeorm';
 import { Chamado } from './entities/chamado.entity';
 import { Usuario } from '../usuarios/entities/usuario.entity';
 import { Comentario } from '../comentarios/entities/comentario.entity';
@@ -16,11 +16,20 @@ import { AbrirChamadoTecnicoDto } from './dto/abrir-chamado-tecnico.dto';
 import { AtualizarStatusChamadoDto } from './dto/atualizar-status-chamado.dto';
 import { AtualizarNivelChamadoDto } from './dto/atualizar-nivel-chamado.dto';
 import { FiltrosChamadoDto } from './dto/filtros-chamado.dto';
+import { PeriodoChamadoDto } from './dto/periodo-chamado.dto';
+import { MetricasChamadoDto } from './dto/metricas-chamado.dto';
+import { MetricaItemResponseDto } from './dto/metrica-item-response.dto';
 import { StatusChamado } from '../common/enums/status-chamado.enum';
+import { NivelChamado } from '../common/enums/nivel-chamado.enum';
+import { CategoriaChamado } from '../common/enums/categoria-chamado.enum';
+import { PrioridadeChamado } from '../common/enums/prioridade-chamado.enum';
+import { AgruparPor } from '../common/enums/agrupar-por.enum';
+import { TipoMetrica } from '../common/enums/tipo-metrica.enum';
 import { JwtPayload } from '../common/interfaces/jwt-payload.interface';
 import { SolucoesConhecidasService } from '../solucoes-conhecidas/solucoes-conhecidas.service';
 import { ObservadoresService } from '../observadores/observadores.service';
 import { calcularNivelSugerido } from './nivel-triagem.util';
+import { agruparChamadosRepetidos, GrupoRepetido } from './estatisticas.util';
 
 // Relações que toda consulta de Chamado precisa trazer junto — sem isso o
 // TypeORM devolveria só os ids (solicitanteId/tecnicoResponsavelId) e o
@@ -61,6 +70,42 @@ function extrairIdDoNumeroChamado(busca: string): number | null {
   const id = parseInt(semHash, 10) - 1000;
   return id > 0 ? id : null;
 }
+
+// Só os 4 agrupamentos "por enum" de GET /chamados/metricas (solicitante e
+// tecnicoResponsavel são "por pessoa", tratados à parte — ver
+// agruparPorPessoa). Os valores de AgruparPor foram escolhidos justamente
+// pra baterem com o nome do campo correspondente em Chamado, mas indexar
+// `chamado[agruparPor]` dinamicamente exigiria `as any` pra escapar do
+// TypeScript — este mapa explícito evita isso sem perder a generalidade.
+type AgruparPorEnum =
+  | AgruparPor.NIVEL
+  | AgruparPor.CATEGORIA
+  | AgruparPor.STATUS
+  | AgruparPor.PRIORIDADE;
+
+const EXTRATOR_POR_AGRUPAMENTO: Record<
+  AgruparPorEnum,
+  (chamado: Chamado) => string
+> = {
+  [AgruparPor.NIVEL]: (chamado) => chamado.nivel,
+  [AgruparPor.CATEGORIA]: (chamado) => chamado.categoria,
+  [AgruparPor.STATUS]: (chamado) => chamado.status,
+  [AgruparPor.PRIORIDADE]: (chamado) => chamado.prioridade,
+};
+
+// Valores possíveis de cada enum, na ordem de declaração — usado só quando
+// tipo=contagem, pra zero-preencher os grupos sem nenhum chamado no
+// período (о gráfico de barras do frontend nunca fica com uma barra
+// faltando, mesmo raciocínio que `porNivel` já tinha antes desta rota
+// virar genérica).
+const VALORES_POR_AGRUPAMENTO: Record<AgruparPorEnum, string[]> = {
+  [AgruparPor.NIVEL]: Object.values(NivelChamado),
+  [AgruparPor.CATEGORIA]: Object.values(CategoriaChamado),
+  [AgruparPor.STATUS]: Object.values(StatusChamado),
+  [AgruparPor.PRIORIDADE]: Object.values(PrioridadeChamado),
+};
+
+const LIMITE_RANKING_PADRAO = 10;
 
 @Injectable()
 export class ChamadosService {
@@ -104,7 +149,7 @@ export class ChamadosService {
       mensagemErro: dto.mensagemErro ?? null,
       categoria: dto.categoria,
       prioridade: dto.prioridade,
-      imagemUrl: dto.imagemUrl ?? null,
+      imagensUrls: dto.imagensUrls ?? [],
       anydeskId: dto.anydeskId ?? null,
       nivel: calcularNivelSugerido(
         dto.categoria,
@@ -211,6 +256,172 @@ export class ChamadosService {
       relations: RELACOES_PADRAO,
       order: { dataAbertura: 'DESC' },
     });
+  }
+
+  // GET /chamados/metricas — motor genérico de agregação pro Dashboard TI
+  // configurável. Qualquer combinação de agruparPor + tipo passa por aqui;
+  // adicionar uma métrica nova (ex: "contagem por prioridade") não pede
+  // código novo, só um DashboardWidget novo apontando pra essa combinação.
+  async obterMetricas(
+    filtros: MetricasChamadoDto,
+  ): Promise<MetricaItemResponseDto[]> {
+    const { inicio, fim } = this.resolverPeriodo(filtros);
+    const chamados = await this.buscarChamadosNoPeriodo(inicio, fim);
+
+    if (
+      filtros.agruparPor === AgruparPor.SOLICITANTE ||
+      filtros.agruparPor === AgruparPor.TECNICO_RESPONSAVEL
+    ) {
+      return this.agruparPorPessoa(
+        chamados,
+        filtros.agruparPor,
+        filtros.tipo,
+        filtros.limite,
+      );
+    }
+
+    return this.agruparPorEnum(
+      chamados,
+      filtros.agruparPor,
+      filtros.tipo,
+      filtros.limite,
+    );
+  }
+
+  // GET /chamados/repeticao — carve-out do que antes vivia junto com as
+  // outras métricas: agrupamento por categoria + palavra-chave da
+  // descrição, lógica própria demais pra caber no motor genérico acima
+  // (ver estatisticas.util.ts). Continua um widget "fixo" no catálogo,
+  // não removível — ver DashboardWidgetsService.
+  async obterRepeticao(filtros: PeriodoChamadoDto): Promise<GrupoRepetido[]> {
+    const { inicio, fim } = this.resolverPeriodo(filtros);
+    const chamados = await this.buscarChamadosNoPeriodo(inicio, fim);
+
+    return agruparChamadosRepetidos(
+      chamados.map((chamado) => ({
+        categoria: chamado.categoria,
+        descricao: chamado.descricao,
+        mensagemErro: chamado.mensagemErro,
+      })),
+    );
+  }
+
+  private async buscarChamadosNoPeriodo(
+    inicio: Date,
+    fim: Date,
+  ): Promise<Chamado[]> {
+    return this.chamadoRepository.find({
+      where: { dataAbertura: Between(inicio, fim) },
+      // solicitante: usado por agruparPorPessoa (agruparPor=solicitante) e
+      // por obterRepeticao (rótulo não usa isso, mas manter uma única forma
+      // de buscar evita duas versões quase iguais desta query). tecnicoResponsavel:
+      // usado por agruparPorPessoa (agruparPor=tecnicoResponsavel) — antes
+      // desta rota virar genérica, essa relação não precisava ser carregada
+      // aqui.
+      relations: { solicitante: true, tecnicoResponsavel: true },
+    });
+  }
+
+  private agruparPorEnum(
+    chamados: Chamado[],
+    agruparPor: AgruparPorEnum,
+    tipo: TipoMetrica,
+    limite: number | undefined,
+  ): MetricaItemResponseDto[] {
+    const extrair = EXTRATOR_POR_AGRUPAMENTO[agruparPor];
+    const contagem = new Map<string, number>();
+    for (const chamado of chamados) {
+      const chave = extrair(chamado);
+      contagem.set(chave, (contagem.get(chave) ?? 0) + 1);
+    }
+
+    if (tipo === TipoMetrica.CONTAGEM) {
+      return VALORES_POR_AGRUPAMENTO[agruparPor].map((chave) => ({
+        chave,
+        rotulo: chave,
+        total: contagem.get(chave) ?? 0,
+      }));
+    }
+
+    return [...contagem.entries()]
+      .map(([chave, total]) => ({ chave, rotulo: chave, total }))
+      .sort((a, b) => b.total - a.total)
+      .slice(0, limite ?? LIMITE_RANKING_PADRAO);
+  }
+
+  private agruparPorPessoa(
+    chamados: Chamado[],
+    agruparPor: AgruparPor.SOLICITANTE | AgruparPor.TECNICO_RESPONSAVEL,
+    tipo: TipoMetrica,
+    limite: number | undefined,
+  ): MetricaItemResponseDto[] {
+    const contagem = new Map<number, { rotulo: string; total: number }>();
+    for (const chamado of chamados) {
+      const pessoa =
+        agruparPor === AgruparPor.SOLICITANTE
+          ? chamado.solicitante
+          : chamado.tecnicoResponsavel;
+      // tecnicoResponsavel pode ser null (chamado ainda parado, ninguém
+      // assumiu) — não faz sentido um bucket "sem técnico" num ranking de
+      // atendimento, então esses chamados ficam de fora deste agrupamento.
+      if (!pessoa) continue;
+
+      const existente = contagem.get(pessoa.id);
+      if (existente) {
+        existente.total++;
+      } else {
+        // Nome nulo = conta resetada (ver Usuario.nome) — mesmo fallback
+        // "—" que o resto do app já usa pra esse caso.
+        contagem.set(pessoa.id, { rotulo: pessoa.nome ?? '—', total: 1 });
+      }
+    }
+
+    const itens = [...contagem.entries()]
+      .map(([chave, { rotulo, total }]) => ({ chave, rotulo, total }))
+      .sort((a, b) => b.total - a.total);
+
+    // "Contagem por pessoa" não tem um universo fixo de valores pra
+    // zero-preencher (diferente de nivel/categoria/status/prioridade) —
+    // devolve a lista inteira, sem cortar. "Ranking" corta em `limite`.
+    if (tipo === TipoMetrica.CONTAGEM) return itens;
+    return itens.slice(0, limite ?? LIMITE_RANKING_PADRAO);
+  }
+
+  // Resolve o período de GET /chamados/metricas e /chamados/repeticao: cada
+  // ponta (início/fim) tem seu próprio default, resolvida de forma
+  // independente — ausência de dataFim vira "hoje"; ausência de dataInicio
+  // vira "dataFim - 29 dias" (janela de 30 dias incluindo o dia final).
+  // Datas explícitas chegam como "YYYY-MM-DD" (formato de <input
+  // type="date">) — construídas com horário local explícito
+  // (T00:00:00/T23:59:59) pra não cair na interpretação UTC-meia-noite que
+  // o JS dá a uma data "pelada", que poderia empurrar o dia errado
+  // dependendo do fuso de quem roda o servidor.
+  private resolverPeriodo(filtros: PeriodoChamadoDto): {
+    inicio: Date;
+    fim: Date;
+  } {
+    const DIAS_PADRAO_PERIODO = 30;
+    const MILISSEGUNDOS_POR_DIA = 24 * 60 * 60 * 1000;
+
+    const fim = filtros.dataFim
+      ? new Date(`${filtros.dataFim}T23:59:59.999`)
+      : new Date();
+    if (!filtros.dataFim) fim.setHours(23, 59, 59, 999);
+
+    const inicio = filtros.dataInicio
+      ? new Date(`${filtros.dataInicio}T00:00:00.000`)
+      : new Date(
+          fim.getTime() - (DIAS_PADRAO_PERIODO - 1) * MILISSEGUNDOS_POR_DIA,
+        );
+    if (!filtros.dataInicio) inicio.setHours(0, 0, 0, 0);
+
+    if (inicio > fim) {
+      throw new BadRequestException(
+        'Data de início não pode ser depois da data de fim',
+      );
+    }
+
+    return { inicio, fim };
   }
 
   async buscarPorIdOuFalhar(id: number): Promise<Chamado> {

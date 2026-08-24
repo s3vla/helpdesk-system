@@ -25,6 +25,8 @@ import { AbrirChamadoTecnicoDto } from './dto/abrir-chamado-tecnico.dto';
 import { AtualizarStatusChamadoDto } from './dto/atualizar-status-chamado.dto';
 import { AtualizarNivelChamadoDto } from './dto/atualizar-nivel-chamado.dto';
 import { FiltrosChamadoDto } from './dto/filtros-chamado.dto';
+import { PeriodoChamadoDto } from './dto/periodo-chamado.dto';
+import { MetricasChamadoDto } from './dto/metricas-chamado.dto';
 import { mapChamadoParaResposta } from './dto/chamado-response.dto';
 import { CriarComentarioDto } from '../comentarios/dto/criar-comentario.dto';
 import { mapComentarioParaResposta } from '../comentarios/dto/comentario-response.dto';
@@ -76,6 +78,25 @@ export class ChamadosController {
       usuarioAtual.sub,
     );
     return chamados.map(mapChamadoParaResposta);
+  }
+
+  // Motor genérico de agregação pro Dashboard TI configurável (ver
+  // DashboardWidget) — precisa vir ANTES de @Get(':id') pelo mesmo motivo
+  // de /meus e /observando acima: senão "metricas" seria capturado como
+  // valor de :id e o ParseIntPipe rejeitaria com 400 antes de chegar aqui.
+  @Get('metricas')
+  @Roles(TipoUsuario.TECNICO)
+  async obterMetricas(@Query() filtros: MetricasChamadoDto) {
+    return this.chamadosService.obterMetricas(filtros);
+  }
+
+  // Carve-out do agrupamento por categoria + palavra-chave — não cabe no
+  // motor genérico acima (ver ChamadosService.obterRepeticao). Mesmo
+  // motivo de posicionamento que /metricas.
+  @Get('repeticao')
+  @Roles(TipoUsuario.TECNICO)
+  async obterRepeticao(@Query() filtros: PeriodoChamadoDto) {
+    return this.chamadosService.obterRepeticao(filtros);
   }
 
   @Get(':id')
