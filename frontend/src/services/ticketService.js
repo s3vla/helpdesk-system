@@ -158,25 +158,43 @@ function mapearSolucao(s) {
       isKnownSolution: s.marcadaComo,
       resolvedAt: new Date(s.dataCriacao),
       resolvedBy: s.resolvidoPor?.nome,
-      hasImage: !!s.imagemUrl,
-      imagemUrl: s.imagemUrl,
+      // Sempre um array (a API nunca manda null aqui, ver
+      // SolucaoConhecida.imagensUrls no backend) — vazio quando nenhum
+      // print foi anexado. Mesmo nome (`imagens`) de mapearChamado, pro
+      // mesmo componente de galeria (ver TicketPanel.jsx) servir os dois.
+      imagens: s.imagensUrls,
     },
   }
 }
 
 // ── Chamados ─────────────────────────────────────────────────────────────
 
-export async function buscarMeusChamados(token) {
-  const chamados = await chamarApi('/chamados/meus', { token })
-  return chamados.map(mapearChamado)
+// Toda listagem paginada da API devolve { itens, total, pagina,
+// totalPaginas } — este helper aplica `mapear` só em `itens` e repassa o
+// resto do envelope como veio, pra não repetir esse spread em cada
+// função de busca da lista (ver Paginacao.jsx, que consome exatamente
+// esse formato).
+function mapearRespostaPaginada(resposta, mapear) {
+  return { ...resposta, itens: resposta.itens.map(mapear) }
+}
+
+// `busca` cobre os 3 status de uma vez (Parado/Em andamento/Finalizado) —
+// mesma lógica de busca de GET /chamados?busca=, só aplicada aos chamados
+// do próprio usuário do token (ver ChamadosService.listarPorUsuario).
+export async function buscarMeusChamados(token, { busca = '', pagina = 1 } = {}) {
+  const params = new URLSearchParams()
+  if (busca.trim()) params.set('busca', busca.trim())
+  params.set('pagina', pagina)
+  const resposta = await chamarApi(`/chamados/meus?${params.toString()}`, { token })
+  return mapearRespostaPaginada(resposta, mapearChamado)
 }
 
 // Chamados onde o usuário do token é observador ("Cc") — lista separada
 // de "meus chamados" mesmo que o mesmo usuário apareça nas duas, pra
 // chamados diferentes (ver CONTRATO.md).
-export async function buscarChamadosObservando(token) {
-  const chamados = await chamarApi('/chamados/observando', { token })
-  return chamados.map(mapearChamado)
+export async function buscarChamadosObservando(token, pagina = 1) {
+  const resposta = await chamarApi(`/chamados/observando?pagina=${pagina}`, { token })
+  return mapearRespostaPaginada(resposta, mapearChamado)
 }
 
 export async function buscarChamadosTI(token, filtros = {}) {
@@ -185,9 +203,16 @@ export async function buscarChamadosTI(token, filtros = {}) {
   if (filtros.nivel && filtros.nivel !== 'all') params.set('nivel', filtros.nivel)
   if (filtros.categoria && filtros.categoria !== 'all') params.set('categoria', CATEGORIA_PARA_API[filtros.categoria])
   if (filtros.busca?.trim()) params.set('busca', filtros.busca.trim())
-  const query = params.toString()
-  const chamados = await chamarApi(`/chamados${query ? `?${query}` : ''}`, { token })
-  return chamados.map(mapearChamado)
+  params.set('pagina', filtros.pagina ?? 1)
+  const resposta = await chamarApi(`/chamados?${params.toString()}`, { token })
+  // `contagensPorStatus` vem com as chaves em maiúsculo (enum cru do
+  // backend) — traduz pro mesmo formato minúsculo que `chamado.status` já
+  // usa no resto do frontend (ver STATUS_DA_API), pra quem consome não
+  // precisar saber dos dois formatos.
+  const contagensPorStatus = Object.fromEntries(
+    Object.entries(resposta.contagensPorStatus ?? {}).map(([status, total]) => [STATUS_DA_API[status] ?? status, total]),
+  )
+  return { ...mapearRespostaPaginada(resposta, mapearChamado), contagensPorStatus }
 }
 
 export async function buscarChamado(token, chamadoId) {
@@ -238,7 +263,7 @@ export async function abrirChamadoComoTecnico(token, { solicitanteId, descricao,
   return mapearChamado(chamado)
 }
 
-export async function atualizarStatusChamado(token, chamadoId, { status, comoFoiResolvido, marcadaComo, imagemUrlSolucao }) {
+export async function atualizarStatusChamado(token, chamadoId, { status, comoFoiResolvido, marcadaComo, imagensUrlsSolucao }) {
   const chamado = await chamarApi(`/chamados/${chamadoId}/status`, {
     token,
     metodo: 'PATCH',
@@ -246,7 +271,7 @@ export async function atualizarStatusChamado(token, chamadoId, { status, comoFoi
       status: STATUS_PARA_API[status],
       ...(comoFoiResolvido !== undefined ? { comoFoiResolvido } : {}),
       ...(marcadaComo !== undefined ? { marcadaComo } : {}),
-      ...(imagemUrlSolucao ? { imagemUrlSolucao } : {}),
+      ...(imagensUrlsSolucao?.length ? { imagensUrlsSolucao } : {}),
     },
   })
   return mapearChamado(chamado)
@@ -331,9 +356,17 @@ export async function criarComentario(token, chamadoId, { texto, interno, imagem
 
 // ── Colaboradores (painel de TI) ────────────────────────────────────────
 
-export async function buscarColaboradores(token) {
-  const usuarios = await chamarApi('/usuarios', { token })
-  return usuarios.map(mapearUsuario)
+// Sem `pagina`: usado pelos dropdowns que precisam da lista INTEIRA pra
+// escolher de quem (TicketPanel "Adicionar observador", ITAbrirChamado
+// "Solicitante") — manda um limite bem alto pra não cair no padrão de 10
+// da API. Com `pagina`: usado pela tela "Colaboradores" (ITUsers.jsx),
+// que aí sim pagina de verdade.
+export async function buscarColaboradores(token, { pagina } = {}) {
+  const params = new URLSearchParams()
+  if (pagina) params.set('pagina', pagina)
+  else params.set('limite', 10000)
+  const resposta = await chamarApi(`/usuarios?${params.toString()}`, { token })
+  return mapearRespostaPaginada(resposta, mapearUsuario)
 }
 
 // Popula o dropdown "Atribuído a" no painel de atendimento (TicketPanel,
@@ -361,9 +394,25 @@ export async function resetarConta(token, usuarioId) {
 
 // ── Soluções conhecidas ──────────────────────────────────────────────────
 
-export async function buscarSolucoesConhecidas(token) {
-  const solucoes = await chamarApi('/solucoes-conhecidas', { token })
-  return solucoes.map(mapearSolucao)
+// `contagensPorCategoria` vem pronto do backend (ver
+// SolucoesConhecidasService.contarSolucoesPorCategoria) — antes era
+// calculado no frontend filtrando a lista inteira já carregada, o que só
+// funcionava sem paginação; agora que a listagem é paginada, o back
+// precisa mandar isso pronto.
+export async function buscarSolucoesConhecidas(token, { busca = '', categoria, pagina = 1 } = {}) {
+  const params = new URLSearchParams()
+  if (busca.trim()) params.set('busca', busca.trim())
+  if (categoria && categoria !== 'all') params.set('categoria', CATEGORIA_PARA_API[categoria])
+  params.set('pagina', pagina)
+  const resposta = await chamarApi(`/solucoes-conhecidas?${params.toString()}`, { token })
+  // Mesma tradução de chave de contagensPorStatus (buscarChamadosTI) — o
+  // backend manda o enum cru (HARDWARE/SOFTWARE/...), o frontend usa
+  // CATEGORIA_DA_API (Hardware/Software/...) em `chamado.category` e em
+  // CATEGORIAS (utils/categorias.js) pra tudo mais.
+  const contagensPorCategoria = Object.fromEntries(
+    Object.entries(resposta.contagensPorCategoria ?? {}).map(([categoria, valor]) => [CATEGORIA_DA_API[categoria] ?? categoria, valor]),
+  )
+  return { ...mapearRespostaPaginada(resposta, mapearSolucao), contagensPorCategoria }
 }
 
 // ── Upload de imagem ─────────────────────────────────────────────────────

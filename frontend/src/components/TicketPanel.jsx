@@ -236,7 +236,7 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
     if (!isIT) return
     let cancelado = false
     buscarColaboradores(token)
-      .then(resultado => { if (!cancelado) setColaboradores(resultado) })
+      .then(resultado => { if (!cancelado) setColaboradores(resultado.itens) })
       .catch(() => { if (!cancelado) setColaboradores([]) })
     return () => { cancelado = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -352,7 +352,7 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
     }
   }
 
-  async function finalizar({ texto, solucaoConhecida, imagemUrlSolucao }) {
+  async function finalizar({ texto, solucaoConhecida, imagensUrlsSolucao }) {
     setErroAcao('')
     setCarregandoAcao(true)
     try {
@@ -360,7 +360,7 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
         status: 'finalizado',
         comoFoiResolvido: texto,
         marcadaComo: solucaoConhecida,
-        imagemUrlSolucao,
+        imagensUrlsSolucao,
       })
       setChamado(atualizado)
       onAtualizado()

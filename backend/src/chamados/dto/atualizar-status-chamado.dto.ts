@@ -1,4 +1,10 @@
-import { IsBoolean, IsEnum, IsOptional, IsString } from 'class-validator';
+import {
+  IsArray,
+  IsBoolean,
+  IsEnum,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 import { StatusChamado } from '../../common/enums/status-chamado.enum';
 
 // `comoFoiResolvido` é obrigatório pra finalizar SÓ quando o chamado ainda
@@ -20,11 +26,13 @@ export class AtualizarStatusChamadoDto {
   @IsBoolean()
   marcadaComo?: boolean;
 
-  // Mesma lógica do `imagemUrl` do chamado: vem do retorno de POST
-  // /uploads, esta rota nunca recebe o arquivo em si. Nome diferente de
-  // `imagemUrl` (do chamado) de propósito, pra não confundir "print do
-  // erro" com "print da solução" no corpo da requisição.
+  // Mesma lógica de `imagensUrls` do chamado (CriarChamadoDto): vem do
+  // retorno de POST /uploads, um POST por arquivo — esta rota nunca recebe
+  // o arquivo em si. Nome diferente de `imagensUrls` (do chamado) de
+  // propósito, pra não confundir "prints do erro" com "prints da solução"
+  // no corpo da requisição.
   @IsOptional()
-  @IsString()
-  imagemUrlSolucao?: string;
+  @IsArray()
+  @IsString({ each: true })
+  imagensUrlsSolucao?: string[];
 }

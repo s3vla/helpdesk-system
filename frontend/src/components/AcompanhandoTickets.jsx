@@ -9,6 +9,7 @@ import AguardandoRespostaBadge from './AguardandoRespostaBadge'
 import { formatarData } from '../utils/formatters'
 import { LABEL_CATEGORIA } from '../utils/categorias'
 import { numeroChamado } from '../utils/numeroChamado'
+import Paginacao from './Paginacao'
 
 const COLUNAS = [
   { status: 'parado', label: 'Parado', cor: CORES_STATUS.parado.dot },
@@ -26,6 +27,9 @@ function AcompanhandoTickets({ versaoDados, onSelect }) {
   const { token, tratarErroApi } = useAuth()
   const largura = useWindowWidth()
   const [chamados, setChamados] = useState([])
+  const [total, setTotal] = useState(0)
+  const [pagina, setPagina] = useState(1)
+  const [totalPaginas, setTotalPaginas] = useState(1)
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState('')
 
@@ -33,7 +37,10 @@ function AcompanhandoTickets({ versaoDados, onSelect }) {
     setCarregando(true)
     setErro('')
     try {
-      setChamados(await buscarChamadosObservando(token))
+      const resposta = await buscarChamadosObservando(token, pagina)
+      setChamados(resposta.itens)
+      setTotal(resposta.total)
+      setTotalPaginas(resposta.totalPaginas)
     } catch (e) {
       if (!tratarErroApi(e)) setErro(traduzirErroApi(e))
     } finally {
@@ -44,14 +51,14 @@ function AcompanhandoTickets({ versaoDados, onSelect }) {
   useEffect(() => {
     buscar()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [versaoDados])
+  }, [versaoDados, pagina])
 
   return (
     <div className="animate-fade-up">
       <div style={{ marginBottom: 28 }}>
         <h1 style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: largura < 640 ? 24 : 28, color: CORES_APP.tinta, margin: '0 0 6px' }}>Acompanhando</h1>
         <p style={{ color: CORES_APP.textoFraco, fontSize: 14, margin: 0 }}>
-          {carregando ? 'Carregando...' : `${chamados.length} chamado${chamados.length !== 1 ? 's' : ''} onde você foi incluído como Cc`}
+          {carregando ? 'Carregando...' : `${total} chamado${total !== 1 ? 's' : ''} onde você foi incluído como Cc`}
         </p>
       </div>
       <EstadoRequisicao carregando={carregando} erro={erro} aoTentarNovamente={buscar}>
@@ -110,6 +117,7 @@ function AcompanhandoTickets({ versaoDados, onSelect }) {
           </div>
         )}
       </EstadoRequisicao>
+      <Paginacao paginaAtual={pagina} totalPaginas={totalPaginas} aoMudarPagina={setPagina} />
     </div>
   )
 }

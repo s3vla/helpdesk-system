@@ -31,6 +31,18 @@ textarea {
   font-family: inherit;
 }
 
+/* O ícone nativo de calendário de <input type="datetime-local"> (ex: campo
+   "Expira em" de PublicarAvisoModal.jsx) vem, por padrão do Chromium, com
+   margem própria que o deixa "solto" em relação ao texto do campo — reduz
+   essa margem e centraliza verticalmente dentro da altura do input. */
+input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  margin: 0;
+  padding: 0;
+  align-self: center;
+  cursor: pointer;
+  opacity: 0.6;
+}
+
 /* ── Animações ─────────────────────────────────────────────────────────── */
 
 @keyframes spin-slow {

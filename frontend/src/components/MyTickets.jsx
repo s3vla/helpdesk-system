@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { estilos, CORES_STATUS, CORES_APP } from '../styles/theme'
 import { useWindowWidth } from '../hooks/useWindowWidth'
 import { useAuth } from '../hooks/useAuth'
@@ -9,6 +9,8 @@ import AguardandoRespostaBadge from './AguardandoRespostaBadge'
 import { formatarData } from '../utils/formatters'
 import { LABEL_CATEGORIA } from '../utils/categorias'
 import { numeroChamado } from '../utils/numeroChamado'
+import { IconSearch } from './icons'
+import Paginacao from './Paginacao'
 
 const COLUNAS = [
   { status: 'parado', label: 'Parado', cor: CORES_STATUS.parado.dot },
@@ -21,18 +23,46 @@ const COLUNAS = [
 // chamados de outra pessoa) e agrupa por status em 3 colunas.
 // `versaoDados` é incrementado pelo App.jsx toda vez que o TicketPanel muda
 // algo (status, comentário) — é o gatilho pra essa lista buscar de novo.
+// Busca por texto (título/descrição) ou número do chamado — mesmo campo e
+// mesmo debounce da Central de Chamados (ITDashboard.jsx), filtrando no
+// backend (GET /chamados/meus?busca=) em vez de em memória. Como aqui não
+// existe filtro de status pra restringir antes (as 3 colunas já aparecem
+// juntas sempre), a busca cobre Parado/Em andamento/Finalizado ao mesmo
+// tempo, sem precisar trocar de aba nenhuma.
 function MyTickets({ versaoDados, onSelect }) {
   const { token, tratarErroApi } = useAuth()
   const largura = useWindowWidth()
   const [chamados, setChamados] = useState([])
+  const [total, setTotal] = useState(0)
+  const [pagina, setPagina] = useState(1)
+  const [totalPaginas, setTotalPaginas] = useState(1)
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState('')
+  const [buscaInput, setBuscaInput] = useState('')
+  const [busca, setBusca] = useState('')
+  const debounceRef = useRef(null)
+
+  useEffect(() => {
+    clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => setBusca(buscaInput.trim()), 400)
+    return () => clearTimeout(debounceRef.current)
+  }, [buscaInput])
+
+  // Toda vez que a busca muda, volta pra página 1 — senão dá pra ficar
+  // "presa" numa página 4 que não existe mais depois de um filtro que
+  // reduziu o total de resultados.
+  useEffect(() => {
+    setPagina(1)
+  }, [busca])
 
   async function buscar() {
     setCarregando(true)
     setErro('')
     try {
-      setChamados(await buscarMeusChamados(token))
+      const resposta = await buscarMeusChamados(token, { busca, pagina })
+      setChamados(resposta.itens)
+      setTotal(resposta.total)
+      setTotalPaginas(resposta.totalPaginas)
     } catch (e) {
       if (!tratarErroApi(e)) setErro(traduzirErroApi(e))
     } finally {
@@ -43,15 +73,31 @@ function MyTickets({ versaoDados, onSelect }) {
   useEffect(() => {
     buscar()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [versaoDados])
+  }, [versaoDados, busca, pagina])
+
+  function aoPressionarEnterNaBusca(e) {
+    if (e.key !== 'Enter') return
+    clearTimeout(debounceRef.current)
+    setBusca(buscaInput.trim())
+  }
 
   return (
     <div className="animate-fade-up">
-      <div style={{ marginBottom: 28 }}>
-        <h1 style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: largura < 640 ? 24 : 28, color: CORES_APP.tinta, margin: '0 0 6px' }}>Meus chamados</h1>
-        <p style={{ color: CORES_APP.textoFraco, fontSize: 14, margin: 0 }}>
-          {carregando ? 'Carregando...' : `${chamados.length} chamado${chamados.length !== 1 ? 's' : ''} no total`}
-        </p>
+      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', marginBottom: 28 }}>
+        <div>
+          <h1 style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: largura < 640 ? 24 : 28, color: CORES_APP.tinta, margin: '0 0 6px' }}>Meus chamados</h1>
+          <p style={{ color: CORES_APP.textoFraco, fontSize: 14, margin: 0 }}>
+            {carregando ? 'Carregando...' : `${total} chamado${total !== 1 ? 's' : ''} no total`}
+          </p>
+        </div>
+        <div style={{ position: 'relative', flex: largura < 640 ? '1 1 100%' : '0 1 260px', minWidth: 200 }}>
+          <span style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: CORES_APP.textoSuave, display: 'flex', pointerEvents: 'none' }}>
+            <IconSearch width={14} height={14} />
+          </span>
+          <input value={buscaInput} onChange={e => setBuscaInput(e.target.value)} onKeyDown={aoPressionarEnterNaBusca}
+            placeholder="Nº ou chamado"
+            style={{ width: '100%', boxSizing: 'border-box', height: 36, padding: '0 12px 0 32px', background: CORES_APP.fundoCampo, border: `1px solid ${CORES_APP.borda}`, borderRadius: 8, color: CORES_APP.tinta, fontSize: 13, fontFamily: 'Inter, sans-serif', outline: 'none' }} />
+        </div>
       </div>
       <EstadoRequisicao carregando={carregando} erro={erro} aoTentarNovamente={buscar}>
         <div style={{ display: 'grid', gridTemplateColumns: largura < 640 ? '1fr' : 'repeat(3, 1fr)', gap: 14 }}>
@@ -109,6 +155,7 @@ function MyTickets({ versaoDados, onSelect }) {
           })}
         </div>
       </EstadoRequisicao>
+      <Paginacao paginaAtual={pagina} totalPaginas={totalPaginas} aoMudarPagina={setPagina} />
     </div>
   )
 }

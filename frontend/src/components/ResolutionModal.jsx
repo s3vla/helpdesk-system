@@ -10,15 +10,16 @@ import { IconPaperclip } from './icons'
 // está autenticado no token pra isso (ver PATCH /chamados/:id/status),
 // nunca um valor vindo do front.
 //
-// Print da solução (opcional) reaproveita exatamente o mesmo padrão de
-// upload em duas etapas do formulário de abertura de chamado (CreateTicket):
-// primeiro sobe o arquivo (POST /uploads), só depois confirma a finalização
-// com a URL recebida.
+// Prints da solução (opcional, múltiplos) reaproveitam exatamente o mesmo
+// padrão de upload de CreateTicket.jsx: multi-seleção, lista de arquivos
+// com remoção individual (com scroll a partir de 5), upload sequencial
+// (não Promise.all) em POST /uploads, só então confirma a finalização com
+// as URLs recebidas.
 function ResolutionModal({ carregando: carregandoExterno, onConfirm, onCancel }) {
   const { token, tratarErroApi } = useAuth()
   const [texto, setTexto] = useState('')
   const [solucaoConhecida, setSolucaoConhecida] = useState(false)
-  const [arquivo, setArquivo] = useState(null)
+  const [arquivos, setArquivos] = useState([])
   const [etapa, setEtapa] = useState(null) // null | 'enviando-imagem'
   const [erro, setErro] = useState('')
   const fileRef = useRef(null)
@@ -29,17 +30,21 @@ function ResolutionModal({ carregando: carregandoExterno, onConfirm, onCancel })
     if (!pronto || carregando) return
     setErro('')
     try {
-      let imagemUrlSolucao
-      if (arquivo) {
+      const imagensUrlsSolucao = []
+      if (arquivos.length > 0) {
         setEtapa('enviando-imagem')
-        imagemUrlSolucao = await enviarImagem(token, arquivo)
+        // Sequencial (não Promise.all) — mesmo motivo de CreateTicket.jsx:
+        // evita disparar todos os uploads de uma vez pro mesmo endpoint.
+        for (const arquivo of arquivos) {
+          imagensUrlsSolucao.push(await enviarImagem(token, arquivo))
+        }
         setEtapa(null)
       }
       // Precisa aguardar: onConfirm (finalizar, em TicketPanel) é assíncrono
       // e agora relança em caso de erro — sem esse await, o catch abaixo
       // nunca veria a falha, e o modal fecharia (ou pareceria travado) sem
       // explicar o que deu errado.
-      await onConfirm({ texto: texto.trim(), solucaoConhecida, imagemUrlSolucao })
+      await onConfirm({ texto: texto.trim(), solucaoConhecida, imagensUrlsSolucao })
     } catch (e) {
       if (!tratarErroApi(e)) setErro(traduzirErroApi(e))
     } finally {
@@ -47,11 +52,11 @@ function ResolutionModal({ carregando: carregandoExterno, onConfirm, onCancel })
     }
   }
 
-  const textoBotao = etapa === 'enviando-imagem' ? 'Enviando imagem...' : carregandoExterno ? 'Finalizando...' : 'Confirmar e finalizar'
+  const textoBotao = etapa === 'enviando-imagem' ? 'Enviando imagens...' : carregandoExterno ? 'Finalizando...' : 'Confirmar e finalizar'
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 55, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, background: CORES_APP.overlay, backdropFilter: 'blur(6px)' }} onClick={onCancel}>
-      <div style={{ background: CORES_APP.card, border: '1px solid rgba(34,197,94,0.25)', borderRadius: 16, padding: '28px 26px', width: '100%', maxWidth: 460, display: 'flex', flexDirection: 'column', gap: 18 }}
+      <div style={{ background: CORES_APP.card, border: '1px solid rgba(34,197,94,0.25)', borderRadius: 16, padding: '28px 26px', width: '100%', maxWidth: 460, maxHeight: '90vh', overflowY: 'auto', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 18 }}
         onClick={e => e.stopPropagation()} className="animate-fade-up">
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>✓</div>
@@ -71,16 +76,45 @@ function ResolutionModal({ carregando: carregandoExterno, onConfirm, onCancel })
         </div>
 
         <div>
-          <label style={estilos.label}>Print da solução <span style={{ color: CORES_APP.textoSuave, fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>opcional</span></label>
+          <label style={estilos.label}>Prints da solução <span style={{ color: CORES_APP.textoSuave, fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>opcional</span></label>
           <div onClick={() => !carregando && fileRef.current?.click()}
-            style={{ border: `2px dashed ${arquivo ? 'rgba(0,120,81,0.4)' : CORES_APP.borda}`, borderRadius: 10, padding: '22px', textAlign: 'center', cursor: carregando ? 'default' : 'pointer', background: arquivo ? 'rgba(0,179,81,0.05)' : 'transparent', transition: 'all 0.2s' }}>
-            <div style={{ marginBottom: 6, color: arquivo ? '#00b351' : CORES_APP.textoFraco, display: 'flex', justifyContent: 'center' }}>
-              <IconPaperclip width={22} height={22} />
-            </div>
-            <div style={{ color: arquivo ? '#00b351' : CORES_APP.textoFraco, fontSize: 14 }}>{arquivo ? `${arquivo.name} — clique para trocar` : 'Clique para anexar imagem'}</div>
-            <input ref={fileRef} type="file" accept="image/png, image/jpeg, image/webp" style={{ display: 'none' }}
-              onChange={e => setArquivo(e.target.files?.[0] ?? null)} disabled={carregando} />
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, border: `2px dashed ${arquivos.length ? 'rgba(0,120,81,0.4)' : CORES_APP.borda}`, borderRadius: 10, padding: '22px 14px', textAlign: 'center', cursor: carregando ? 'default' : 'pointer', background: arquivos.length ? 'rgba(0,179,81,0.05)' : 'transparent', transition: 'all 0.2s' }}>
+            <span style={{ color: arquivos.length ? '#00b351' : CORES_APP.textoFraco, display: 'flex', flexShrink: 0 }}>
+              <IconPaperclip width={16} height={16} />
+            </span>
+            <span style={{ color: arquivos.length ? '#00b351' : CORES_APP.textoFraco, fontSize: 13 }}>
+              {arquivos.length ? `${arquivos.length} ${arquivos.length > 1 ? 'imagens' : 'imagem'} selecionada${arquivos.length > 1 ? 's' : ''} — clique para adicionar mais` : 'Clique para anexar imagens'}
+            </span>
+            <input ref={fileRef} type="file" accept="image/png, image/jpeg, image/webp" multiple style={{ display: 'none' }}
+              onChange={e => {
+                const novos = Array.from(e.target.files ?? [])
+                if (novos.length) setArquivos(prev => [...prev, ...novos])
+                // Zera o input pra poder selecionar o MESMO arquivo de novo
+                // depois de removê-lo da lista (senão o navegador ignora,
+                // já que o valor "não mudou" do ponto de vista dele).
+                e.target.value = ''
+              }} disabled={carregando} />
           </div>
+          {arquivos.length > 0 && (
+            <div style={{
+              display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8,
+              // A partir de 5 imagens, trava a altura e passa a rolar em vez
+              // de empurrar o resto do formulário pra baixo — mesmo ajuste
+              // já aplicado em CreateTicket.jsx/ITAbrirChamado.jsx.
+              ...(arquivos.length >= 5 ? { maxHeight: 180, overflowY: 'auto', paddingRight: 4 } : {}),
+            }}>
+              {arquivos.map((arq, indice) => (
+                <div key={`${arq.name}-${indice}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, background: CORES_APP.fundoCampo, borderRadius: 8, padding: '7px 10px' }}>
+                  <span style={{ color: CORES_APP.texto, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{arq.name}</span>
+                  <button type="button" onClick={() => setArquivos(prev => prev.filter((_, i) => i !== indice))} disabled={carregando}
+                    title="Remover"
+                    style={{ background: 'none', border: 'none', color: CORES_APP.textoSuave, fontSize: 17, lineHeight: 1, cursor: carregando ? 'default' : 'pointer', flexShrink: 0, padding: 0 }}>
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <label style={{ display: 'flex', alignItems: 'flex-start', gap: 11, cursor: 'pointer', background: solucaoConhecida ? 'rgba(0,179,81,0.07)' : CORES_APP.fundoCampo, border: `1px solid ${solucaoConhecida ? 'rgba(0,120,81,0.25)' : CORES_APP.borda}`, borderRadius: 10, padding: '13px 14px' }}>

@@ -33,6 +33,11 @@ import { SolucoesConhecidasService } from '../solucoes-conhecidas/solucoes-conhe
 import { ObservadoresService } from '../observadores/observadores.service';
 import { calcularNivelSugerido } from './nivel-triagem.util';
 import { agruparChamadosRepetidos, GrupoRepetido } from './estatisticas.util';
+import {
+  calcularPaginacao,
+  montarRespostaPaginada,
+  RespostaPaginadaDto,
+} from '../common/dto/resposta-paginada.dto';
 
 // Relações que toda consulta de Chamado precisa trazer junto — sem isso o
 // TypeORM devolveria só os ids (solicitanteId/tecnicoResponsavelId) e o
@@ -217,7 +222,66 @@ export class ChamadosService {
     return this.criar(dto, dto.solicitanteId, tecnicoId);
   }
 
-  async listarTodos(filtros: FiltrosChamadoDto): Promise<Chamado[]> {
+  // Compartilhado por listarTodos (GET /chamados, TECNICO) e
+  // listarPorUsuario (GET /chamados/meus, qualquer autenticado) — mesma
+  // lógica de busca por texto livre nos dois casos, só variando o `base`
+  // (filtros de técnico num caso, `solicitante: { id }` no outro).
+  private construirWhereComBusca(
+    base: FindOptionsWhere<Chamado>,
+    busca?: string,
+  ): FindOptionsWhere<Chamado> | FindOptionsWhere<Chamado>[] {
+    const termo = busca?.trim();
+    if (!termo) return base;
+
+    // Array de `where` = OR entre os elementos (cada um já herda os
+    // filtros de `base` via spread, então eles continuam valendo como AND
+    // de cada ramo do OR) — é assim que o TypeORM expressa "(base) AND
+    // (titulo LIKE ... OR descricao LIKE ... OR id = ...)" sem precisar de
+    // QueryBuilder pra este caso simples.
+    const where: FindOptionsWhere<Chamado>[] = [
+      { ...base, titulo: Like(`%${termo}%`) },
+      { ...base, descricao: Like(`%${termo}%`) },
+    ];
+    const idDoNumero = extrairIdDoNumeroChamado(termo);
+    if (idDoNumero !== null) where.push({ ...base, id: idDoNumero });
+    return where;
+  }
+
+  // Contagem por status respeitando nível/categoria/busca, mas SEM aplicar
+  // o filtro de status em si — os 4 cards de resumo do topo da Central de
+  // Chamados (ITDashboard.jsx) precisam continuar corretos mesmo com uma
+  // aba de status específica selecionada (iam pra 0 os outros 3 senão), e
+  // agora que a listagem principal é paginada, também não dá mais pra
+  // derivar isso de `chamados.length`/`.filter()` sobre só os itens da
+  // página atual. 3 contagens pequenas em paralelo em vez de um só GROUP
+  // BY: mais simples de reaproveitar construirWhereComBusca, que já
+  // trabalha no formato de `where` do Repository, não do QueryBuilder.
+  private async contarPorStatus(
+    filtros: Pick<FiltrosChamadoDto, 'nivel' | 'categoria' | 'busca'>,
+  ): Promise<Record<StatusChamado, number>> {
+    const base: FindOptionsWhere<Chamado> = {};
+    if (filtros.nivel) base.nivel = filtros.nivel;
+    if (filtros.categoria) base.categoria = filtros.categoria;
+
+    const entradas = await Promise.all(
+      Object.values(StatusChamado).map(async (status) => {
+        const total = await this.chamadoRepository.count({
+          where: this.construirWhereComBusca(
+            { ...base, status },
+            filtros.busca,
+          ),
+        });
+        return [status, total] as const;
+      }),
+    );
+    return Object.fromEntries(entradas) as Record<StatusChamado, number>;
+  }
+
+  async listarTodos(filtros: FiltrosChamadoDto): Promise<
+    RespostaPaginadaDto<Chamado> & {
+      contagensPorStatus: Record<StatusChamado, number>;
+    }
+  > {
     // Monta o `where` só com os filtros que realmente vieram — diferente de
     // versões antigas do TypeORM, esta aqui não ignora mais chaves com
     // valor `undefined` sozinha (lança erro em vez disso), então não dá
@@ -228,52 +292,89 @@ export class ChamadosService {
     if (filtros.nivel) base.nivel = filtros.nivel;
     if (filtros.categoria) base.categoria = filtros.categoria;
 
-    const busca = filtros.busca?.trim();
-    let where: FindOptionsWhere<Chamado> | FindOptionsWhere<Chamado>[] = base;
-
-    if (busca) {
-      // Array de `where` = OR entre os elementos (cada um já herda os
-      // filtros de `base` via spread, então status/nível/categoria continuam
-      // valendo como AND de cada ramo do OR) — é assim que o TypeORM expressa
-      // "(status = X) AND (titulo LIKE ... OR descricao LIKE ... OR id = ...)"
-      // sem precisar de QueryBuilder pra este caso simples.
-      where = [
-        { ...base, titulo: Like(`%${busca}%`) },
-        { ...base, descricao: Like(`%${busca}%`) },
-      ];
-      const idDoNumero = extrairIdDoNumeroChamado(busca);
-      if (idDoNumero !== null) where.push({ ...base, id: idDoNumero });
-    }
-
-    return this.chamadoRepository.find({
-      where,
-      relations: RELACOES_PADRAO,
-      order: { dataAbertura: 'DESC' },
-    });
+    const { pagina, limite, skip } = calcularPaginacao(
+      filtros.pagina,
+      filtros.limite,
+    );
+    const [[chamados, total], contagensPorStatus] = await Promise.all([
+      this.chamadoRepository.findAndCount({
+        where: this.construirWhereComBusca(base, filtros.busca),
+        relations: RELACOES_PADRAO,
+        order: { dataAbertura: 'DESC' },
+        skip,
+        take: limite,
+      }),
+      this.contarPorStatus(filtros),
+    ]);
+    return {
+      ...montarRespostaPaginada(chamados, total, pagina, limite),
+      contagensPorStatus,
+    };
   }
 
-  async listarPorUsuario(usuarioId: number): Promise<Chamado[]> {
-    return this.chamadoRepository.find({
-      where: { solicitante: { id: usuarioId } },
+  // `busca` cobre os 3 status de uma vez só (não há filtro de status nesta
+  // rota pra restringir antes) — a tela "Meus Chamados" já mostra as 3
+  // colunas (Parado/Em andamento/Finalizado) simultaneamente, então a busca
+  // só precisa filtrar o que entra em cada uma, sem exigir trocar de aba.
+  //
+  // `pagina`/`limite` ausentes = sem paginação de verdade (usado por
+  // GET /usuarios/:id/chamados, que passa um limite bem alto de propósito
+  // — ver UsuariosController — porque ITUsers.jsx soma esses chamados pra
+  // mostrar "total/abertos/finalizados" por colaborador, e paginar aquilo
+  // silenciosamente deixaria a contagem errada). Só GET /chamados/meus
+  // (ChamadosController.listarMeusChamados) passa os dois de verdade.
+  async listarPorUsuario(
+    usuarioId: number,
+    busca?: string,
+    pagina?: number,
+    limite?: number,
+  ): Promise<RespostaPaginadaDto<Chamado>> {
+    const base: FindOptionsWhere<Chamado> = { solicitante: { id: usuarioId } };
+    const paginacao = calcularPaginacao(pagina, limite);
+    const [chamados, total] = await this.chamadoRepository.findAndCount({
+      where: this.construirWhereComBusca(base, busca),
       relations: RELACOES_PADRAO,
       order: { dataAbertura: 'DESC' },
+      skip: paginacao.skip,
+      take: paginacao.limite,
     });
+    return montarRespostaPaginada(
+      chamados,
+      total,
+      paginacao.pagina,
+      paginacao.limite,
+    );
   }
 
   // GET /chamados/observando — chamados onde o usuário é observador
   // ("Cc"), NUNCA misturado com /chamados/meus (solicitante): são duas
   // listas conceitualmente diferentes, mesmo que o mesmo usuário apareça
   // em ambas pra chamados diferentes.
-  async listarObservados(usuarioId: number): Promise<Chamado[]> {
+  async listarObservados(
+    usuarioId: number,
+    pagina?: number,
+    limite?: number,
+  ): Promise<RespostaPaginadaDto<Chamado>> {
     const ids =
       await this.observadoresService.listarChamadoIdsObservados(usuarioId);
-    if (ids.length === 0) return [];
+    const paginacao = calcularPaginacao(pagina, limite);
+    if (ids.length === 0) {
+      return montarRespostaPaginada([], 0, paginacao.pagina, paginacao.limite);
+    }
 
-    return this.chamadoRepository.find({
+    const [chamados, total] = await this.chamadoRepository.findAndCount({
       where: { id: In(ids) },
       relations: RELACOES_PADRAO,
       order: { dataAbertura: 'DESC' },
+      skip: paginacao.skip,
+      take: paginacao.limite,
     });
+    return montarRespostaPaginada(
+      chamados,
+      total,
+      paginacao.pagina,
+      paginacao.limite,
+    );
   }
 
   // GET /chamados/metricas — motor genérico de agregação pro Dashboard TI
@@ -541,7 +642,7 @@ export class ChamadosService {
           comoFoiResolvido: dto.comoFoiResolvido,
           marcadaComo: dto.marcadaComo ?? false,
           categoria: chamado.categoria,
-          imagemUrl: dto.imagemUrlSolucao ?? null,
+          imagensUrls: dto.imagensUrlsSolucao ?? [],
         });
       }
     }

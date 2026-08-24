@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import LoginScreen from './components/LoginScreen'
 import ITLoginScreen from './components/ITLoginScreen'
 import EmployeeLayout from './components/EmployeeLayout'
@@ -14,12 +14,16 @@ import ITSolutions from './components/ITSolutions'
 import ITAbrirChamado from './components/ITAbrirChamado'
 import DashboardTI from './components/DashboardTI'
 import CriarDashboard from './components/CriarDashboard'
+import MuralAvisos from './components/MuralAvisos'
+import MinhasTarefas from './components/MinhasTarefas'
+import MinhasAnotacoes from './components/MinhasAnotacoes'
 import TicketPanel from './components/TicketPanel'
 import TrocarSenhaModal from './components/TrocarSenhaModal'
 import { useAuth } from './hooks/useAuth'
+import { buscarContagemNaoLidos } from './services/avisosService'
 
-const TELAS_COLABORADOR = ['emp-home', 'emp-tickets', 'emp-observing', 'emp-sent']
-const TELAS_TI = ['it-dash', 'it-users', 'it-user', 'it-solutions', 'it-abrir-chamado', 'it-metricas', 'it-metricas-config']
+const TELAS_COLABORADOR = ['emp-home', 'emp-tickets', 'emp-observing', 'emp-sent', 'emp-avisos', 'emp-tarefas', 'emp-anotacoes']
+const TELAS_TI = ['it-dash', 'it-users', 'it-user', 'it-solutions', 'it-abrir-chamado', 'it-metricas', 'it-metricas-config', 'it-avisos', 'it-tarefas']
 
 // App.jsx só orquestra qual tela mostrar — não guarda mais usuários/chamados
 // centralizados (isso agora vive na API, cada tela busca o que precisa via
@@ -34,17 +38,32 @@ const TELAS_TI = ['it-dash', 'it-users', 'it-user', 'it-solutions', 'it-abrir-ch
 //   tela busca seus próprios dados de forma independente, esse é o jeito
 //   simples de "avisar" quem está montado no momento.
 function App() {
-  const { usuario, logout } = useAuth()
+  const { usuario, token, logout } = useAuth()
   const [telaLogin, setTelaLogin] = useState('login')
   const [tela, setTela] = useState('emp-home')
   const [chamadoSelecionado, setChamadoSelecionado] = useState(null)
   const [usuarioSelecionado, setUsuarioSelecionado] = useState(null)
   const [versaoDados, setVersaoDados] = useState(0)
   const [mostrarTrocarSenha, setMostrarTrocarSenha] = useState(false)
+  const [contagemAvisos, setContagemAvisos] = useState(0)
 
   function aoAtualizarChamado() {
     setVersaoDados(v => v + 1)
   }
+
+  // Badge da sidebar do colaborador (ver EmployeeLayout) — busca ao logar e
+  // de novo sempre que MuralAvisos avisa que algo mudou (abriu o mural,
+  // técnico excluiu um aviso etc.). Só pro colaborador: técnico não tem
+  // badge nesta etapa (ver plano aprovado do Mural de Avisos).
+  function atualizarContagemAvisos() {
+    if (usuario?.tipo !== 'COLABORADOR') return
+    buscarContagemNaoLidos(token).then(setContagemAvisos).catch(() => {})
+  }
+
+  useEffect(() => {
+    atualizarContagemAvisos()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [usuario, token])
 
   function aoDeslogar() {
     logout()
@@ -81,6 +100,7 @@ function App() {
         onLogout={aoDeslogar}
         onTrocarSenha={() => setMostrarTrocarSenha(true)}
         larguraMaxima={telaColaborador === 'emp-home' ? 1280 : 840}
+        contagemAvisos={contagemAvisos}
       >
         {telaColaborador === 'emp-sent' && (
           <TicketSent onNew={() => setTela('emp-home')} onView={() => setTela('emp-tickets')} />
@@ -94,6 +114,11 @@ function App() {
         {telaColaborador === 'emp-observing' && (
           <AcompanhandoTickets versaoDados={versaoDados} onSelect={setChamadoSelecionado} />
         )}
+        {telaColaborador === 'emp-avisos' && (
+          <MuralAvisos podePublicar={false} onAlterou={atualizarContagemAvisos} />
+        )}
+        {telaColaborador === 'emp-tarefas' && <MinhasTarefas />}
+        {telaColaborador === 'emp-anotacoes' && <MinhasAnotacoes />}
         {chamadoSelecionado && (
           <TicketPanel
             chamadoInicial={chamadoSelecionado}
@@ -138,6 +163,8 @@ function App() {
       )}
       {telaTI === 'it-metricas' && <DashboardTI />}
       {telaTI === 'it-metricas-config' && <CriarDashboard />}
+      {telaTI === 'it-avisos' && <MuralAvisos podePublicar={true} />}
+      {telaTI === 'it-tarefas' && <MinhasTarefas />}
       {chamadoSelecionado && (
         <TicketPanel
           chamadoInicial={chamadoSelecionado}

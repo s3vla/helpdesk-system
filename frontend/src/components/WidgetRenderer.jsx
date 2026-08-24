@@ -117,7 +117,18 @@ function WidgetRenderer({ widget, periodo }) {
             <p style={{ color: CORES_APP.textoSuave, fontSize: 13.5, margin: 0, padding: '8px 0' }}>Nenhum chamado neste período.</p>
           ) : widget.formatoVisual === 'barra' ? (
             <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={dadosGrafico} margin={{ top: 4, right: 8, left: -18, bottom: 0 }}>
+              {/* `margin.left` NUNCA negativo — um <svg> raiz tem
+                  overflow:hidden por padrão (diferente de elemento HTML
+                  comum), então uma margem negativa aqui empurra o rótulo do
+                  eixo Y (right-aligned) pra fora dos limites do próprio SVG
+                  e corta os primeiros dígitos. Passava despercebido com
+                  contagem de 1 dígito (corte de ~3px, quase imperceptível),
+                  mas com 10+ chamados (2 dígitos) cortava o primeiro
+                  algarismo inteiro — "12"/"16" apareciam como "2"/"6". Bug
+                  real encontrado com evidência: mediu-se getBoundingClientRect()
+                  do texto do eixo Y vs. do próprio <svg> e confirmou-se
+                  que o texto renderizava ANTES da borda esquerda do SVG. */}
+              <BarChart data={dadosGrafico} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke={CORES_APP.bordaSuave} vertical={false} />
                 <XAxis dataKey="rotuloExibido" tick={{ fill: CORES_APP.textoFraco, fontSize: 12, fontFamily: 'Outfit, sans-serif' }} axisLine={{ stroke: CORES_APP.borda }} tickLine={false} />
                 <YAxis allowDecimals={false} tick={{ fill: CORES_APP.textoFraco, fontSize: 12 }} axisLine={false} tickLine={false} width={30} />

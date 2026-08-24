@@ -2,7 +2,7 @@ import { useState } from 'react'
 import Logo from './Logo'
 import { useWindowWidth } from '../hooks/useWindowWidth'
 import { obterIniciais } from '../utils/formatters'
-import { IconEye, IconMenu, IconLock, IconLogOut, IconSun, IconMoon } from './icons'
+import { IconEye, IconMenu, IconLock, IconLogOut, IconSun, IconMoon, IconMegaphone, IconListChecks, IconNote } from './icons'
 import { CORES_APP } from '../styles/theme'
 import { useTheme } from '../hooks/useTheme'
 
@@ -16,7 +16,7 @@ import { useTheme } from '../hooks/useTheme'
 // largura maior (App.jsx passa um valor diferente ali), pra caber o
 // layout de duas colunas (formulário + Resumo da Solicitação) sem
 // espremer. Nenhuma outra tela do colaborador muda.
-function EmployeeLayout({ user, telaAtiva, onNav, onLogout, onTrocarSenha, larguraMaxima = 840, children }) {
+function EmployeeLayout({ user, telaAtiva, onNav, onLogout, onTrocarSenha, larguraMaxima = 840, contagemAvisos = 0, children }) {
   const largura = useWindowWidth()
   const mobile = largura < 640
   const [menuAberto, setMenuAberto] = useState(false)
@@ -26,6 +26,9 @@ function EmployeeLayout({ user, telaAtiva, onNav, onLogout, onTrocarSenha, largu
     { tela: 'emp-home', label: mobile ? '+' : 'Novo Chamado' },
     { tela: 'emp-tickets', label: mobile ? <IconMenu /> : 'Meus Chamados' },
     { tela: 'emp-observing', label: mobile ? <IconEye /> : 'Acompanhando' },
+    { tela: 'emp-avisos', label: mobile ? <IconMegaphone /> : 'Mural de Avisos', badge: contagemAvisos },
+    { tela: 'emp-tarefas', label: mobile ? <IconListChecks /> : 'Minhas Tarefas' },
+    { tela: 'emp-anotacoes', label: mobile ? <IconNote /> : 'Minhas Anotações' },
   ]
 
   return (
@@ -36,6 +39,7 @@ function EmployeeLayout({ user, telaAtiva, onNav, onLogout, onTrocarSenha, largu
           {itensNav.map(item => (
             <button key={item.tela} onClick={() => onNav(item.tela)}
               style={{
+                position: 'relative',
                 background: telaAtiva === item.tela ? 'rgba(0,120,81,0.1)' : 'transparent',
                 color: telaAtiva === item.tela ? '#007851' : CORES_APP.textoFraco,
                 border: `1px solid ${telaAtiva === item.tela ? 'rgba(0,120,81,0.25)' : 'transparent'}`,
@@ -44,6 +48,17 @@ function EmployeeLayout({ user, telaAtiva, onNav, onLogout, onTrocarSenha, largu
                 cursor: 'pointer', transition: 'all 0.15s',
               }}>
               {item.label}
+              {!!item.badge && (
+                <span style={{
+                  position: 'absolute', top: mobile ? 2 : -4, right: mobile ? 2 : -4,
+                  minWidth: 16, height: 16, padding: '0 4px', borderRadius: 99,
+                  background: '#ef4444', color: '#fff', fontSize: 10, fontWeight: 700,
+                  fontFamily: 'Outfit, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  lineHeight: 1, boxShadow: `0 0 0 2px ${CORES_APP.card}`,
+                }}>
+                  {item.badge > 9 ? '9+' : item.badge}
+                </span>
+              )}
             </button>
           ))}
         </nav>

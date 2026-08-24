@@ -19,8 +19,9 @@ export class CriarComentarioDto {
   @IsBoolean()
   interno?: boolean;
 
-  // Preenchido só depois de um upload bem-sucedido em POST /uploads — mesmo
-  // padrão de imagemUrl do chamado e de imagemUrlSolucao da finalização.
+  // Preenchido só depois de um upload bem-sucedido em POST /uploads —
+  // comentário aceita só uma imagem por vez (diferente do chamado e da
+  // solução na finalização, que aceitam múltiplas via `imagensUrls`).
   @IsOptional()
   @IsString()
   imagemUrl?: string;

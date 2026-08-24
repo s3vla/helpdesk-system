@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import Logo from './Logo'
 import { useWindowWidth } from '../hooks/useWindowWidth'
-import { IconMenu, IconLock, IconLogOut, IconSun, IconMoon, IconBarChart, IconSettings } from './icons'
+import { IconMenu, IconLock, IconLogOut, IconSun, IconMoon, IconBarChart, IconSettings, IconMegaphone, IconListChecks } from './icons'
 import { CORES_TI, CORES_APP } from '../styles/theme'
 import { obterIniciais } from '../utils/formatters'
 import { useTheme } from '../hooks/useTheme'
@@ -57,6 +57,16 @@ const ITENS_NAV = [
     tela: 'it-metricas-config',
     label: 'Criar Dashboard',
     icon: <IconSettings width={16} height={16} />,
+  },
+  {
+    tela: 'it-avisos',
+    label: 'Mural de Avisos',
+    icon: <IconMegaphone width={16} height={16} />,
+  },
+  {
+    tela: 'it-tarefas',
+    label: 'Minhas Tarefas',
+    icon: <IconListChecks width={16} height={16} />,
   },
 ]
 

@@ -15,6 +15,9 @@ import { UploadsModule } from './uploads/uploads.module';
 import { ObservadoresModule } from './observadores/observadores.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { LogAuditoriaModule } from './log-auditoria/log-auditoria.module';
+import { AvisosModule } from './avisos/avisos.module';
+import { TarefasModule } from './tarefas/tarefas.module';
+import { AnotacoesModule } from './anotacoes/anotacoes.module';
 import { Usuario } from './usuarios/entities/usuario.entity';
 import { Chamado } from './chamados/entities/chamado.entity';
 import { Comentario } from './comentarios/entities/comentario.entity';
@@ -22,6 +25,10 @@ import { SolucaoConhecida } from './solucoes-conhecidas/entities/solucao-conheci
 import { ChamadoObservador } from './observadores/entities/chamado-observador.entity';
 import { DashboardWidget } from './dashboard/entities/dashboard-widget.entity';
 import { LogAuditoria } from './log-auditoria/entities/log-auditoria.entity';
+import { Aviso } from './avisos/entities/aviso.entity';
+import { AvisoLeitura } from './avisos/entities/aviso-leitura.entity';
+import { Tarefa } from './tarefas/entities/tarefa.entity';
+import { Anotacao } from './anotacoes/entities/anotacao.entity';
 
 @Module({
   imports: [
@@ -52,6 +59,10 @@ import { LogAuditoria } from './log-auditoria/entities/log-auditoria.entity';
           ChamadoObservador,
           DashboardWidget,
           LogAuditoria,
+          Aviso,
+          AvisoLeitura,
+          Tarefa,
+          Anotacao,
         ],
         // synchronize:true faz o TypeORM criar/ajustar as tabelas a partir
         // das entities automaticamente — ótimo pra aprender e prototipar,
@@ -76,6 +87,9 @@ import { LogAuditoria } from './log-auditoria/entities/log-auditoria.entity';
     UploadsModule,
     DashboardModule,
     LogAuditoriaModule,
+    AvisosModule,
+    TarefasModule,
+    AnotacoesModule,
   ],
   controllers: [AppController],
   providers: [

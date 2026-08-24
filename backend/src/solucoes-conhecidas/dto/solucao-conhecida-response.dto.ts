@@ -13,7 +13,7 @@ export class SolucaoConhecidaResponseDto {
   categoria: CategoriaChamado;
   comoFoiResolvido: string;
   marcadaComo: boolean;
-  imagemUrl: string | null;
+  imagensUrls: string[];
   dataCriacao: Date;
   resolvidoPor: UsuarioResponseDto | null;
   // Quantos chamados (de qualquer status) já apareceram nessa categoria —
@@ -35,7 +35,7 @@ export function mapSolucaoParaResposta(
     categoria: solucao.categoria,
     comoFoiResolvido: solucao.comoFoiResolvido,
     marcadaComo: solucao.marcadaComo,
-    imagemUrl: solucao.imagemUrl,
+    imagensUrls: solucao.imagensUrls,
     dataCriacao: solucao.dataCriacao,
     resolvidoPor: solucao.chamado.tecnicoResponsavel
       ? mapUsuarioParaResposta(solucao.chamado.tecnicoResponsavel)

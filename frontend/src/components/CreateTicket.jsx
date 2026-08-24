@@ -146,7 +146,14 @@ function CreateTicket({ onSubmit }) {
               }} disabled={carregando} />
           </div>
           {arquivos.length > 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
+            <div style={{
+              display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8,
+              // A partir de 5 imagens, trava a altura (~5 itens visíveis, ver
+              // cálculo de item abaixo) e passa a rolar em vez de empurrar o
+              // resto do formulário pra baixo. Com menos de 5, sem limite —
+              // comportamento natural de sempre.
+              ...(arquivos.length >= 5 ? { maxHeight: 180, overflowY: 'auto', paddingRight: 4 } : {}),
+            }}>
               {arquivos.map((arq, indice) => (
                 <div key={`${arq.name}-${indice}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, background: CORES_APP.fundoCampo, borderRadius: 8, padding: '7px 10px' }}>
                   <span style={{ color: CORES_APP.texto, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{arq.name}</span>

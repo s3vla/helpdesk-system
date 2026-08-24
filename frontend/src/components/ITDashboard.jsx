@@ -15,6 +15,7 @@ import SlaLegenda from './SlaLegenda'
 import EstadoRequisicao from './EstadoRequisicao'
 import { IconSearch, IconCalendar, IconClock, IconHeadset, IconCheckCircle, IconInfo, IconEdit } from './icons'
 import { calcularSituacaoSla } from '../utils/slaConfig'
+import Paginacao from './Paginacao'
 
 const FILTROS_STATUS = [['all', 'Todos'], ['parado', 'Parados'], ['andamento', 'Em andamento'], ['finalizado', 'Finalizados']]
 const FILTROS_NIVEL = [['all', 'N1–N3'], ['N1', 'N1'], ['N2', 'N2'], ['N3', 'N3']]
@@ -36,6 +37,9 @@ function ITDashboard({ versaoDados, onSelect, onAbrirChamado }) {
   const [busca, setBusca] = useState('')
   const largura = useWindowWidth()
   const [chamados, setChamados] = useState([])
+  const [contagensPorStatus, setContagensPorStatus] = useState({})
+  const [pagina, setPagina] = useState(1)
+  const [totalPaginas, setTotalPaginas] = useState(1)
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState('')
   const debounceRef = useRef(null)
@@ -53,11 +57,21 @@ function ITDashboard({ versaoDados, onSelect, onAbrirChamado }) {
     return () => clearTimeout(debounceRef.current)
   }, [buscaInput])
 
+  // Qualquer filtro que vai pro backend (status/nível/busca) volta pra
+  // página 1 — senão dá pra ficar "presa" numa página que não existe mais
+  // depois de um filtro que reduziu o total de resultados.
+  useEffect(() => {
+    setPagina(1)
+  }, [filtroStatus, filtroNivel, busca])
+
   async function buscar() {
     setCarregando(true)
     setErro('')
     try {
-      setChamados(await buscarChamadosTI(token, { status: filtroStatus, nivel: filtroNivel, busca }))
+      const resposta = await buscarChamadosTI(token, { status: filtroStatus, nivel: filtroNivel, busca, pagina })
+      setChamados(resposta.itens)
+      setContagensPorStatus(resposta.contagensPorStatus)
+      setTotalPaginas(resposta.totalPaginas)
     } catch (e) {
       if (!tratarErroApi(e)) setErro(traduzirErroApi(e))
     } finally {
@@ -68,7 +82,7 @@ function ITDashboard({ versaoDados, onSelect, onAbrirChamado }) {
   useEffect(() => {
     buscar()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [versaoDados, filtroStatus, filtroNivel, busca])
+  }, [versaoDados, filtroStatus, filtroNivel, busca, pagina])
 
   function aoPressionarEnterNaBusca(e) {
     if (e.key !== 'Enter') return
@@ -84,11 +98,18 @@ function ITDashboard({ versaoDados, onSelect, onAbrirChamado }) {
     ? chamados.filter(c => calcularSituacaoSla(c) === 'estourado')
     : chamados
 
+  // Vem pronto do backend (contagensPorStatus, já respeita nível/busca mas
+  // NUNCA o próprio filtro de status) — antes vinha de `chamados.filter()`
+  // sobre a lista inteira carregada, o que só funcionava sem paginação:
+  // com a lista paginada a 10 itens, esses cards ficariam errados (ou
+  // sempre zerados nos outros 3, quando uma aba de status específica
+  // estivesse ativa) se continuassem somando só a página atual.
+  const porStatus = contagensPorStatus
   const stats = [
-    { label: 'Total no mês', valor: chamados.length, cor: CORES_TI.accent, icon: IconCalendar },
-    { label: 'Na fila', valor: chamados.filter(c => c.status === 'parado').length, cor: CORES_STATUS.parado.dot, icon: IconClock },
-    { label: 'Em atendimento', valor: chamados.filter(c => c.status === 'andamento').length, cor: CORES_STATUS.andamento.dot, icon: IconHeadset },
-    { label: 'Resolvidos', valor: chamados.filter(c => c.status === 'finalizado').length, cor: CORES_STATUS.finalizado.dot, icon: IconCheckCircle },
+    { label: 'Total no mês', valor: (porStatus.parado ?? 0) + (porStatus.andamento ?? 0) + (porStatus.finalizado ?? 0), cor: CORES_TI.accent, icon: IconCalendar },
+    { label: 'Na fila', valor: porStatus.parado ?? 0, cor: CORES_STATUS.parado.dot, icon: IconClock },
+    { label: 'Em atendimento', valor: porStatus.andamento ?? 0, cor: CORES_STATUS.andamento.dot, icon: IconHeadset },
+    { label: 'Resolvidos', valor: porStatus.finalizado ?? 0, cor: CORES_STATUS.finalizado.dot, icon: IconCheckCircle },
   ]
 
   return (
@@ -231,6 +252,7 @@ function ITDashboard({ versaoDados, onSelect, onAbrirChamado }) {
           })}
         </div>
       </EstadoRequisicao>
+      <Paginacao paginaAtual={pagina} totalPaginas={totalPaginas} aoMudarPagina={setPagina} />
     </div>
   )
 }

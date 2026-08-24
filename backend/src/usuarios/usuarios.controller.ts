@@ -4,16 +4,25 @@ import {
   Param,
   ParseIntPipe,
   Patch,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { TipoUsuario } from '../common/enums/tipo-usuario.enum';
+import { PaginacaoDto } from '../common/dto/paginacao.dto';
 import { UsuariosService } from './usuarios.service';
 import { ChamadosService } from '../chamados/chamados.service';
 import { mapUsuarioParaResposta } from './dto/usuario-response.dto';
 import { mapChamadoParaResposta } from '../chamados/dto/chamado-response.dto';
+
+// GET /usuarios/:id/chamados nunca deve truncar: ITUsers.jsx soma esses
+// chamados pra mostrar "total/abertos/finalizados" por colaborador, e um
+// limite baixo faria essas contagens mentirem em silêncio pra qualquer
+// colaborador com mais chamados que o tamanho de uma página. 10 mil é
+// "sem limite" na prática pra este sistema.
+const SEM_LIMITE_PRATICO = 10_000;
 
 // As duas rotas daqui só existem pro painel de TI ("Colaboradores"), então
 // @Roles(TECNICO) fica na classe inteira — nenhum colaborador tem por que
@@ -29,9 +38,12 @@ export class UsuariosController {
   ) {}
 
   @Get()
-  async listar() {
-    const usuarios = await this.usuariosService.listarColaboradores();
-    return usuarios.map(mapUsuarioParaResposta);
+  async listar(@Query() filtros: PaginacaoDto) {
+    const resultado = await this.usuariosService.listarColaboradores(
+      filtros.pagina,
+      filtros.limite,
+    );
+    return { ...resultado, itens: resultado.itens.map(mapUsuarioParaResposta) };
   }
 
   // Precisa vir ANTES de @Get(':id/chamados') só por hábito de organização
@@ -46,8 +58,13 @@ export class UsuariosController {
 
   @Get(':id/chamados')
   async listarChamadosDoUsuario(@Param('id', ParseIntPipe) id: number) {
-    const chamados = await this.chamadosService.listarPorUsuario(id);
-    return chamados.map(mapChamadoParaResposta);
+    const resultado = await this.chamadosService.listarPorUsuario(
+      id,
+      undefined,
+      1,
+      SEM_LIMITE_PRATICO,
+    );
+    return resultado.itens.map(mapChamadoParaResposta);
   }
 
   // Mecanismo de reset pra e-mails de cargo que trocam de responsável (ex:

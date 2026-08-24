@@ -5,6 +5,7 @@ import { useAuth } from '../hooks/useAuth'
 import { buscarColaboradores, buscarChamadosDoColaborador } from '../services/ticketService'
 import { traduzirErroApi } from '../utils/traduzirErroApi'
 import EstadoRequisicao from './EstadoRequisicao'
+import Paginacao from './Paginacao'
 
 // Lista de colaboradores cadastrados, com contagem de chamados por pessoa.
 // A API não devolve essa contagem pronta, então buscamos os chamados de
@@ -16,6 +17,9 @@ function ITUsers({ onSelect }) {
   const { token, tratarErroApi } = useAuth()
   const [usuarios, setUsuarios] = useState([])
   const [contagens, setContagens] = useState({})
+  const [total, setTotal] = useState(0)
+  const [pagina, setPagina] = useState(1)
+  const [totalPaginas, setTotalPaginas] = useState(1)
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState('')
 
@@ -23,8 +27,16 @@ function ITUsers({ onSelect }) {
     setCarregando(true)
     setErro('')
     try {
-      const lista = await buscarColaboradores(token)
+      const resposta = await buscarColaboradores(token, { pagina })
+      const lista = resposta.itens
       setUsuarios(lista)
+      setTotal(resposta.total)
+      setTotalPaginas(resposta.totalPaginas)
+      // Só busca o histórico de chamados de quem está NESTA página — a
+      // API de trás (GET /usuarios/:id/chamados) continua sem paginação
+      // própria de propósito (essas contagens têm que ser exatas), mas não
+      // faz sentido buscar isso pra colaboradores de outras páginas que
+      // nem estão sendo mostrados agora.
       const listasDeChamados = await Promise.all(lista.map(u => buscarChamadosDoColaborador(token, u.id)))
       const novasContagens = {}
       lista.forEach((u, indice) => {
@@ -46,14 +58,14 @@ function ITUsers({ onSelect }) {
   useEffect(() => {
     buscar()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [pagina])
 
   return (
     <div className="animate-fade-up">
       <div style={{ marginBottom: 26 }}>
         <h1 style={estilos.sectionTitle}>Colaboradores</h1>
         <p style={{ color: CORES_APP.textoFraco, fontSize: 14, margin: 0 }}>
-          {carregando ? 'Carregando...' : `${usuarios.length} colaboradores cadastrados`}
+          {carregando ? 'Carregando...' : `${total} colaboradores cadastrados`}
         </p>
       </div>
       <EstadoRequisicao carregando={carregando} erro={erro} aoTentarNovamente={buscar}>
@@ -98,6 +110,7 @@ function ITUsers({ onSelect }) {
           })}
         </div>
       </EstadoRequisicao>
+      <Paginacao paginaAtual={pagina} totalPaginas={totalPaginas} aoMudarPagina={setPagina} />
     </div>
   )
 }

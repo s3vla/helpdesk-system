@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { estilos, CORES_APP } from '../styles/theme'
 import { formatarData } from '../utils/formatters'
 import { useAuth } from '../hooks/useAuth'
@@ -9,29 +9,56 @@ import { CATEGORIAS as CATEGORIAS_INTERNAS, LABEL_CATEGORIA as LABEL_CATEGORIA_B
 import { IconBarChart, IconBook, IconSearch } from './icons'
 import EstadoRequisicao from './EstadoRequisicao'
 import ImageLightbox from './ImageLightbox'
+import Paginacao from './Paginacao'
 
 const CATEGORIAS = ['all', ...CATEGORIAS_INTERNAS]
 const LABEL_CATEGORIA = { all: 'Todas', ...LABEL_CATEGORIA_BASE }
 
 // Base de "Soluções Conhecidas": busca as soluções catalogadas
-// (GET /solucoes-conhecidas já filtra por marcadaComo=true no backend) e
-// aplica busca por palavra-chave e filtro de categoria localmente, sobre a
-// lista já carregada — a API já devolve `ocorrenciasCategoria` pronto por
-// item, então não precisamos mais da lista completa de chamados aqui.
+// (GET /solucoes-conhecidas já filtra por marcadaComo=true no backend).
+// Busca por palavra-chave e filtro de categoria agora vão pro backend
+// (querystring), em vez de filtrar em memória sobre a lista inteira — só
+// funcionava assim enquanto a lista inteira era carregada de uma vez;
+// paginada, a busca precisava valer pra TODAS as páginas, não só pra que
+// já tinha sido baixada. `contagensPorCategoria` (por aba) também vem
+// pronto do backend pelo mesmo motivo — ver ticketService.buscarSolucoesConhecidas.
 function ITSolutions() {
   const { token, tratarErroApi } = useAuth()
+  const [buscaInput, setBuscaInput] = useState('')
   const [busca, setBusca] = useState('')
   const [filtroCategoria, setFiltroCategoria] = useState('all')
   const [solucoes, setSolucoes] = useState([])
+  const [total, setTotal] = useState(0)
+  const [contagensPorCategoria, setContagensPorCategoria] = useState({})
+  const [pagina, setPagina] = useState(1)
+  const [totalPaginas, setTotalPaginas] = useState(1)
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState('')
   const [imagemAmpliada, setImagemAmpliada] = useState(null)
+  const debounceRef = useRef(null)
+
+  useEffect(() => {
+    clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => setBusca(buscaInput.trim()), 400)
+    return () => clearTimeout(debounceRef.current)
+  }, [buscaInput])
+
+  // Busca ou categoria mudando volta pra página 1 — senão dá pra ficar
+  // "presa" numa página que não existe mais depois de um filtro que
+  // reduziu o total de resultados.
+  useEffect(() => {
+    setPagina(1)
+  }, [busca, filtroCategoria])
 
   async function buscar() {
     setCarregando(true)
     setErro('')
     try {
-      setSolucoes(await buscarSolucoesConhecidas(token))
+      const resposta = await buscarSolucoesConhecidas(token, { busca, categoria: filtroCategoria, pagina })
+      setSolucoes(resposta.itens)
+      setTotal(resposta.total)
+      setContagensPorCategoria(resposta.contagensPorCategoria)
+      setTotalPaginas(resposta.totalPaginas)
     } catch (e) {
       if (!tratarErroApi(e)) setErro(traduzirErroApi(e))
     } finally {
@@ -42,16 +69,13 @@ function ITSolutions() {
   useEffect(() => {
     buscar()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [busca, filtroCategoria, pagina])
 
-  const filtradas = solucoes.filter(c => {
-    if (filtroCategoria !== 'all' && c.category !== filtroCategoria) return false
-    if (busca.trim()) {
-      const termo = busca.toLowerCase()
-      return c.summary.toLowerCase().includes(termo) || c.resolution.text.toLowerCase().includes(termo) || c.category.toLowerCase().includes(termo)
-    }
-    return true
-  })
+  function aoPressionarEnterNaBusca(e) {
+    if (e.key !== 'Enter') return
+    clearTimeout(debounceRef.current)
+    setBusca(buscaInput.trim())
+  }
 
   return (
     <div className="animate-fade-up">
@@ -61,14 +85,14 @@ function ITSolutions() {
           <h1 style={estilos.sectionTitle}>Soluções Conhecidas</h1>
         </div>
         <p style={{ color: CORES_APP.textoFraco, fontSize: 14, margin: 0 }}>
-          {carregando ? 'Carregando...' : `${solucoes.length} solução${solucoes.length !== 1 ? 'ões' : ''} catalogada${solucoes.length !== 1 ? 's' : ''} — pesquise antes de começar a resolver um chamado novo`}
+          {carregando ? 'Carregando...' : `${total} solução${total !== 1 ? 'ões' : ''} catalogada${total !== 1 ? 's' : ''} — pesquise antes de começar a resolver um chamado novo`}
         </p>
       </div>
 
       <div style={{ position: 'relative', marginBottom: 18 }}>
         <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: CORES_APP.textoSuave, pointerEvents: 'none', display: 'flex' }}><IconSearch /></span>
         <input
-          value={busca} onChange={e => setBusca(e.target.value)}
+          value={buscaInput} onChange={e => setBuscaInput(e.target.value)} onKeyDown={aoPressionarEnterNaBusca}
           placeholder="Pesquisar por palavra-chave — ex: impressora, VPN, acesso..."
           style={{ ...estilos.input, paddingLeft: 40, fontSize: 14 }}
         />
@@ -76,7 +100,9 @@ function ITSolutions() {
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 24, flexWrap: 'wrap' }}>
         {CATEGORIAS.map(c => {
-          const contagem = c === 'all' ? solucoes.length : solucoes.filter(t => t.category === c).length
+          const contagem = c === 'all'
+            ? Object.values(contagensPorCategoria).reduce((soma, n) => soma + n, 0)
+            : contagensPorCategoria[c] ?? 0
           const ativo = filtroCategoria === c
           return (
             <button key={c} onClick={() => setFiltroCategoria(c)}
@@ -89,7 +115,7 @@ function ITSolutions() {
       </div>
 
       <EstadoRequisicao carregando={carregando} erro={erro} aoTentarNovamente={buscar}>
-        {filtradas.length === 0 ? (
+        {solucoes.length === 0 ? (
           <div style={{ padding: '60px 20px', textAlign: 'center' }}>
             <div style={{ color: CORES_APP.textoSuave, marginBottom: 14, display: 'flex', justifyContent: 'center' }}><IconSearch width={36} height={36} /></div>
             <div style={{ color: CORES_APP.textoFraco, fontFamily: 'Outfit, sans-serif', fontWeight: 600, fontSize: 16, marginBottom: 6 }}>Nenhuma solução encontrada</div>
@@ -97,7 +123,7 @@ function ITSolutions() {
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            {filtradas.map(chamado => {
+            {solucoes.map(chamado => {
               const ocorrencias = chamado.ocorrenciasCategoria ?? 1
               return (
                 <div key={chamado.id} style={{ ...estilos.card, border: '1px solid rgba(34,197,94,0.14)', borderLeft: '3px solid #22c55e', padding: '20px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -132,11 +158,23 @@ function ITSolutions() {
                     </p>
                   </div>
 
-                  {chamado.resolution.hasImage && (
+                  {chamado.resolution.imagens.length > 0 && (
                     <div style={{ background: CORES_APP.fundoCampo, border: '1px solid rgba(0,120,81,0.14)', borderRadius: 10, padding: 14 }}>
-                      <div style={estilos.label}>Print anexado</div>
-                      <img src={`${URL_BASE}${chamado.resolution.imagemUrl}`} alt="Print da solução" onClick={() => setImagemAmpliada(`${URL_BASE}${chamado.resolution.imagemUrl}`)}
-                        style={{ maxWidth: '100%', maxHeight: 260, borderRadius: 8, display: 'block', cursor: 'zoom-in' }} />
+                      <div style={estilos.label}>{chamado.resolution.imagens.length > 1 ? `Prints anexados (${chamado.resolution.imagens.length})` : 'Print anexado'}</div>
+                      {/* Mesma galeria de TicketPanel.jsx: uma imagem só vira
+                          preview grande, mais de uma vira grade de
+                          miniaturas — cada uma abre no mesmo lightbox. */}
+                      {chamado.resolution.imagens.length === 1 ? (
+                        <img src={`${URL_BASE}${chamado.resolution.imagens[0]}`} alt="Print da solução" onClick={() => setImagemAmpliada(`${URL_BASE}${chamado.resolution.imagens[0]}`)}
+                          style={{ maxWidth: '100%', maxHeight: 260, borderRadius: 8, display: 'block', cursor: 'zoom-in' }} />
+                      ) : (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                          {chamado.resolution.imagens.map((url, indice) => (
+                            <img key={url} src={`${URL_BASE}${url}`} alt={`Print da solução ${indice + 1}`} onClick={() => setImagemAmpliada(`${URL_BASE}${url}`)}
+                              style={{ width: 96, height: 96, objectFit: 'cover', borderRadius: 8, cursor: 'zoom-in' }} />
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -145,6 +183,7 @@ function ITSolutions() {
           </div>
         )}
       </EstadoRequisicao>
+      <Paginacao paginaAtual={pagina} totalPaginas={totalPaginas} aoMudarPagina={setPagina} />
 
       <ImageLightbox src={imagemAmpliada} alt="Imagem ampliada" onClose={() => setImagemAmpliada(null)} />
     </div>

@@ -7,6 +7,11 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Usuario } from './entities/usuario.entity';
 import { TipoUsuario } from '../common/enums/tipo-usuario.enum';
+import {
+  calcularPaginacao,
+  montarRespostaPaginada,
+  RespostaPaginadaDto,
+} from '../common/dto/resposta-paginada.dto';
 
 interface CriarUsuarioParams {
   nome: string;
@@ -62,11 +67,26 @@ export class UsuariosService {
 
   // GET /usuarios (tela "Colaboradores" da Área Técnica) só lista quem abre
   // chamado — técnicos não aparecem nessa lista, por isso o filtro por tipo
-  // em vez de um `find()` simples.
-  async listarColaboradores(): Promise<Usuario[]> {
-    return this.usuarioRepository.find({
+  // em vez de um `find()` simples. Ordenado por email (nunca nulo,
+  // diferente de `nome`, que fica null enquanto a conta está "aguardando
+  // cadastro") — garante uma ordem estável entre páginas.
+  async listarColaboradores(
+    pagina?: number,
+    limite?: number,
+  ): Promise<RespostaPaginadaDto<Usuario>> {
+    const paginacao = calcularPaginacao(pagina, limite);
+    const [usuarios, total] = await this.usuarioRepository.findAndCount({
       where: { tipo: TipoUsuario.COLABORADOR },
+      order: { email: 'ASC' },
+      skip: paginacao.skip,
+      take: paginacao.limite,
     });
+    return montarRespostaPaginada(
+      usuarios,
+      total,
+      paginacao.pagina,
+      paginacao.limite,
+    );
   }
 
   // GET /usuarios/tecnicos — popula o dropdown "Atribuído a" do painel de

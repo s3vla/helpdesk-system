@@ -1,6 +1,6 @@
 import { ConflictException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, SelectQueryBuilder } from 'typeorm';
 import { SolucaoConhecida } from './entities/solucao-conhecida.entity';
 import { Chamado } from '../chamados/entities/chamado.entity';
 import { CategoriaChamado } from '../common/enums/categoria-chamado.enum';
@@ -14,6 +14,11 @@ import {
   contarPalavrasEmComum,
   extrairPalavrasChave,
 } from './palavras-chave.util';
+import {
+  calcularPaginacao,
+  montarRespostaPaginada,
+  RespostaPaginadaDto,
+} from '../common/dto/resposta-paginada.dto';
 
 // No máximo 3 sugestões no painel do técnico — o suficiente pra dar uma
 // pista sem virar uma lista longa que ninguém lê.
@@ -24,7 +29,7 @@ interface CriarSolucaoParams {
   comoFoiResolvido: string;
   marcadaComo: boolean;
   categoria: CategoriaChamado;
-  imagemUrl: string | null;
+  imagensUrls: string[];
 }
 
 @Injectable()
@@ -71,7 +76,7 @@ export class SolucoesConhecidasService {
       comoFoiResolvido: dados.comoFoiResolvido,
       marcadaComo: dados.marcadaComo,
       categoria: dados.categoria,
-      imagemUrl: dados.imagemUrl,
+      imagensUrls: dados.imagensUrls,
     });
     return this.solucaoRepository.save(solucao);
   }
@@ -93,9 +98,13 @@ export class SolucoesConhecidasService {
     );
   }
 
-  async listar(
-    filtros: FiltrosSolucaoDto,
-  ): Promise<SolucaoConhecidaResponseDto[]> {
+  // WHERE compartilhado entre a query de dados (paginada) e as duas de
+  // contagem (total e por categoria) — pra nunca ter os filtros
+  // divergindo entre elas (ex: a busca valendo pra página mas não pro
+  // total, deixando "10 resultados" na aba errada).
+  private construirQuerySolucoes(
+    filtros: Pick<FiltrosSolucaoDto, 'categoria' | 'busca'>,
+  ): SelectQueryBuilder<SolucaoConhecida> {
     const query = this.solucaoRepository
       .createQueryBuilder('solucao')
       .innerJoinAndSelect('solucao.chamado', 'chamado')
@@ -119,16 +128,58 @@ export class SolucoesConhecidasService {
       );
     }
 
-    query.orderBy('solucao.dataCriacao', 'DESC');
+    return query;
+  }
 
-    const [solucoes, ocorrencias] = await Promise.all([
-      query.getMany(),
-      this.contarOcorrenciasPorCategoria(),
-    ]);
+  // Quantas soluções catalogadas existem por categoria, respeitando a
+  // busca ativa mas IGNORANDO o filtro de categoria em si — cada aba
+  // precisa saber "quantas teria se eu clicasse nela", não só a contagem
+  // da aba já selecionada. Usado pelos números ao lado de cada aba de
+  // categoria em ITSolutions.jsx: antes vinham de filtrar a lista inteira
+  // em memória no frontend, o que só funcionava porque a lista inteira
+  // era carregada de uma vez — agora que a listagem é paginada, isso
+  // precisa vir pronto do backend.
+  private async contarSolucoesPorCategoria(
+    filtros: Pick<FiltrosSolucaoDto, 'busca'>,
+  ): Promise<Record<string, number>> {
+    const linhas = await this.construirQuerySolucoes({ busca: filtros.busca })
+      .select('solucao.categoria', 'categoria')
+      .addSelect('COUNT(*)', 'total')
+      .groupBy('solucao.categoria')
+      .getRawMany<{ categoria: string; total: string }>();
+    return Object.fromEntries(
+      linhas.map((linha) => [linha.categoria, Number(linha.total)]),
+    );
+  }
 
-    return solucoes.map((solucao) =>
+  async listar(filtros: FiltrosSolucaoDto): Promise<
+    RespostaPaginadaDto<SolucaoConhecidaResponseDto> & {
+      contagensPorCategoria: Record<string, number>;
+    }
+  > {
+    const { pagina, limite, skip } = calcularPaginacao(
+      filtros.pagina,
+      filtros.limite,
+    );
+
+    const [[solucoes, total], ocorrencias, contagensPorCategoria] =
+      await Promise.all([
+        this.construirQuerySolucoes(filtros)
+          .orderBy('solucao.dataCriacao', 'DESC')
+          .skip(skip)
+          .take(limite)
+          .getManyAndCount(),
+        this.contarOcorrenciasPorCategoria(),
+        this.contarSolucoesPorCategoria(filtros),
+      ]);
+
+    const itens = solucoes.map((solucao) =>
       mapSolucaoParaResposta(solucao, ocorrencias[solucao.categoria] ?? 0),
     );
+    return {
+      ...montarRespostaPaginada(itens, total, pagina, limite),
+      contagensPorCategoria,
+    };
   }
 
   // GET /chamados/:id/solucoes-sugeridas — busca soluções conhecidas da

@@ -30,12 +30,15 @@ export class SolucaoConhecida {
   @Column({ type: 'text', enum: CategoriaChamado })
   categoria: CategoriaChamado;
 
-  // Print opcional de "como ficou depois de resolvido" — reaproveita o
-  // mesmo UploadsController usado no print do erro na abertura do chamado
-  // (mesmo fluxo de duas etapas: POST /uploads primeiro, depois manda a
-  // URL aqui).
-  @Column({ type: 'text', nullable: true })
-  imagemUrl: string | null;
+  // Prints opcionais de "como ficou depois de resolvido" — mesmo padrão de
+  // Chamado.imagensUrls (array via `simple-json`, não uma tabela separada:
+  // é a abordagem que o projeto já usa pra múltiplos anexos, então reusar
+  // aqui em vez de criar uma entity nova é o que mantém consistência).
+  // Reaproveita o mesmo UploadsController do print do erro na abertura do
+  // chamado (mesmo fluxo de duas etapas: POST /uploads por arquivo,
+  // primeiro, depois manda as URLs aqui).
+  @Column({ type: 'simple-json', default: '[]' })
+  imagensUrls: string[];
 
   @CreateDateColumn()
   dataCriacao: Date;

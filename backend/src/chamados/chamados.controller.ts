@@ -28,6 +28,8 @@ import { AtribuirChamadoDto } from './dto/atribuir-chamado.dto';
 import { LogAuditoriaService } from '../log-auditoria/log-auditoria.service';
 import { mapLogAuditoriaParaResposta } from '../log-auditoria/dto/log-auditoria-response.dto';
 import { FiltrosChamadoDto } from './dto/filtros-chamado.dto';
+import { BuscaChamadoDto } from './dto/busca-chamado.dto';
+import { PaginacaoDto } from '../common/dto/paginacao.dto';
 import { PeriodoChamadoDto } from './dto/periodo-chamado.dto';
 import { MetricasChamadoDto } from './dto/metricas-chamado.dto';
 import { mapChamadoParaResposta } from './dto/chamado-response.dto';
@@ -50,23 +52,32 @@ export class ChamadosController {
     private readonly logAuditoriaService: LogAuditoriaService,
   ) {}
 
-  // "Central de Chamados" — visão completa, só TI.
+  // "Central de Chamados" — visão completa, só TI. Paginado (ver
+  // FiltrosChamadoDto extends PaginacaoDto) — `itens` mapeado, resto do
+  // envelope ({ total, pagina, totalPaginas }) repassado como veio do
+  // service.
   @Get()
   @Roles(TipoUsuario.TECNICO)
   async listarTodos(@Query() filtros: FiltrosChamadoDto) {
-    const chamados = await this.chamadosService.listarTodos(filtros);
-    return chamados.map(mapChamadoParaResposta);
+    const resultado = await this.chamadosService.listarTodos(filtros);
+    return { ...resultado, itens: resultado.itens.map(mapChamadoParaResposta) };
   }
 
   // Sem @Roles: qualquer usuário autenticado pode ver os PRÓPRIOS chamados —
   // "próprio" aqui é garantido porque usamos `usuarioAtual.sub` (do token),
   // nunca um id vindo da query string.
   @Get('meus')
-  async listarMeusChamados(@UsuarioAtual() usuarioAtual: JwtPayload) {
-    const chamados = await this.chamadosService.listarPorUsuario(
+  async listarMeusChamados(
+    @Query() filtros: BuscaChamadoDto,
+    @UsuarioAtual() usuarioAtual: JwtPayload,
+  ) {
+    const resultado = await this.chamadosService.listarPorUsuario(
       usuarioAtual.sub,
+      filtros.busca,
+      filtros.pagina,
+      filtros.limite,
     );
-    return chamados.map(mapChamadoParaResposta);
+    return { ...resultado, itens: resultado.itens.map(mapChamadoParaResposta) };
   }
 
   // Precisa vir ANTES de @Get(':id') — senão "observando" seria capturado
@@ -77,11 +88,16 @@ export class ChamadosController {
   // observa — "observando" aqui também é sempre `usuarioAtual.sub`, nunca
   // um id vindo de fora.
   @Get('observando')
-  async listarObservando(@UsuarioAtual() usuarioAtual: JwtPayload) {
-    const chamados = await this.chamadosService.listarObservados(
+  async listarObservando(
+    @Query() filtros: PaginacaoDto,
+    @UsuarioAtual() usuarioAtual: JwtPayload,
+  ) {
+    const resultado = await this.chamadosService.listarObservados(
       usuarioAtual.sub,
+      filtros.pagina,
+      filtros.limite,
     );
-    return chamados.map(mapChamadoParaResposta);
+    return { ...resultado, itens: resultado.itens.map(mapChamadoParaResposta) };
   }
 
   // Motor genérico de agregação pro Dashboard TI configurável (ver

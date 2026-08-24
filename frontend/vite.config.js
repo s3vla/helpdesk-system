@@ -20,6 +20,9 @@ export default defineConfig({
       '/solucoes-conhecidas': 'http://localhost:3000',
       '/uploads': 'http://localhost:3000',
       '/dashboard': 'http://localhost:3000',
+      '/avisos': 'http://localhost:3000',
+      '/tarefas': 'http://localhost:3000',
+      '/anotacoes': 'http://localhost:3000',
     },
   },
 })

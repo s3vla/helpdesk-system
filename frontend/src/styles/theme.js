@@ -42,6 +42,20 @@ export const CORES_TI = {
   accentBorda: '#CFDDF7',
 }
 
+// Fonte ÚNICA da cor/rótulo de cada tipo de aviso do Mural — usada tanto
+// no badge do card (MuralAvisos.jsx) quanto nos botões de seleção do
+// formulário (PublicarAvisoModal.jsx), pra nunca divergir entre as duas
+// telas (o mesmo aviso "Alerta" precisa ser a MESMA cor nos dois lugares).
+// Reaproveita paletas já aprovadas em vez de inventar cor nova: azul =
+// mesmo accent da área técnica (CORES_TI), vermelho = mesmo tom de
+// prioridade alta (CORES_PRIORIDADE.alta), âmbar = mesmo tom já usado pro
+// status "Em atendimento" (CORES_STATUS.andamento).
+export const CORES_TIPO_AVISO = {
+  INFORMATIVO: { bg: CORES_TI.accentBg, fg: CORES_TI.accent, borda: CORES_TI.accentBorda, label: 'Informativo' },
+  ALERTA: { bg: CORES_PRIORIDADE.alta.bg, fg: CORES_PRIORIDADE.alta.fg, borda: CORES_PRIORIDADE.alta.borda, label: 'Alerta' },
+  MANUTENCAO: { bg: 'rgba(245,158,11,0.12)', fg: '#f59e0b', borda: 'rgba(245,158,11,0.3)', label: 'Manutenção' },
+}
+
 // Tokens de fundo/texto do sistema INTEIRO (pós-login — as telas de auth
 // continuam fixas no tema claro de authTheme.js, ver LoginScreen.jsx),
 // estruturados por modo. TEMA_CLARO é a mesma paleta já aprovada e usada em
