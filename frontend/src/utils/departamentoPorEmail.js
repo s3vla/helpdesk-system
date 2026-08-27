@@ -25,11 +25,28 @@ const DEPARTAMENTO_POR_PREFIXO = {
   logistica: 'Logística',
   recepcao: 'Recepção',
   fabrica: 'Fábrica',
-  // "sandro.huber" é e-mail de uma pessoa, não de um cargo/setor — de
-  // propósito sem entrada aqui, cai no `null` abaixo e o campo Departamento
-  // fica editável em vez de travado (mesmo tratamento de qualquer prefixo
-  // futuro que apareça na lista de autorizados sem estar mapeado aqui
-  // ainda — nunca trava um campo com um rótulo errado ou vazio).
+  comercial: 'Comercial',
+  // "scapini" e "fabiom" são e-mails de pessoa (diretores), não de
+  // cargo/setor — mas diferente de antes, agora têm departamento travado
+  // mesmo assim, por decisão explícita (os dois vão sempre para
+  // "Diretoria", não ficam com o campo editável).
+  scapini: 'Diretoria',
+  fabiom: 'Diretoria',
+  // "sandro.huber" deixou de ser exceção editável — travado como
+  // "Gerência" agora, mesmo tratamento de qualquer outro prefixo mapeado
+  // aqui (antes não tinha entrada nesta lista, então caía no `null` abaixo
+  // e o campo Departamento ficava editável; comportamento mudou de
+  // propósito).
+  'sandro.huber': 'Gerência',
+  // Prefixo, não domínio: "financeiro" aqui já cobre tanto
+  // financeiro@novatechagro.com.br quanto financeiro@alvotechagro.com.br
+  // (departamentoPorEmail só olha a parte antes do @, ver função abaixo) —
+  // nenhuma entrada nova precisa ser adicionada só por causa do domínio.
+  //
+  // Qualquer prefixo futuro que apareça na lista de autorizados sem estar
+  // mapeado aqui ainda cai no `null` abaixo, e o campo Departamento fica
+  // editável em vez de travado — nunca trava um campo com um rótulo errado
+  // ou vazio.
 }
 
 // Retorna o departamento pro prefixo do e-mail informado, ou `null` se não

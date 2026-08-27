@@ -9,6 +9,7 @@ import { estilosAuth, cores, botaoVerde } from '../styles/authTheme'
 import { useAuth } from '../hooks/useAuth'
 import { useWindowWidth } from '../hooks/useWindowWidth'
 import { traduzirErroApi } from '../utils/traduzirErroApi'
+import { emailComDominioAutorizado, MENSAGEM_DOMINIO_INVALIDO } from '../utils/dominiosEmailAutorizados'
 
 // Tela de login do colaborador. Diferente da versão com dados mockados, não
 // dá mais pra "adivinhar" se um e-mail já tem conta só de olhar uma lista
@@ -37,8 +38,8 @@ function LoginScreen({ onLoginColaborador, onSwitchIT }) {
   const mobile = largura < 900
 
   async function doLogin() {
-    if (!email.toLowerCase().endsWith('@novatechagro.com.br')) {
-      setErr('Use seu e-mail corporativo @novatechagro.com.br')
+    if (!emailComDominioAutorizado(email)) {
+      setErr(MENSAGEM_DOMINIO_INVALIDO)
       return
     }
     if (!pass) {
@@ -84,7 +85,7 @@ function LoginScreen({ onLoginColaborador, onSwitchIT }) {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <span style={estilosAuth.eyebrow}>ACESSO COLABORADOR</span>
               <h2 style={estilosAuth.titulo}>Entrar no help desk</h2>
-              <p style={estilosAuth.texto}>Use o e-mail corporativo @novatechagro.com.br</p>
+              <p style={estilosAuth.texto}>{MENSAGEM_DOMINIO_INVALIDO}</p>
             </div>
 
             {mensagemSessao && (
@@ -97,7 +98,7 @@ function LoginScreen({ onLoginColaborador, onSwitchIT }) {
               <label style={estilosAuth.campo}>
                 <span style={estilosAuth.rotulo}>E-mail corporativo</span>
                 <EmailInput value={email} onChange={e => setEmail(e.target.value)}
-                  placeholder="seu.nome@novatechagro.com.br" style={estilosAuth.input} disabled={carregando} iconColor={cores.azulMedio} />
+                  placeholder="seu e-mail corporativo" style={estilosAuth.input} disabled={carregando} iconColor={cores.azulMedio} />
               </label>
 
               <label style={estilosAuth.campo}>

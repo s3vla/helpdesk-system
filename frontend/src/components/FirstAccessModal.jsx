@@ -9,6 +9,7 @@ import { departamentoPorEmail } from '../utils/departamentoPorEmail'
 import { useAuth } from '../hooks/useAuth'
 import { useWindowWidth } from '../hooks/useWindowWidth'
 import { traduzirErroApi } from '../utils/traduzirErroApi'
+import { emailComDominioAutorizado, MENSAGEM_DOMINIO_INVALIDO } from '../utils/dominiosEmailAutorizados'
 
 // Tela de "Primeiro Acesso": cadastra um colaborador novo direto pela API
 // (POST /auth/primeiro-acesso) e já entra logado com o token recebido de
@@ -50,8 +51,8 @@ function FirstAccessModal({ emailInicial, onSucesso, onFechar }) {
 
   async function enviar() {
     if (!podeContinuar) return
-    if (!email.toLowerCase().endsWith('@novatechagro.com.br')) {
-      setErro('Use seu e-mail corporativo @novatechagro.com.br')
+    if (!emailComDominioAutorizado(email)) {
+      setErro(MENSAGEM_DOMINIO_INVALIDO)
       return
     }
     if (senha.length < 8) {
@@ -91,7 +92,7 @@ function FirstAccessModal({ emailInicial, onSucesso, onFechar }) {
               <label style={estilosAuth.campo}>
                 <span style={estilosAuth.rotulo}>E-mail corporativo</span>
                 <EmailInput value={email} onChange={e => setEmail(e.target.value)}
-                  placeholder="seu.nome@novatechagro.com.br" style={estilosAuth.input} disabled={carregando} iconColor={cores.azulMedio} />
+                  placeholder="seu e-mail corporativo" style={estilosAuth.input} disabled={carregando} iconColor={cores.azulMedio} />
               </label>
 
               <label style={estilosAuth.campo}>

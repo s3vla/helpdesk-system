@@ -7,6 +7,16 @@
 // Pra adicionar ou remover alguém, mexa só aqui — nenhum outro arquivo
 // deveria conter e-mails "hardcoded" de autorização.
 
+// Domínios de e-mail corporativo aceitos — usado por EmailCorporativo()
+// (validators/email-corporativo.decorator.ts) pra montar a regra de
+// formato. Estar aqui não autoriza ninguém sozinho: só decide se o FORMATO
+// do e-mail passa a validação; quem de fato pode logar continua sendo só
+// quem está literalmente nas listas abaixo.
+export const DOMINIOS_EMAIL_AUTORIZADOS = [
+  'novatechagro.com.br',
+  'alvotechagro.com.br',
+];
+
 // Só estes dois e-mails podem logar na Área Técnica. Diferente dos
 // colaboradores, técnicos não têm Primeiro Acesso (são criados via seed —
 // ver src/database/seed.service.ts, que valida contra esta mesma lista).
@@ -34,6 +44,13 @@ export const EMAILS_COLABORADOR_AUTORIZADOS = [
   'sandro.huber@novatechagro.com.br',
   'recepcao@novatechagro.com.br',
   'fabrica@novatechagro.com.br',
+  'comercial@novatechagro.com.br',
+  'scapini@novatechagro.com.br',
+  'fabiom@novatechagro.com.br',
+  // Financeiro de outro domínio/empresa (Alvotech Agro) — pessoa/setor
+  // diferente do financeiro@novatechagro.com.br já existente acima, os
+  // dois coexistem.
+  'financeiro@alvotechagro.com.br',
 ];
 
 export function emailColaboradorAutorizado(email: string): boolean {
