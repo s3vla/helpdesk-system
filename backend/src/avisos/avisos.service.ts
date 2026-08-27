@@ -1,10 +1,11 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Not, IsNull, Repository } from 'typeorm';
 import { Aviso } from './entities/aviso.entity';
 import { AvisoLeitura } from './entities/aviso-leitura.entity';
 import { Usuario } from '../usuarios/entities/usuario.entity';
 import { TipoUsuario } from '../common/enums/tipo-usuario.enum';
+import { EmailService } from '../email/email.service';
 import { CriarAvisoDto } from './dto/criar-aviso.dto';
 import { AtualizarAvisoDto } from './dto/atualizar-aviso.dto';
 import { FiltrosAvisoDto } from './dto/filtros-aviso.dto';
@@ -35,6 +36,9 @@ export class AvisosService {
     // save() (mesmo raciocínio de ObservadoresService injetar UsuarioRepository).
     @InjectRepository(Usuario)
     private readonly usuarioRepository: Repository<Usuario>,
+    // Notificação por e-mail ao publicar (ver `criar` abaixo) — o próprio
+    // EmailService garante que uma falha de envio nunca propaga pra cá.
+    private readonly emailService: EmailService,
   ) {}
 
   // Fixados primeiro, depois mais recente primeiro — nessa ordem mesmo com
@@ -190,6 +194,25 @@ export class AvisosService {
       autor,
     });
     const salvo = await this.avisoRepository.save(aviso);
+
+    // Fire-and-forget (o próprio EmailService nunca propaga falha) — TODOS
+    // os colaboradores ATIVOS, não só técnicos: tipo COLABORADOR e
+    // `senhaHash` preenchido (null = conta resetada, aguardando um novo
+    // Primeiro Acesso — mesmo critério de "ativo" usado em
+    // ChamadosService.criarComoTecnico). Consulta só os 2 campos que
+    // interessam (`select`), não a entidade inteira.
+    void this.usuarioRepository
+      .find({
+        where: { tipo: TipoUsuario.COLABORADOR, senhaHash: Not(IsNull()) },
+        select: { email: true },
+      })
+      .then((colaboradores) =>
+        this.emailService.enviarNotificacaoAvisoNovo(
+          salvo,
+          colaboradores.map((colaborador) => colaborador.email),
+        ),
+      );
+
     // Aviso recém-criado: impossível existir AvisoLeitura pra ele ainda —
     // 0 é sempre o valor correto aqui, não uma query desnecessária.
     return mapAvisoParaResposta(salvo, false, 0);

@@ -31,6 +31,7 @@ import { TipoMetrica } from '../common/enums/tipo-metrica.enum';
 import { JwtPayload } from '../common/interfaces/jwt-payload.interface';
 import { SolucoesConhecidasService } from '../solucoes-conhecidas/solucoes-conhecidas.service';
 import { ObservadoresService } from '../observadores/observadores.service';
+import { EmailService } from '../email/email.service';
 import { calcularNivelSugerido } from './nivel-triagem.util';
 import { agruparChamadosRepetidos, GrupoRepetido } from './estatisticas.util';
 import {
@@ -159,6 +160,10 @@ export class ChamadosService {
     // reclassificarNivel — nunca em rota de leitura (ver
     // LogAuditoriaService.registrar).
     private readonly logAuditoriaService: LogAuditoriaService,
+    // Notificações por e-mail (chamado novo, mudança de status) — o próprio
+    // EmailService garante que uma falha de envio nunca propaga pra cá, então
+    // as chamadas abaixo não precisam (nem devem) de try/catch próprio.
+    private readonly emailService: EmailService,
   ) {}
 
   async criar(
@@ -190,7 +195,12 @@ export class ChamadosService {
       abertoPorTecnico: abertoPorTecnicoId ? { id: abertoPorTecnicoId } : null,
     });
     const salvo = await this.chamadoRepository.save(chamado);
-    return this.buscarPorIdOuFalhar(salvo.id);
+    const criado = await this.buscarPorIdOuFalhar(salvo.id);
+    // Fire-and-forget de propósito: notificar os técnicos por e-mail não é
+    // parte do contrato de "abrir um chamado" — o chamado já está salvo e a
+    // resposta não deve esperar (nem falhar) por causa do envio.
+    void this.emailService.enviarNotificacaoChamadoNovo(criado);
+    return criado;
   }
 
   // POST /chamados/tecnico — técnico abre um chamado em nome de um
@@ -312,10 +322,12 @@ export class ChamadosService {
     };
   }
 
-  // `busca` cobre os 3 status de uma vez só (não há filtro de status nesta
-  // rota pra restringir antes) — a tela "Meus Chamados" já mostra as 3
-  // colunas (Parado/Em andamento/Finalizado) simultaneamente, então a busca
-  // só precisa filtrar o que entra em cada uma, sem exigir trocar de aba.
+  // `status`, quando informado, restringe a UMA coluna — é o que permite
+  // MyTickets.jsx paginar Parado/Em andamento/Finalizado de forma
+  // independente (cada coluna com seu próprio "carregar mais", sem puxar
+  // as outras junto). Sem `status`, `busca` continua cobrindo os 3 de uma
+  // vez (comportamento original, mantido pra quem não precisa das colunas
+  // separadas).
   //
   // `pagina`/`limite` ausentes = sem paginação de verdade (usado por
   // GET /usuarios/:id/chamados, que passa um limite bem alto de propósito
@@ -328,8 +340,10 @@ export class ChamadosService {
     busca?: string,
     pagina?: number,
     limite?: number,
+    status?: StatusChamado,
   ): Promise<RespostaPaginadaDto<Chamado>> {
     const base: FindOptionsWhere<Chamado> = { solicitante: { id: usuarioId } };
+    if (status) base.status = status;
     const paginacao = calcularPaginacao(pagina, limite);
     const [chamados, total] = await this.chamadoRepository.findAndCount({
       where: this.construirWhereComBusca(base, busca),
@@ -682,7 +696,30 @@ export class ChamadosService {
       });
     }
 
-    return this.buscarPorIdOuFalhar(id);
+    const atualizado = await this.buscarPorIdOuFalhar(id);
+    // Mesmo raciocínio de `criar`: notificação é fire-and-forget, e só faz
+    // sentido quando o status realmente mudou (mesma condição do log acima)
+    // — uma chamada idempotente não deveria gerar e-mail nenhum.
+    //
+    // PARADO -> ANDAMENTO (iniciar atendimento, seja a primeira vez ou um
+    // técnico retomando um chamado que tinha voltado pra fila) tem e-mail
+    // PRÓPRIO, com tom de "alguém já está cuidando disso" — mais específico
+    // e diferente do genérico de atualização, que continua cobrindo os
+    // demais casos (finalização, reabertura, etc).
+    if (statusAnterior !== dto.status) {
+      if (
+        statusAnterior === StatusChamado.PARADO &&
+        dto.status === StatusChamado.ANDAMENTO
+      ) {
+        void this.emailService.enviarNotificacaoAtendimentoIniciado(atualizado);
+      } else {
+        void this.emailService.enviarNotificacaoAtualizacaoChamado(
+          atualizado,
+          tecnicoAtual.sub,
+        );
+      }
+    }
+    return atualizado;
   }
 
   // PATCH /chamados/:id/atribuir — define ou troca o técnico responsável

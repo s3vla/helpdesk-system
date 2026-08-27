@@ -15,6 +15,7 @@ import { StatusChamado } from '../common/enums/status-chamado.enum';
 import { JwtPayload } from '../common/interfaces/jwt-payload.interface';
 import { LogAuditoriaService } from '../log-auditoria/log-auditoria.service';
 import { AcaoAuditoria } from '../common/enums/acao-auditoria.enum';
+import { EmailService } from '../email/email.service';
 
 @Injectable()
 export class ComentariosService {
@@ -28,6 +29,9 @@ export class ComentariosService {
     @InjectRepository(Chamado)
     private readonly chamadoRepository: Repository<Chamado>,
     private readonly logAuditoriaService: LogAuditoriaService,
+    // Mesmo raciocínio de ChamadosService: o próprio EmailService garante
+    // que uma falha de envio nunca propaga pra cá.
+    private readonly emailService: EmailService,
   ) {}
 
   // Centraliza a busca do chamado + a checagem de dono, usada tanto ao
@@ -141,10 +145,31 @@ export class ComentariosService {
       await this.chamadoRepository.save(chamado);
     }
 
-    return this.comentarioRepository.findOneOrFail({
+    // Carregado ANTES do e-mail (não só no final, como antes) porque a
+    // notificação precisa do NOME de quem comentou pra dizer "Fulano
+    // respondeu..." — sem isso só teríamos `usuarioAtual.sub` (id cru, o
+    // JWT não carrega nome). Mesmo valor que seria buscado no final de
+    // qualquer forma, só adiantado.
+    const comentarioCompleto = await this.comentarioRepository.findOneOrFail({
       where: { id: salvo.id },
       relations: { autor: true },
     });
+
+    // Fire-and-forget (o próprio EmailService nunca propaga falha) — só
+    // para comentário VISÍVEL pro colaborador; comentário interno é só
+    // entre técnicos, não gera e-mail pro solicitante/observadores.
+    // `chamado` já veio com solicitante/observadores.usuario carregados de
+    // carregarChamadoPermitido, então não precisa de outra consulta aqui.
+    if (!interno) {
+      void this.emailService.enviarNotificacaoAtualizacaoChamado(
+        chamado,
+        usuarioAtual.sub,
+        comentario.texto,
+        comentarioCompleto.autor.nome ?? comentarioCompleto.autor.email,
+      );
+    }
+
+    return comentarioCompleto;
   }
 
   async listarPorChamado(

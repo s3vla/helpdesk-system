@@ -9,6 +9,7 @@ import { ComentariosModule } from '../comentarios/comentarios.module';
 import { SolucoesConhecidasModule } from '../solucoes-conhecidas/solucoes-conhecidas.module';
 import { ObservadoresModule } from '../observadores/observadores.module';
 import { LogAuditoriaModule } from '../log-auditoria/log-auditoria.module';
+import { EmailModule } from '../email/email.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { LogAuditoriaModule } from '../log-auditoria/log-auditoria.module';
     SolucoesConhecidasModule,
     ObservadoresModule,
     LogAuditoriaModule,
+    EmailModule,
   ],
   providers: [ChamadosService],
   controllers: [ChamadosController],

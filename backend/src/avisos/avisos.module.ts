@@ -5,9 +5,13 @@ import { AvisoLeitura } from './entities/aviso-leitura.entity';
 import { Usuario } from '../usuarios/entities/usuario.entity';
 import { AvisosService } from './avisos.service';
 import { AvisosController } from './avisos.controller';
+import { EmailModule } from '../email/email.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Aviso, AvisoLeitura, Usuario])],
+  imports: [
+    TypeOrmModule.forFeature([Aviso, AvisoLeitura, Usuario]),
+    EmailModule,
+  ],
   providers: [AvisosService],
   controllers: [AvisosController],
 })
