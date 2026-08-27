@@ -76,6 +76,7 @@ export class ChamadosController {
       filtros.busca,
       filtros.pagina,
       filtros.limite,
+      filtros.status,
     );
     return { ...resultado, itens: resultado.itens.map(mapChamadoParaResposta) };
   }

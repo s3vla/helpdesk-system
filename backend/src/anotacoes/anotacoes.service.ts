@@ -5,6 +5,11 @@ import { Anotacao } from './entities/anotacao.entity';
 import { Usuario } from '../usuarios/entities/usuario.entity';
 import { CriarAnotacaoDto } from './dto/criar-anotacao.dto';
 import { AtualizarAnotacaoDto } from './dto/atualizar-anotacao.dto';
+import {
+  RespostaPaginadaDto,
+  calcularPaginacao,
+  montarRespostaPaginada,
+} from '../common/dto/resposta-paginada.dto';
 
 @Injectable()
 export class AnotacoesService {
@@ -13,11 +18,29 @@ export class AnotacoesService {
     private readonly anotacaoRepository: Repository<Anotacao>,
   ) {}
 
-  async listar(usuarioId: number): Promise<Anotacao[]> {
-    return this.anotacaoRepository.find({
+  // Mais recentes primeiro, paginado — sem lista de status/coluna aqui
+  // (Minhas Anotações é uma grade só, não um Kanban), então basta
+  // pagina/limite puros, mesmo padrão de PaginacaoDto usado no resto da
+  // API. Pensado pro mesmo cenário de volume acumulado ao longo do tempo
+  // que motivou paginar Meus Chamados/Minhas Tarefas.
+  async listar(
+    usuarioId: number,
+    pagina?: number,
+    limite?: number,
+  ): Promise<RespostaPaginadaDto<Anotacao>> {
+    const paginacao = calcularPaginacao(pagina, limite);
+    const [anotacoes, total] = await this.anotacaoRepository.findAndCount({
       where: { usuario: { id: usuarioId } },
       order: { criadaEm: 'DESC' },
+      skip: paginacao.skip,
+      take: paginacao.limite,
     });
+    return montarRespostaPaginada(
+      anotacoes,
+      total,
+      paginacao.pagina,
+      paginacao.limite,
+    );
   }
 
   async criar(dto: CriarAnotacaoDto, usuarioId: number): Promise<Anotacao> {

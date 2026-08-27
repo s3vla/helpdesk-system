@@ -1,11 +1,16 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { FindOptionsWhere, Repository } from 'typeorm';
 import { Tarefa } from './entities/tarefa.entity';
 import { Usuario } from '../usuarios/entities/usuario.entity';
 import { CriarTarefaDto } from './dto/criar-tarefa.dto';
 import { AtualizarTarefaDto } from './dto/atualizar-tarefa.dto';
 import { StatusTarefa } from '../common/enums/status-tarefa.enum';
+import {
+  RespostaPaginadaDto,
+  calcularPaginacao,
+  montarRespostaPaginada,
+} from '../common/dto/resposta-paginada.dto';
 
 @Injectable()
 export class TarefasService {
@@ -14,11 +19,32 @@ export class TarefasService {
     private readonly tarefaRepository: Repository<Tarefa>,
   ) {}
 
-  async listar(usuarioId: number): Promise<Tarefa[]> {
-    return this.tarefaRepository.find({
-      where: { usuario: { id: usuarioId } },
+  // `status`, quando informado, restringe a UMA coluna do Kanban — cada
+  // uma pagina/"carrega mais" de forma independente (ver MinhasTarefas.jsx),
+  // pensando em volume acumulado ao longo do tempo (ex: "Concluído" com
+  // anos de tarefas versus "A fazer" sempre pequeno). Mais recentes
+  // primeiro (criadaEm DESC), igual sempre foi.
+  async listar(
+    usuarioId: number,
+    status?: StatusTarefa,
+    pagina?: number,
+    limite?: number,
+  ): Promise<RespostaPaginadaDto<Tarefa>> {
+    const where: FindOptionsWhere<Tarefa> = { usuario: { id: usuarioId } };
+    if (status) where.status = status;
+    const paginacao = calcularPaginacao(pagina, limite);
+    const [tarefas, total] = await this.tarefaRepository.findAndCount({
+      where,
       order: { criadaEm: 'DESC' },
+      skip: paginacao.skip,
+      take: paginacao.limite,
     });
+    return montarRespostaPaginada(
+      tarefas,
+      total,
+      paginacao.pagina,
+      paginacao.limite,
+    );
   }
 
   async criar(dto: CriarTarefaDto, usuarioId: number): Promise<Tarefa> {

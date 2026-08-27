@@ -7,6 +7,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -16,6 +17,7 @@ import type { JwtPayload } from '../common/interfaces/jwt-payload.interface';
 import { TarefasService } from './tarefas.service';
 import { CriarTarefaDto } from './dto/criar-tarefa.dto';
 import { AtualizarTarefaDto } from './dto/atualizar-tarefa.dto';
+import { FiltrosTarefaDto } from './dto/filtros-tarefa.dto';
 import { mapTarefaParaResposta } from './dto/tarefa-response.dto';
 
 // Sem @Roles em nenhuma rota — colaborador e técnico têm as PRÓPRIAS
@@ -28,9 +30,17 @@ export class TarefasController {
   constructor(private readonly tarefasService: TarefasService) {}
 
   @Get()
-  async listar(@UsuarioAtual() usuarioAtual: JwtPayload) {
-    const tarefas = await this.tarefasService.listar(usuarioAtual.sub);
-    return tarefas.map(mapTarefaParaResposta);
+  async listar(
+    @Query() filtros: FiltrosTarefaDto,
+    @UsuarioAtual() usuarioAtual: JwtPayload,
+  ) {
+    const resultado = await this.tarefasService.listar(
+      usuarioAtual.sub,
+      filtros.status,
+      filtros.pagina,
+      filtros.limite,
+    );
+    return { ...resultado, itens: resultado.itens.map(mapTarefaParaResposta) };
   }
 
   @Post()

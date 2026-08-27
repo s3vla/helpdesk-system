@@ -7,6 +7,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -16,6 +17,7 @@ import type { JwtPayload } from '../common/interfaces/jwt-payload.interface';
 import { AnotacoesService } from './anotacoes.service';
 import { CriarAnotacaoDto } from './dto/criar-anotacao.dto';
 import { AtualizarAnotacaoDto } from './dto/atualizar-anotacao.dto';
+import { PaginacaoDto } from '../common/dto/paginacao.dto';
 import { mapAnotacaoParaResposta } from './dto/anotacao-response.dto';
 
 // Sem @Roles em nenhuma rota — mesmo padrão de TarefasController: qualquer
@@ -26,9 +28,19 @@ export class AnotacoesController {
   constructor(private readonly anotacoesService: AnotacoesService) {}
 
   @Get()
-  async listar(@UsuarioAtual() usuarioAtual: JwtPayload) {
-    const anotacoes = await this.anotacoesService.listar(usuarioAtual.sub);
-    return anotacoes.map(mapAnotacaoParaResposta);
+  async listar(
+    @Query() filtros: PaginacaoDto,
+    @UsuarioAtual() usuarioAtual: JwtPayload,
+  ) {
+    const resultado = await this.anotacoesService.listar(
+      usuarioAtual.sub,
+      filtros.pagina,
+      filtros.limite,
+    );
+    return {
+      ...resultado,
+      itens: resultado.itens.map(mapAnotacaoParaResposta),
+    };
   }
 
   @Post()

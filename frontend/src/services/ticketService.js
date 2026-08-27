@@ -178,13 +178,22 @@ function mapearRespostaPaginada(resposta, mapear) {
   return { ...resposta, itens: resposta.itens.map(mapear) }
 }
 
-// `busca` cobre os 3 status de uma vez (Parado/Em andamento/Finalizado) —
-// mesma lógica de busca de GET /chamados?busca=, só aplicada aos chamados
-// do próprio usuário do token (ver ChamadosService.listarPorUsuario).
-export async function buscarMeusChamados(token, { busca = '', pagina = 1 } = {}) {
+// `busca` cobre os 3 status de uma vez (Parado/Em andamento/Finalizado)
+// quando `status` não é passado — mesma lógica de busca de
+// GET /chamados?busca=, só aplicada aos chamados do próprio usuário do
+// token (ver ChamadosService.listarPorUsuario).
+//
+// Com `status`: busca só aquela coluna, com `limite` controlando quantos
+// itens (mais recentes primeiro) — é o que permite MyTickets.jsx paginar
+// Parado/Em andamento/Finalizado de forma independente, cada uma com seu
+// próprio "carregar mais" (ver useListaCarregarMais), em vez de trazer o
+// histórico inteiro de uma vez só (pensando em anos de chamados
+// acumulados).
+export async function buscarMeusChamados(token, { busca = '', status, limite } = {}) {
   const params = new URLSearchParams()
   if (busca.trim()) params.set('busca', busca.trim())
-  params.set('pagina', pagina)
+  if (status) params.set('status', STATUS_PARA_API[status])
+  if (limite) params.set('limite', limite)
   const resposta = await chamarApi(`/chamados/meus?${params.toString()}`, { token })
   return mapearRespostaPaginada(resposta, mapearChamado)
 }
