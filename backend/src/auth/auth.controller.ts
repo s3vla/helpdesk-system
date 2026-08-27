@@ -35,6 +35,12 @@ export class AuthController {
 
   @Post('primeiro-acesso')
   @HttpCode(HttpStatus.CREATED)
+  // Mesmo limite de login/troca de senha: 5 tentativas por minuto por IP.
+  // Faltava aqui antes (auditoria de segurança encontrou o gap) — sem
+  // throttle, essa rota permite tentar "reivindicar" qualquer e-mail da
+  // lista fechada de colaboradores autorizados sem limite de tentativas,
+  // já que não existe confirmação por e-mail antes de ativar a conta.
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   primeiroAcesso(@Body() dto: PrimeiroAcessoDto) {
     return this.authService.primeiroAcesso(dto);
   }

@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'node:path';
+import helmet from 'helmet';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
@@ -9,6 +10,14 @@ async function bootstrap() {
   // useStaticAssets — precisa dele pra servir os arquivos de uploads/ como
   // arquivos estáticos comuns (GET /uploads/nome-do-arquivo.png).
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  // Headers de segurança padrão (X-Content-Type-Options, X-Frame-Options,
+  // Referrer-Policy etc — ver documentação do helmet pra lista completa) —
+  // faltavam antes (auditoria de segurança encontrou o gap). Configuração
+  // padrão do pacote é suficiente aqui: essa API só devolve JSON e imagens
+  // estáticas de /uploads/, nunca HTML renderizado, então o CSP padrão
+  // (default-src 'self') não tem nada pra quebrar.
+  app.use(helmet());
 
   app.useStaticAssets(join(__dirname, '..', 'uploads'), {
     prefix: '/uploads/',
