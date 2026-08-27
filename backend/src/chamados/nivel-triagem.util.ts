@@ -4,8 +4,16 @@ import { NivelChamado } from '../common/enums/nivel-chamado.enum';
 // Menção ao ERP principal da empresa — sempre N3, não importa a categoria,
 // porque o Viasoft parado afeta a operação inteira. Cobre as variações mais
 // comuns de escrita ("viasoft erp" já cai na primeira, por conter
-// "viasoft" como substring).
-const TERMOS_N3_VIASOFT = ['viasoft', 'via soft'];
+// "viasoft" como substring) e também como colaboradores se referem a ele
+// sem citar o nome do produto ("sistema viasoft", "sistema da empresa").
+// "sistema" sozinho fica de fora de propósito — genérico demais, apareceria
+// até numa frase como "o sistema travou" sem nada a ver com o ERP.
+const TERMOS_N3_VIASOFT = [
+  'viasoft',
+  'via soft',
+  'sistema viasoft',
+  'sistema da empresa',
+];
 
 // Termos de infraestrutura compartilhada — também sempre N3, pelo mesmo
 // motivo: tende a afetar mais gente que um problema isolado numa máquina.
