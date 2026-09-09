@@ -27,6 +27,15 @@ export function paraDatetimeLocal(dataOuIso) {
 
 export function tempoDecorrido(data) {
   const minutos = Math.floor((Date.now() - data.getTime()) / 60000)
+  // Negativo não é bug de fuso horário (investigado e descartado — os
+  // timestamps que vêm da API estão corretos) — é o relógio do próprio
+  // dispositivo de quem está vendo a tela atrasado em relação ao horário
+  // real, comum o bastante (VM, falta de sincronização NTP) pra não
+  // esperar ver "-Xmin atrás" (não faz sentido nenhum) sempre que
+  // acontecer. `Math.max(0, ...)` absorve isso mostrando "agora mesmo" em
+  // vez do negativo, sem tentar "corrigir" o relógio errado — só não expõe
+  // a inconsistência pra quem está usando o sistema.
+  if (minutos <= 0) return 'agora mesmo'
   if (minutos < 60) return `${minutos}min atrás`
   const horas = Math.floor(minutos / 60)
   if (horas < 24) return `${horas}h atrás`

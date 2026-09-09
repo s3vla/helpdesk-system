@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { estilos, CORES_STATUS, CORES_APP } from '../styles/theme'
 import { useWindowWidth } from '../hooks/useWindowWidth'
 import { useAuth } from '../hooks/useAuth'
+import { useAvisoSairSemSalvar } from '../hooks/useAvisoSairSemSalvar'
 import { formatarData, formatarHora, obterIniciais, tempoDecorrido } from '../utils/formatters'
 import { adicionarObservador, atribuirChamado, atualizarNivelChamado, atualizarStatusChamado, buscarChamado, buscarColaboradores, buscarComentarios, buscarLogsAuditoria, buscarSolucoesSugeridas, buscarTecnicos, criarComentario, enviarImagem, removerObservador } from '../services/ticketService'
 import { traduzirErroApi } from '../utils/traduzirErroApi'
@@ -139,6 +140,11 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
   const [logs, setLogs] = useState([])
   const [carregandoLogs, setCarregandoLogs] = useState(true)
   const [erroLogs, setErroLogs] = useState('')
+
+  // Comentário digitado (ou imagem anexada) e ainda não enviado — avisa
+  // antes de fechar a aba/recarregar, mesmo o modal continuando aberto por
+  // cima de outra tela (ver useAvisoSairSemSalvar).
+  useAvisoSairSemSalvar(Boolean(textoComentario.trim() || arquivoComentario))
   // Sempre nasce expandida (regra 1/3), exceto se ESTE MESMO chamado já
   // tinha sido aberto (e recolhido) antes nesta sessão (regra 4, bônus) —
   // ver comentário em `estadoSidebarPorChamado` acima.

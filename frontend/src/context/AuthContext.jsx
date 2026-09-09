@@ -2,7 +2,6 @@ import { useCallback, useState } from 'react'
 import { chamarApi, ErroApi } from '../services/apiClient'
 import { mapearUsuario } from '../services/ticketService'
 import { AuthContext } from './authContextInstance'
-import { useTheme } from '../hooks/useTheme'
 
 // Guarda o token JWT e o usuário logado SÓ em memória (useState) — nunca em
 // localStorage/sessionStorage. Motivo: qualquer script que rode na página
@@ -13,15 +12,57 @@ import { useTheme } from '../hooks/useTheme'
 // da aba, e some sozinho ao fechar ou recarregar a página. A troca
 // consciente aqui é: perde-se a comodidade de continuar logado após dar
 // refresh, ganha-se não ter o token roubável por um script injetado.
+//
+// CHAVE_SESSAO_ATIVA guarda só um marcador booleano em sessionStorage —
+// NUNCA o token nem qualquer dado sensível — só pra distinguir, na tela de
+// login, "primeira vez nessa aba" de "essa aba tinha uma sessão ativa e a
+// perdeu" (reload/fechamento acidental). Marcador sem valor nenhum sozinho
+// (não autentica nada), então não reabre a exceção de segurança acima.
+const CHAVE_SESSAO_ATIVA = 'novatech_sessao_ativa'
+
 export function AuthProvider({ children }) {
   const [token, setToken] = useState(null)
   const [usuario, setUsuario] = useState(null)
-  const [mensagemSessao, setMensagemSessao] = useState('')
-  // AuthProvider fica dentro do ThemeProvider (ver main.jsx), então dá pra
-  // consumir o contexto de tema daqui — é o que permite resetar o tema pro
-  // claro em todo login/logout, sem o ThemeProvider precisar saber nada
-  // sobre autenticação.
-  const { resetarTema } = useTheme()
+  // Inicializado uma única vez, no primeiro render: se o marcador de
+  // sessionStorage existir aqui, é porque ESTA aba tinha uma sessão ativa
+  // antes desse mount — ou seja, a pessoa chegou na tela de login por causa
+  // de um F5/reload (o token em memória sempre some nesse caso, decisão de
+  // segurança de cima), não porque é a primeira vez. Mensagem diferente da
+  // de `tratarErroApi` (sessão expirando NO MEIO do uso, sem reload) — aqui
+  // a sessão em si continuava válida, só a aba "esqueceu" o token.
+  // try/catch: sessionStorage pode estar bloqueado (aba anônima com
+  // storage desligado) — nesse caso só não mostra a mensagem, nunca quebra
+  // o login.
+  const [mensagemSessao, setMensagemSessao] = useState(() => {
+    try {
+      if (sessionStorage.getItem(CHAVE_SESSAO_ATIVA)) {
+        sessionStorage.removeItem(CHAVE_SESSAO_ATIVA)
+        return 'Sua sessão anterior foi encerrada (a página foi recarregada ou fechada). Faça login novamente.'
+      }
+    } catch {
+      // sessionStorage indisponível — segue sem mensagem.
+    }
+    return ''
+  })
+  // Marca a aba como "com sessão ativa" — lido só no próximo mount (ver
+  // useState acima). Falha de storage aqui não pode travar o login.
+  function marcarSessaoAtiva() {
+    try {
+      sessionStorage.setItem(CHAVE_SESSAO_ATIVA, '1')
+    } catch {
+      // sessionStorage indisponível — sem marcador, próximo reload cai no
+      // fluxo normal de "primeira vez" em vez de mostrar a mensagem certa.
+      // Degradação aceitável, não é motivo pra travar o login.
+    }
+  }
+
+  function limparMarcadorSessao() {
+    try {
+      sessionStorage.removeItem(CHAVE_SESSAO_ATIVA)
+    } catch {
+      // idem — sem efeito prático se já estava indisponível.
+    }
+  }
 
   // `perfilEsperado` ('COLABORADOR' | 'TECNICO') vem de qual tela chamou —
   // o backend recusa (403, ANTES de emitir token) se o `tipo` real do
@@ -36,7 +77,7 @@ export function AuthProvider({ children }) {
     setToken(resposta.accessToken)
     setUsuario(usuarioMapeado)
     setMensagemSessao('')
-    resetarTema()
+    marcarSessaoAtiva()
     return usuarioMapeado
   }
 
@@ -46,14 +87,17 @@ export function AuthProvider({ children }) {
     setToken(resposta.accessToken)
     setUsuario(usuarioMapeado)
     setMensagemSessao('')
-    resetarTema()
+    marcarSessaoAtiva()
     return usuarioMapeado
   }
 
   function logout() {
     setToken(null)
     setUsuario(null)
-    resetarTema()
+    // Saída deliberada — sem marcador, a próxima ida pra tela de login não
+    // deve dizer "sua sessão foi encerrada" (a pessoa já sabe, foi ela quem
+    // saiu).
+    limparMarcadorSessao()
   }
 
   // Troca a senha de quem está logado. A API devolve um accessToken NOVO
@@ -80,12 +124,15 @@ export function AuthProvider({ children }) {
         setToken(null)
         setUsuario(null)
         setMensagemSessao('Sua sessão expirou. Faça login novamente.')
-        resetarTema()
+        // Mensagem já foi mostrada agora, sem precisar de reload — remove o
+        // marcador pra um reload seguinte (antes de logar de novo) não
+        // mostrar a mensagem de "sessão perdida" por cima, redundante.
+        limparMarcadorSessao()
         return true
       }
       return false
     },
-    [token, resetarTema],
+    [token],
   )
 
   function limparMensagemSessao() {

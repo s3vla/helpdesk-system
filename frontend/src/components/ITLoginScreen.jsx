@@ -23,7 +23,7 @@ import { traduzirErroApi } from '../utils/traduzirErroApi'
 // ação principal usa AZUL (não verde), conforme a regra de cor do design:
 // azul é o tom de navegação/ação da área de TI.
 function ITLoginScreen({ onLoginTecnico, onBack }) {
-  const { login } = useAuth()
+  const { login, mensagemSessao, limparMensagemSessao } = useAuth()
   const [email, setEmail] = useState('')
   const [pass, setPass] = useState('')
   const [err, setErr] = useState('')
@@ -37,6 +37,7 @@ function ITLoginScreen({ onLoginTecnico, onBack }) {
       return
     }
     setErr('')
+    limparMensagemSessao()
     setCarregando(true)
     try {
       // 'TECNICO' é o perfil que ESTA tela representa — o backend recusa
@@ -69,6 +70,12 @@ function ITLoginScreen({ onLoginTecnico, onBack }) {
               <h2 style={{ ...estilosAuth.titulo, marginTop: 8 }}>Painel de TI</h2>
               <p style={estilosAuth.texto}>Credenciais de técnico. Os acessos são registrados em log.</p>
             </div>
+
+            {mensagemSessao && (
+              <div style={{ background: '#FDF3E7', border: '1px solid #F0D9B5', borderRadius: 10, padding: '10px 14px', color: '#8A5A1E', fontSize: 13 }}>
+                {mensagemSessao}
+              </div>
+            )}
 
             <form style={estilosAuth.form} onSubmit={e => { e.preventDefault(); doLogin() }}>
               <label style={estilosAuth.campo}>

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { estilos, CORES_APP, CORES_PRIORIDADE } from '../styles/theme'
 import { useWindowWidth } from '../hooks/useWindowWidth'
 import { useAuth } from '../hooks/useAuth'
+import { useAvisoSairSemSalvar } from '../hooks/useAvisoSairSemSalvar'
 import { abrirChamadoComoTecnico, buscarColaboradores, enviarImagem } from '../services/ticketService'
 import { traduzirErroApi } from '../utils/traduzirErroApi'
 import CategoriaSelect from './CategoriaSelect'
@@ -46,6 +47,10 @@ function ITAbrirChamado({ onSubmit }) {
   const [erro, setErro] = useState('')
   const fileRef = useRef(null)
   const largura = useWindowWidth()
+
+  // Mesmo aviso de CreateTicket.jsx — solicitante selecionado sozinho
+  // (sem nada mais preenchido) não conta como "mudança não salva".
+  useAvisoSairSemSalvar(Boolean(desc.trim() || errMsg.trim() || anydeskId.trim() || arquivos.length > 0))
 
   useEffect(() => {
     buscarColaboradores(token)
@@ -116,7 +121,7 @@ function ITAbrirChamado({ onSubmit }) {
         <div>
           <label style={rotuloCompacto}>O que o colaborador precisa? <span style={{ color: '#ef4444' }}>*</span></label>
           <textarea value={desc} onChange={e => setDesc(e.target.value)} placeholder="Descreva o problema com o máximo de detalhes possível..."
-            style={{ ...campoCompacto, minHeight: 96, resize: 'vertical', lineHeight: 1.5 }} disabled={carregando} />
+            style={{ ...campoCompacto, minHeight: 96, maxHeight: 200, overflow: 'auto', resize: 'vertical', lineHeight: 1.5 }} disabled={carregando} />
         </div>
         <div>
           <label style={rotuloCompacto}>Qual mensagem de erro apareceu? <span style={{ color: CORES_APP.textoSuave, fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>opcional</span></label>
@@ -189,7 +194,9 @@ function ITAbrirChamado({ onSubmit }) {
         </div>
         <div>
           <label style={rotuloCompacto}>ID do AnyDesk (para acesso remoto) <span style={{ color: CORES_APP.textoSuave, fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>opcional</span></label>
-          <input value={anydeskId} onChange={e => setAnydeskId(e.target.value)} placeholder="Ex: 123 456 789" style={campoCompacto} disabled={carregando} />
+          {/* Mesmo filtro de CreateTicket.jsx — só dígitos, removidos a
+              cada tecla em vez de validados só no envio. */}
+          <input value={anydeskId} onChange={e => setAnydeskId(e.target.value.replace(/\D/g, ''))} inputMode="numeric" placeholder="Ex: 123456789" style={campoCompacto} disabled={carregando} />
           <p style={{ color: CORES_APP.textoSuave, fontSize: 12, margin: '4px 0 0' }}>Fica visível na tela inicial do AnyDesk.</p>
         </div>
         {erro && <p style={{ color: CORES_APP.erro, fontSize: 13, margin: 0 }}>{erro}</p>}

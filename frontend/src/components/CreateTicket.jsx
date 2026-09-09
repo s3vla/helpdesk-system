@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import { estilos, CORES_PRIORIDADE, CORES_APP } from '../styles/theme'
 import { useWindowWidth } from '../hooks/useWindowWidth'
 import { useAuth } from '../hooks/useAuth'
+import { useAvisoSairSemSalvar } from '../hooks/useAvisoSairSemSalvar'
 import { criarChamado, enviarImagem } from '../services/ticketService'
 import { traduzirErroApi } from '../utils/traduzirErroApi'
 import CategoriaSelect from './CategoriaSelect'
@@ -45,6 +46,11 @@ function CreateTicket({ onSubmit }) {
   const [erro, setErro] = useState('')
   const fileRef = useRef(null)
   const largura = useWindowWidth()
+
+  // Avisa antes de fechar a aba/recarregar só enquanto tiver algo digitado
+  // ou anexado que ainda não foi enviado — formulário vazio não dispara
+  // aviso nenhum (ver useAvisoSairSemSalvar).
+  useAvisoSairSemSalvar(Boolean(desc.trim() || errMsg.trim() || anydeskId.trim() || arquivos.length > 0))
 
   async function enviar() {
     if (!desc.trim()) return
@@ -96,7 +102,7 @@ function CreateTicket({ onSubmit }) {
         <div>
           <label style={rotuloCompacto}>O que você precisa? <span style={{ color: '#ef4444' }}>*</span></label>
           <textarea value={desc} onChange={e => setDesc(e.target.value)} placeholder="Descreva o problema com o máximo de detalhes possível..."
-            style={{ ...campoCompacto, minHeight: 96, resize: 'vertical', lineHeight: 1.5 }} disabled={carregando} />
+            style={{ ...campoCompacto, minHeight: 96, maxHeight: 200, overflowY: 'auto', resize: 'vertical', lineHeight: 1.5 }} disabled={carregando} />
         </div>
         <div>
           <label style={rotuloCompacto}>Qual mensagem de erro apareceu? <span style={{ color: CORES_APP.textoSuave, fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>opcional</span></label>
@@ -169,7 +175,11 @@ function CreateTicket({ onSubmit }) {
         </div>
         <div>
           <label style={rotuloCompacto}>ID do AnyDesk (para acesso remoto) <span style={{ color: CORES_APP.textoSuave, fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>opcional</span></label>
-          <input value={anydeskId} onChange={e => setAnydeskId(e.target.value)} placeholder="Ex: 123 456 789" style={campoCompacto} disabled={carregando} />
+          {/* ID do AnyDesk é só numérico — remove qualquer caractere que não
+              seja dígito a cada tecla, em vez de deixar digitar e validar só
+              no envio (a pessoa vê na hora que a letra não "pegou", sem
+              precisar de mensagem de erro pra isso). */}
+          <input value={anydeskId} onChange={e => setAnydeskId(e.target.value.replace(/\D/g, ''))} inputMode="numeric" placeholder="Ex: 123456789" style={campoCompacto} disabled={carregando} />
           <p style={{ color: CORES_APP.textoSuave, fontSize: 12, margin: '4px 0 0' }}>Fica visível na tela inicial do AnyDesk.</p>
         </div>
         {erro && <p style={{ color: CORES_APP.erro, fontSize: 13, margin: 0 }}>{erro}</p>}
