@@ -23,7 +23,7 @@ export class ErroApi extends Error {
 export async function chamarApi(caminho, { token, metodo = 'GET', corpo, comoFormData = false } = {}) {
   let resposta
   try {
-    resposta = await fetch(`${URL_BASE}${caminho}`, {
+    resposta = await fetch(`${URL_BASE}/api${caminho}`, {
       method: metodo,
       headers: {
         ...(comoFormData ? {} : { 'Content-Type': 'application/json' }),

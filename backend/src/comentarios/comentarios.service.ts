@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -19,6 +20,8 @@ import { EmailService } from '../email/email.service';
 
 @Injectable()
 export class ComentariosService {
+  private readonly logger = new Logger(ComentariosService.name);
+
   constructor(
     @InjectRepository(Comentario)
     private readonly comentarioRepository: Repository<Comentario>,
@@ -155,18 +158,28 @@ export class ComentariosService {
       relations: { autor: true },
     });
 
-    // Fire-and-forget (o próprio EmailService nunca propaga falha) — só
-    // para comentário VISÍVEL pro colaborador; comentário interno é só
-    // entre técnicos, não gera e-mail pro solicitante/observadores.
-    // `chamado` já veio com solicitante/observadores.usuario carregados de
+    // Fire-and-forget — só para comentário VISÍVEL pro colaborador;
+    // comentário interno é só entre técnicos, não gera e-mail pro
+    // solicitante/observadores. `chamado` já veio com
+    // solicitante/observadores.usuario carregados de
     // carregarChamadoPermitido, então não precisa de outra consulta aqui.
+    // .catch: enviarComSeguranca só cobre falha do SMTP em si — se a
+    // MONTAGEM do e-mail lançar antes disso, uma promise rejeitada sem
+    // handler derruba o processo Node inteiro, não só essa notificação.
     if (!interno) {
-      void this.emailService.enviarNotificacaoAtualizacaoChamado(
-        chamado,
-        usuarioAtual.sub,
-        comentario.texto,
-        comentarioCompleto.autor.nome ?? comentarioCompleto.autor.email,
-      );
+      void this.emailService
+        .enviarNotificacaoAtualizacaoChamado(
+          chamado,
+          usuarioAtual.sub,
+          comentario.texto,
+          comentarioCompleto.autor.nome ?? comentarioCompleto.autor.email,
+        )
+        .catch((erro: unknown) =>
+          this.logger.error(
+            'Falha ao notificar comentário no chamado por e-mail',
+            erro,
+          ),
+        );
     }
 
     return comentarioCompleto;

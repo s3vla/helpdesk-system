@@ -2,7 +2,9 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { ServeStaticModule } from '@nestjs/serve-static';
 import { APP_GUARD } from '@nestjs/core';
+import { join } from 'node:path';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
@@ -64,11 +66,16 @@ import { Anotacao } from './anotacoes/entities/anotacao.entity';
           Tarefa,
           Anotacao,
         ],
-        // synchronize:true faz o TypeORM criar/ajustar as tabelas a partir
-        // das entities automaticamente — ótimo pra aprender e prototipar,
-        // PERIGOSO em produção (pode alterar/apagar dados sem aviso). Ao
-        // trocar para Postgres/MySQL, troque isso por migrations reais.
-        synchronize: true,
+        // Migrations (não mais synchronize:true) são quem manda no schema —
+        // ver src/migrations/ e src/data-source.ts (usado só pela CLI). O
+        // schema atual (todas as tabelas já existentes) foi congelado na
+        // migration InitialSchema, gerada e validada como estruturalmente
+        // idêntica ao que synchronize:true criava (mesmas colunas, tipos,
+        // defaults, PKs, FKs e índices). synchronize:true era aceitável só
+        // enquanto não havia dado real acumulado — a partir daqui, qualquer
+        // mudança de entity precisa de uma migration nova (ver README).
+        migrations: [join(__dirname, 'migrations', '*{.js,.ts}')],
+        synchronize: false,
       }),
     }),
 
@@ -76,6 +83,19 @@ import { Anotacao } from './anotacoes/entities/anotacao.entity';
     // IP pra toda a API (bem mais folgado que o de /auth/login, que usa
     // @Throttle(...) pra sobrescrever esse padrão só naquela rota).
     ThrottlerModule.forRoot([{ name: 'default', ttl: 60_000, limit: 100 }]),
+
+    // Serve o build de produção do frontend (frontend/dist) em GET / e
+    // demais rotas não-API — com fallback pro index.html (roteamento
+    // client-side). exclude cobre /api (rotas de controller, prefixo
+    // definido em main.ts) e /uploads (arquivos enviados, servidos à parte
+    // por app.useStaticAssets em main.ts) pra o catch-all do SPA nunca
+    // interceptar essas duas coisas. Sintaxe `{*splat}` porque o Nest 11
+    // roda sobre Express 5 / path-to-regexp v8, que não aceita mais `*`
+    // solto como wildcard.
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '..', '..', 'frontend', 'dist'),
+      exclude: ['/api/{*splat}', '/uploads/{*splat}'],
+    }),
 
     AuthModule,
     UsuariosModule,

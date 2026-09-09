@@ -6,6 +6,11 @@
 //
 // Pra adicionar ou remover alguém, mexa só aqui — nenhum outro arquivo
 // deveria conter e-mails "hardcoded" de autorização.
+//
+// Decisão deliberada: isso é código, não variável de ambiente — mudar
+// quem está autorizado exige editar este arquivo e fazer um novo deploy,
+// nunca só trocar algo no .env do servidor (ver README, seção "Quem pode
+// logar").
 
 // Domínios de e-mail corporativo aceitos — usado por EmailCorporativo()
 // (validators/email-corporativo.decorator.ts) pra montar a regra de

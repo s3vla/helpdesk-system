@@ -57,6 +57,59 @@ $ npm run test:e2e
 $ npm run test:cov
 ```
 
+## Banco de dados / Migrations
+
+O schema é controlado por **migrations** do TypeORM (`src/migrations/`), não
+por `synchronize: true` — isso foi trocado logo cedo (banco ainda de
+teste/vazio, antes do primeiro deploy real) porque é bem mais arriscado
+migrar depois, com dado real acumulado. `synchronize: false` está fixado em
+`src/app.module.ts`; a `InitialSchema` congela o schema que existia até essa
+troca (validada como estruturalmente idêntica ao que `synchronize: true`
+gerava — mesmas colunas, tipos, defaults, PKs, FKs e índices).
+
+**No primeiro deploy** (banco novo, vazio), depois do `npm run build`:
+
+```bash
+npm run migration:run:prod   # roda contra o dist/ já buildado, sem precisar de ts-node
+```
+
+**Criando uma migration nova**, sempre que alguém alterar uma entity
+(adicionar/remover coluna, mudar tipo, nova tabela etc.):
+
+```bash
+# 1. Altere a entity normalmente em src/**/entities/*.entity.ts
+# 2. Gere a migration comparando as entities com o banco de dev atual:
+npm run migration:generate -- src/migrations/NomeDescritivoDaMudanca
+
+# 3. Revise o arquivo gerado em src/migrations/ (o gerador é bom, mas não
+#    é infalível — principalmente em renomeação de coluna, que ele vê como
+#    "remover uma + criar outra", perdendo o dado se você não ajustar
+#    manualmente pra um ALTER/rename).
+
+# 4. Aplique no seu banco de dev local:
+npm run migration:run
+```
+
+Outros comandos úteis: `npm run migration:revert` (desfaz a última
+migration aplicada) e `npm run migration:create -- src/migrations/Nome`
+(cria um arquivo de migration vazio, pra escrever SQL na mão em vez de
+gerar a partir do diff de entities).
+
+`src/data-source.ts` é a config usada só pela CLI acima (fora do Nest, sem
+`ConfigService` — lê `.env` direto via `dotenv/config`). Precisa ter a
+mesma lista de entities que `src/app.module.ts` sempre que uma entity nova
+for criada.
+
+## Quem pode logar (e-mails autorizados)
+
+`src/config/emails-autorizados.ts` é a lista fechada de e-mails/domínios
+autorizados a ter conta no sistema (técnicos, colaboradores, domínios de
+e-mail corporativo aceitos). Isso é **intencionalmente hardcoded no
+código, não uma variável de ambiente** — adicionar, remover ou trocar
+alguém da lista exige alterar esse arquivo e fazer um novo deploy, não dá
+pra mudar só editando o `.env` do servidor. Ver comentário no topo do
+arquivo para o motivo.
+
 ## Deployment
 
 When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.

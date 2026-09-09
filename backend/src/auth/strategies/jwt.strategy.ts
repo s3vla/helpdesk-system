@@ -61,8 +61,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     // bootstrap do .env dava acesso completo ao sistema por fora da
     // interface (curl, Postman etc.). A única exceção é a própria rota de
     // trocar senha — sem ela, ninguém nessa situação conseguiria sair dela.
+    // Path com o prefixo global 'api' (setado em main.ts via
+    // setGlobalPrefix) — se um dia esse prefixo mudar, precisa mudar aqui
+    // também.
     const ehRotaDeTrocarSenha =
-      req.method === 'PATCH' && req.path === '/auth/minha-senha';
+      req.method === 'PATCH' && req.path === '/api/auth/minha-senha';
     if (usuario.deveTrocarSenha && !ehRotaDeTrocarSenha) {
       throw new ForbiddenException(
         'Troque sua senha antes de continuar usando o sistema',

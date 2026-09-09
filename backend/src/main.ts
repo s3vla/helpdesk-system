@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'node:path';
+import { mkdirSync } from 'node:fs';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 
@@ -11,6 +12,13 @@ async function bootstrap() {
   // arquivos estáticos comuns (GET /uploads/nome-do-arquivo.png).
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
+  // Prefixo comum a TODA rota de controller (inclusive a raiz do
+  // AppController e o POST de upload) — libera GET / pro index.html do
+  // frontend, servido pelo ServeStaticModule (ver app.module.ts). Não
+  // afeta app.useStaticAssets logo abaixo: é middleware Express puro, não
+  // passa pelo roteamento do Nest.
+  app.setGlobalPrefix('api');
+
   // Headers de segurança padrão (X-Content-Type-Options, X-Frame-Options,
   // Referrer-Policy etc — ver documentação do helmet pra lista completa) —
   // faltavam antes (auditoria de segurança encontrou o gap). Configuração
@@ -19,7 +27,14 @@ async function bootstrap() {
   // (default-src 'self') não tem nada pra quebrar.
   app.use(helmet());
 
-  app.useStaticAssets(join(__dirname, '..', 'uploads'), {
+  // Um servidor novo (ex: primeiro deploy) não tem essa pasta ainda — sem
+  // isso, o primeiro upload falharia com ENOENT em vez de depender de
+  // alguém lembrar de criá-la manualmente. `recursive: true` também não
+  // erra se ela já existir.
+  const pastaUploads = join(__dirname, '..', 'uploads');
+  mkdirSync(pastaUploads, { recursive: true });
+
+  app.useStaticAssets(pastaUploads, {
     prefix: '/uploads/',
   });
 

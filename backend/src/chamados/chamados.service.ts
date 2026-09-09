@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { TipoUsuario } from '../common/enums/tipo-usuario.enum';
@@ -129,6 +130,8 @@ const LIMITE_RANKING_PADRAO = 10;
 
 @Injectable()
 export class ChamadosService {
+  private readonly logger = new Logger(ChamadosService.name);
+
   constructor(
     @InjectRepository(Chamado)
     private readonly chamadoRepository: Repository<Chamado>,
@@ -160,9 +163,11 @@ export class ChamadosService {
     // reclassificarNivel — nunca em rota de leitura (ver
     // LogAuditoriaService.registrar).
     private readonly logAuditoriaService: LogAuditoriaService,
-    // Notificações por e-mail (chamado novo, mudança de status) — o próprio
-    // EmailService garante que uma falha de envio nunca propaga pra cá, então
-    // as chamadas abaixo não precisam (nem devem) de try/catch próprio.
+    // Notificações por e-mail (chamado novo, mudança de status) — o
+    // EmailService só garante que falha de ENVIO (SMTP) nunca propaga pra
+    // cá; falha ao MONTAR a mensagem (ex: relação não carregada) ainda
+    // pode lançar antes disso, por isso as chamadas abaixo levam .catch()
+    // próprio (ver criar/atualizarStatus).
     private readonly emailService: EmailService,
   ) {}
 
@@ -198,8 +203,17 @@ export class ChamadosService {
     const criado = await this.buscarPorIdOuFalhar(salvo.id);
     // Fire-and-forget de propósito: notificar os técnicos por e-mail não é
     // parte do contrato de "abrir um chamado" — o chamado já está salvo e a
-    // resposta não deve esperar (nem falhar) por causa do envio.
-    void this.emailService.enviarNotificacaoChamadoNovo(criado);
+    // resposta não deve esperar (nem falhar) por causa do envio. O .catch
+    // aqui é a rede de segurança: enviarComSeguranca já trata falha do
+    // SMTP em si, mas se a MONTAGEM do e-mail lançar antes disso (ex: um
+    // relacionamento não carregado), sem o .catch essa promise rejeitada
+    // não tem quem a trate — e uma promise rejeitada sem handler derruba o
+    // processo Node inteiro, não só essa notificação.
+    void this.emailService
+      .enviarNotificacaoChamadoNovo(criado)
+      .catch((erro: unknown) =>
+        this.logger.error('Falha ao notificar chamado novo por e-mail', erro),
+      );
     return criado;
   }
 
@@ -711,12 +725,23 @@ export class ChamadosService {
         statusAnterior === StatusChamado.PARADO &&
         dto.status === StatusChamado.ANDAMENTO
       ) {
-        void this.emailService.enviarNotificacaoAtendimentoIniciado(atualizado);
+        void this.emailService
+          .enviarNotificacaoAtendimentoIniciado(atualizado)
+          .catch((erro: unknown) =>
+            this.logger.error(
+              'Falha ao notificar início de atendimento por e-mail',
+              erro,
+            ),
+          );
       } else {
-        void this.emailService.enviarNotificacaoAtualizacaoChamado(
-          atualizado,
-          tecnicoAtual.sub,
-        );
+        void this.emailService
+          .enviarNotificacaoAtualizacaoChamado(atualizado, tecnicoAtual.sub)
+          .catch((erro: unknown) =>
+            this.logger.error(
+              'Falha ao notificar atualização de chamado por e-mail',
+              erro,
+            ),
+          );
       }
     }
     return atualizado;
