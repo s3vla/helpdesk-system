@@ -21,11 +21,29 @@ async function bootstrap() {
 
   // Headers de segurança padrão (X-Content-Type-Options, X-Frame-Options,
   // Referrer-Policy etc — ver documentação do helmet pra lista completa) —
-  // faltavam antes (auditoria de segurança encontrou o gap). Configuração
-  // padrão do pacote é suficiente aqui: essa API só devolve JSON e imagens
-  // estáticas de /uploads/, nunca HTML renderizado, então o CSP padrão
-  // (default-src 'self') não tem nada pra quebrar.
-  app.use(helmet());
+  // faltavam antes (auditoria de segurança encontrou o gap). Desde que o
+  // ServeStaticModule passou a servir o HTML/JS/CSS do frontend por essa
+  // mesma porta (ver app.module.ts), o CSP padrão do helmet passa a valer
+  // pra página de verdade, não só pra respostas JSON.
+  //
+  // `upgrade-insecure-requests` é um dos padrões do CSP do helmet — instrui
+  // o NAVEGADOR a reescrever toda requisição HTTP da página pra HTTPS
+  // automaticamente. Enquanto o servidor roda em HTTP puro (fase de teste
+  // em rede interna, sem certificado ainda), isso quebra o carregamento dos
+  // assets: o navegador tenta buscar /assets/index-*.js via HTTPS, não
+  // existe HTTPS nesse servidor, e a página fica em branco. Só ativa quando
+  // `HTTPS_ATIVO=true` estiver no .env — não esquecer de setar isso quando
+  // o certificado entrar em produção.
+  const httpsAtivo = process.env.HTTPS_ATIVO === 'true';
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          ...(httpsAtivo ? {} : { 'upgrade-insecure-requests': null }),
+        },
+      },
+    }),
+  );
 
   // Um servidor novo (ex: primeiro deploy) não tem essa pasta ainda — sem
   // isso, o primeiro upload falharia com ENOENT em vez de depender de
