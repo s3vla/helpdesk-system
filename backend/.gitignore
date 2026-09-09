@@ -21,6 +21,9 @@ uploads/*
 *.log
 coverage/
 
+# logs do iisnode (criado em runtime pelo IIS, ver web.config/DEPLOY-IIS.md)
+iisnode/
+
 # editor / SO
 .vscode/
 .DS_Store

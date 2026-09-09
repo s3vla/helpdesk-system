@@ -112,6 +112,11 @@ arquivo para o motivo.
 
 ## Deployment
 
+Deploy real deste projeto é via **IIS + iisnode** (Windows Server) — ver
+[`DEPLOY-IIS.md`](./DEPLOY-IIS.md) pro passo a passo completo
+(Application Pool, variáveis de ambiente, criação do site, permissões de
+pasta). `web.config` na raiz deste diretório já está configurado.
+
 When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
 
 If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
