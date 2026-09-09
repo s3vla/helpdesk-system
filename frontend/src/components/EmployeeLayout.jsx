@@ -18,7 +18,18 @@ import { useTheme } from '../hooks/useTheme'
 // espremer. Nenhuma outra tela do colaborador muda.
 function EmployeeLayout({ user, telaAtiva, onNav, onLogout, onTrocarSenha, larguraMaxima = 840, contagemAvisos = 0, children }) {
   const largura = useWindowWidth()
-  const mobile = largura < 640
+  // 768 é o mesmo breakpoint de TicketPanel.jsx/ITLayout.jsx — antes era
+  // 640, que deixava uma faixa "morta" entre 640 e ~1100px (largura real
+  // que os 6 labels de texto completo precisam pra caber sem quebrar
+  // linha) onde os itens do menu quebravam em duas linhas e estouravam a
+  // altura fixa do header, cortando texto no topo da página (ver captura
+  // de tela reportada). `compacto` cobre esse meio-termo: ainda mostra
+  // texto (não vira ícone cedo demais), só com menos respiro — e o
+  // `overflowX: 'auto'` do <nav> abaixo é a rede de segurança final: se
+  // mesmo assim não couber (larguras bem no limiar), rola por dentro do
+  // menu em vez de quebrar linha ou estourar o header.
+  const mobile = largura < 768
+  const compacto = !mobile && largura < 1024
   const [menuAberto, setMenuAberto] = useState(false)
   const { modo, alternarTema } = useTheme()
 
@@ -34,8 +45,21 @@ function EmployeeLayout({ user, telaAtiva, onNav, onLogout, onTrocarSenha, largu
   return (
     <div style={{ minHeight: '100vh', background: CORES_APP.fundo, display: 'flex', flexDirection: 'column' }}>
       <header style={{ background: CORES_APP.card, borderBottom: `1px solid ${CORES_APP.bordaSuave}`, padding: '0 20px', height: 60, display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 40, flexShrink: 0, gap: 12 }}>
-        <Logo size={mobile ? 30 : 36} showText={!mobile} />
-        <nav style={{ display: 'flex', gap: 4 }}>
+        {/* flexShrink: 0 na logo e no bloco da direita — só o <nav> do meio
+            pode ceder espaço (rolando por dentro dele mesmo, ver abaixo).
+            Sem isso, a logo/avatar também poderiam ser espremidos ou
+            cortados em larguras intermediárias. */}
+        <div style={{ flexShrink: 0 }}>
+          <Logo size={mobile ? 30 : 36} showText={!mobile} />
+        </div>
+        {/* minWidth: 0 é o que permite um item de flexbox encolher abaixo
+            do tamanho do seu conteúdo — sem isso, overflowX não teria
+            efeito nenhum (o <nav> simplesmente empurraria o header pra
+            largura toda do conteúdo). flexWrap: nowrap garante que os
+            itens NUNCA quebrem linha (a causa raiz do bug reportado); se
+            não couberem, rolam horizontalmente por dentro do próprio menu
+            em vez de estourar a altura fixa do header. */}
+        <nav style={{ display: 'flex', flexWrap: 'nowrap', gap: mobile ? 4 : compacto ? 2 : 4, flexShrink: 1, minWidth: 0, overflowX: 'auto', scrollbarWidth: 'thin' }}>
           {itensNav.map(item => (
             <button key={item.tela} onClick={() => onNav(item.tela)}
               style={{
@@ -43,9 +67,10 @@ function EmployeeLayout({ user, telaAtiva, onNav, onLogout, onTrocarSenha, largu
                 background: telaAtiva === item.tela ? 'rgba(0,120,81,0.1)' : 'transparent',
                 color: telaAtiva === item.tela ? '#007851' : CORES_APP.textoFraco,
                 border: `1px solid ${telaAtiva === item.tela ? 'rgba(0,120,81,0.25)' : 'transparent'}`,
-                borderRadius: 8, padding: mobile ? '7px 14px' : '7px 16px', fontSize: mobile ? 16 : 13,
+                borderRadius: 8, padding: mobile ? '7px 14px' : compacto ? '7px 10px' : '7px 16px',
+                fontSize: mobile ? 16 : compacto ? 12 : 13,
                 fontFamily: 'Outfit, sans-serif', fontWeight: telaAtiva === item.tela ? 600 : 400,
-                cursor: 'pointer', transition: 'all 0.15s',
+                cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap', flexShrink: 0,
               }}>
               {item.label}
               {!!item.badge && (
@@ -62,7 +87,7 @@ function EmployeeLayout({ user, telaAtiva, onNav, onLogout, onTrocarSenha, largu
             </button>
           ))}
         </nav>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, position: 'relative' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, position: 'relative', flexShrink: 0 }}>
           {!mobile && (
             <div style={{ textAlign: 'right' }}>
               <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 600, fontSize: 13, color: CORES_APP.tinta, lineHeight: 1.2 }}>{user.name?.split(' ')[0]}</div>
