@@ -35,19 +35,19 @@ export class Chamado {
   @Column({ type: 'text', nullable: true })
   mensagemErro: string | null;
 
-  @Column({ type: 'text', enum: CategoriaChamado })
+  @Column({ type: 'enum', enum: CategoriaChamado })
   categoria: CategoriaChamado;
 
-  @Column({ type: 'text', enum: PrioridadeChamado })
+  @Column({ type: 'enum', enum: PrioridadeChamado })
   prioridade: PrioridadeChamado;
 
   // Definido pela regra de negócio no momento da criação (ChamadosService),
   // nunca escolhido pelo cliente da API — por isso não existe no DTO de
   // entrada, só na resposta.
-  @Column({ type: 'text', enum: NivelChamado })
+  @Column({ type: 'enum', enum: NivelChamado })
   nivel: NivelChamado;
 
-  @Column({ type: 'text', enum: StatusChamado, default: StatusChamado.PARADO })
+  @Column({ type: 'enum', enum: StatusChamado, default: StatusChamado.PARADO })
   status: StatusChamado;
 
   // Só tem significado enquanto status === ANDAMENTO — reavaliado (zerado
@@ -55,7 +55,7 @@ export class Chamado {
   // e a cada comentário não-interno em ComentariosService.criar. Reaproveita
   // TipoUsuario em vez de um enum próprio porque os valores são exatamente
   // os mesmos (TECNICO | COLABORADOR) — não faria sentido duplicar.
-  @Column({ type: 'text', enum: TipoUsuario, nullable: true })
+  @Column({ type: 'enum', enum: TipoUsuario, nullable: true })
   aguardandoRespostaDe: TipoUsuario | null;
 
   // Lista das URLs relativas devolvidas por POST /uploads (ex:

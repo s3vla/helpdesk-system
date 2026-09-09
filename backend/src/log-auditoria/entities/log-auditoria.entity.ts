@@ -28,7 +28,7 @@ export class LogAuditoria {
   @JoinColumn({ name: 'usuarioId' })
   usuario: Usuario;
 
-  @Column({ type: 'text', enum: AcaoAuditoria })
+  @Column({ type: 'enum', enum: AcaoAuditoria })
   acao: AcaoAuditoria;
 
   // Texto pronto pra exibir (ex: 'Status alterado de "Na fila" para "Em

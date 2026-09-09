@@ -3,9 +3,11 @@
 // TypeOrmModule.forRootAsync em app.module.ts porque a CLI roda por fora do
 // Nest (não tem ConfigModule/DI disponível) — então lê `process.env`
 // diretamente, carregando o .env manualmente com dotenv/config, em vez de
-// passar por ConfigService. A lista de entities e o caminho do banco têm
-// que continuar batendo com app.module.ts sempre que uma entity nova for
-// adicionada.
+// passar por ConfigService. A lista de entities tem que continuar batendo
+// com app.module.ts sempre que uma entity nova for adicionada.
+//
+// DATABASE_URL aponta pro Postgres (local de teste ou de produção,
+// dependendo de qual .env está carregado) — nunca hardcoded aqui.
 import 'dotenv/config';
 import { DataSource } from 'typeorm';
 import { join } from 'node:path';
@@ -22,8 +24,8 @@ import { Tarefa } from './tarefas/entities/tarefa.entity';
 import { Anotacao } from './anotacoes/entities/anotacao.entity';
 
 export const AppDataSource = new DataSource({
-  type: 'better-sqlite3',
-  database: process.env.DATABASE_PATH ?? 'database.sqlite',
+  type: 'postgres',
+  url: process.env.DATABASE_URL,
   entities: [
     Usuario,
     Chamado,

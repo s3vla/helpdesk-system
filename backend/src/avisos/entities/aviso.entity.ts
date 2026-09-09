@@ -24,7 +24,7 @@ export class Aviso {
   @Column({ type: 'text' })
   mensagem: string;
 
-  @Column({ type: 'text', enum: TipoAviso })
+  @Column({ type: 'enum', enum: TipoAviso })
   tipo: TipoAviso;
 
   // Fixados aparecem sempre no topo (ver AvisosService.listar), mesmo com
@@ -43,7 +43,7 @@ export class Aviso {
   // ChamadosService.resolverPeriodo) — nunca via toISOString(), que
   // converteria pra UTC e desalinharia do horário de parede que o técnico
   // escolheu no formulário.
-  @Column({ type: 'datetime', nullable: true })
+  @Column({ type: 'timestamp', nullable: true })
   expiraEm: Date | null;
 
   @ManyToOne(() => Usuario, { nullable: false })

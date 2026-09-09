@@ -39,20 +39,19 @@ import { Anotacao } from './anotacoes/entities/anotacao.entity';
     // um — só o AppModule declara isso.
     ConfigModule.forRoot({ isGlobal: true }),
 
-    // forRootAsync porque a configuração de conexão (caminho do arquivo
-    // SQLite) vem do ConfigService, que depende do ConfigModule já ter
-    // carregado o .env primeiro.
+    // forRootAsync porque a configuração de conexão (DATABASE_URL) vem do
+    // ConfigService, que depende do ConfigModule já ter carregado o .env
+    // primeiro.
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService): TypeOrmModuleOptions => ({
-        // TypeORM aposentou o driver "sqlite" clássico (baseado no pacote
-        // `sqlite3`) em favor de "better-sqlite3" — mais rápido por ser
-        // síncrono e o único suportado nesta versão. Pra quem só vai
-        // trocar pra Postgres/MySQL depois, isso não muda nada no resto do
-        // código: só este `type` (e a variável de conexão) mudam.
-        type: 'better-sqlite3',
-        database: configService.get<string>('DATABASE_PATH', 'database.sqlite'),
+        // Postgres (antes era better-sqlite3, usado só na fase de
+        // prototipagem) — DATABASE_URL vem do .env, nunca hardcoded aqui;
+        // local de teste e produção usam URLs diferentes, cada uma no seu
+        // próprio .env (ver README).
+        type: 'postgres',
+        url: configService.getOrThrow<string>('DATABASE_URL'),
         entities: [
           Usuario,
           Chamado,

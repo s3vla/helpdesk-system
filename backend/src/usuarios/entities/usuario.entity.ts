@@ -42,7 +42,7 @@ export class Usuario {
   // metadado informativo (pra um técnico ver "resetado há 3 dias" no
   // painel); quem decide se a conta está "aguardando cadastro" de verdade é
   // `senhaHash === null`, não este campo.
-  @Column({ type: 'datetime', nullable: true })
+  @Column({ type: 'timestamp', nullable: true })
   resetadoEm: Date | null;
 
   // true só para os técnicos criados por seed (ver seed.service.ts) — a
@@ -55,11 +55,10 @@ export class Usuario {
   @Column()
   departamento: string;
 
-  // `type: 'text'` + `enum` faz o TypeORM validar/serializar esse campo como
-  // um dos valores de TipoUsuario. No SQLite isso vira uma coluna de texto
-  // com um CHECK constraint; em Postgres viraria um tipo ENUM nativo — é a
-  // camada TypeORM que abstrai essa diferença entre bancos.
-  @Column({ type: 'text', enum: TipoUsuario })
+  // `type: 'enum'` + `enum:` cria um tipo ENUM nativo do Postgres pra essa
+  // coluna (CREATE TYPE ... AS ENUM), com o próprio Postgres rejeitando
+  // qualquer valor fora de TipoUsuario — não é só validação da aplicação.
+  @Column({ type: 'enum', enum: TipoUsuario })
   tipo: TipoUsuario;
 
   // @OneToMany não cria coluna nenhuma nessa tabela — é só a "outra ponta"

@@ -15,16 +15,16 @@ export class DashboardWidget {
   @Column()
   titulo: string;
 
-  @Column({ type: 'text', enum: TipoMetrica })
+  @Column({ type: 'enum', enum: TipoMetrica })
   tipo: TipoMetrica;
 
   // Aceita os 7 valores de AgruparPor (diferente de MetricasChamadoDto, que
   // só aceita 6) — é aqui que o widget fixo de repetição referencia
   // AgruparPor.REPETICAO_CATEGORIA.
-  @Column({ type: 'text', enum: AgruparPor })
+  @Column({ type: 'enum', enum: AgruparPor })
   agruparPor: AgruparPor;
 
-  @Column({ type: 'text', enum: FormatoVisualWidget })
+  @Column({ type: 'enum', enum: FormatoVisualWidget })
   formatoVisual: FormatoVisualWidget;
 
   // Só tem efeito quando tipo=ranking (ignorado em silêncio quando

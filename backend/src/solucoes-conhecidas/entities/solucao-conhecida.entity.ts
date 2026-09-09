@@ -27,7 +27,7 @@ export class SolucaoConhecida {
   // Categoria copiada do chamado no momento da criação (denormalização
   // proposital) para permitir filtrar por categoria em /solucoes-conhecidas
   // sem precisar fazer JOIN com "chamado" a cada consulta.
-  @Column({ type: 'text', enum: CategoriaChamado })
+  @Column({ type: 'enum', enum: CategoriaChamado })
   categoria: CategoriaChamado;
 
   // Prints opcionais de "como ficou depois de resolvido" — mesmo padrão de

@@ -27,7 +27,7 @@ export class Tarefa {
   @Column({ type: 'text', nullable: true })
   descricao: string | null;
 
-  @Column({ type: 'text', enum: StatusTarefa, default: StatusTarefa.A_FAZER })
+  @Column({ type: 'enum', enum: StatusTarefa, default: StatusTarefa.A_FAZER })
   status: StatusTarefa;
 
   @CreateDateColumn()

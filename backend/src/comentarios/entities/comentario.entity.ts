@@ -25,7 +25,7 @@ export class Comentario {
   // TipoComentario), pra não depender do texto da mensagem automática nunca
   // mudar.
   @Column({
-    type: 'text',
+    type: 'enum',
     enum: TipoComentario,
     default: TipoComentario.COMENTARIO,
   })
