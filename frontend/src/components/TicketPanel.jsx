@@ -646,13 +646,21 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
 
               <div>
                 <div style={estilos.label}>Descrição</div>
-                <p style={{ color: CORES_APP.texto, fontSize: 14, lineHeight: 1.75, margin: 0, whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }}>{chamado.description}</p>
+                {/* maxHeight + overflowY própria (não a do modal inteiro) —
+                    uma descrição muito longa (texto colado de outro lugar,
+                    por exemplo) antes fazia o modal INTEIRO crescer pra
+                    acomodar, empurrando a conversa/comentários pra muito
+                    longe. Com isso, só este bloco rola por dentro; o resto
+                    do painel mantém uma altura previsível. Mesmo padrão já
+                    usado no histórico de comentários (coluna direita) e na
+                    lista de anexos com 5+ imagens. */}
+                <p style={{ color: CORES_APP.texto, fontSize: 14, lineHeight: 1.75, margin: 0, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', maxHeight: 200, overflowY: 'auto', paddingRight: 4 }}>{chamado.description}</p>
               </div>
 
               {chamado.errorMsg && (
                 <div style={{ background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.18)', borderRadius: 10, padding: '12px 14px' }}>
                   <div style={{ ...estilos.label, color: CORES_APP.erro, marginBottom: 6 }}>Mensagem de erro</div>
-                  <code style={{ color: '#B3402F', fontFamily: 'monospace', fontSize: 13 }}>{chamado.errorMsg}</code>
+                  <code style={{ color: '#B3402F', fontFamily: 'monospace', fontSize: 13, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', wordBreak: 'break-word', display: 'block', maxHeight: 160, overflowY: 'auto', paddingRight: 4 }}>{chamado.errorMsg}</code>
                 </div>
               )}
 
