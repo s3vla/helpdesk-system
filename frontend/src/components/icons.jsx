@@ -274,3 +274,27 @@ export function IconMegaphone(props) {
     </svg>
   )
 }
+
+export function IconMessageCircle(props) {
+  return (
+    <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
+    </svg>
+  )
+}
+
+export function IconSend(props) {
+  return (
+    <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="m22 2-11 11" /><path d="M22 2 15 22l-4-9-9-4Z" />
+    </svg>
+  )
+}
+
+export function IconX(props) {
+  return (
+    <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M18 6 6 18" /><path d="m6 6 12 12" />
+    </svg>
+  )
+}

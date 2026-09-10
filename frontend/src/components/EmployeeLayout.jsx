@@ -5,6 +5,7 @@ import { obterIniciais } from '../utils/formatters'
 import { IconEye, IconMenu, IconLock, IconLogOut, IconSun, IconMoon, IconMegaphone, IconListChecks, IconNote } from './icons'
 import { CORES_APP } from '../styles/theme'
 import { useTheme } from '../hooks/useTheme'
+import ChatFlutuante from './ChatFlutuante'
 
 // Cabeçalho fixo do colaborador: logo, navegação (Novo Chamado / Meus
 // Chamados) e avatar com iniciais que abre um pequeno menu (Trocar senha /
@@ -124,6 +125,7 @@ function EmployeeLayout({ user, telaAtiva, onNav, onLogout, onTrocarSenha, largu
       <main style={{ flex: 1, padding: mobile ? '24px 16px' : '36px 28px', maxWidth: larguraMaxima, width: '100%', margin: '0 auto', boxSizing: 'border-box' }}>
         {children}
       </main>
+      <ChatFlutuante />
     </div>
   )
 }
