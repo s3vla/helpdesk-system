@@ -61,8 +61,8 @@ function TarefaModal({ tarefaEmEdicao, onFechar, onSalvou }) {
               style={estilos.input} disabled={salvando} />
           </div>
           <div>
-            <label style={estilos.label}>Descrição <span style={{ color: CORES_APP.textoSuave, fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>opcional</span></label>
-            <textarea value={descricao} onChange={e => setDescricao(e.target.value)} placeholder="Detalhes da tarefa..."
+            <label style={estilos.label}>Descrição</label>
+            <textarea value={descricao} onChange={e => setDescricao(e.target.value)} placeholder="Ex: Conferir notebooks da sala de reunião e atualizar o Windows"
               style={{ ...estilos.input, minHeight: 90, resize: 'vertical', lineHeight: 1.5 }} disabled={salvando} />
           </div>
           {erro && <p style={{ color: CORES_APP.erro, fontSize: 13, margin: 0 }}>{erro}</p>}

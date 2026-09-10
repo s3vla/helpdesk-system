@@ -73,7 +73,7 @@ function PublicarAvisoModal({ avisoEmEdicao, onFechar, onSalvou }) {
           </div>
           <div>
             <label style={estilos.label}>Mensagem</label>
-            <textarea value={mensagem} onChange={e => setMensagem(e.target.value)} placeholder="Detalhe o comunicado..."
+            <textarea value={mensagem} onChange={e => setMensagem(e.target.value)} placeholder="Ex: Sistema ficará indisponível das 22h às 23h para manutenção preventiva"
               style={{ ...estilos.input, minHeight: 90, resize: 'vertical', lineHeight: 1.5 }} disabled={salvando} />
           </div>
           <div>
@@ -98,7 +98,7 @@ function PublicarAvisoModal({ avisoEmEdicao, onFechar, onSalvou }) {
             </div>
           </div>
           <div>
-            <label style={estilos.label}>Expira em <span style={{ color: CORES_APP.textoSuave, fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>opcional</span></label>
+            <label style={estilos.label}>Expira em</label>
             <input type="datetime-local" value={expiraEm} onChange={e => setExpiraEm(e.target.value)}
               style={estilos.input} disabled={salvando} />
             <p style={{ color: CORES_APP.textoSuave, fontSize: 12, margin: '4px 0 0' }}>Depois desse horário, o aviso some da lista ativa (continua no histórico).</p>

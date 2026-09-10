@@ -120,12 +120,12 @@ function ITAbrirChamado({ onSubmit }) {
         </div>
         <div>
           <label style={rotuloCompacto}>O que o colaborador precisa? <span style={{ color: '#ef4444' }}>*</span></label>
-          <textarea value={desc} onChange={e => setDesc(e.target.value)} placeholder="Descreva o problema com o máximo de detalhes possível..."
+          <textarea value={desc} onChange={e => setDesc(e.target.value)} placeholder="Ex: impressora do setor não imprime, aparece 'sem papel' mas tem papel na bandeja"
             style={{ ...campoCompacto, minHeight: 96, maxHeight: 200, overflow: 'auto', resize: 'vertical', lineHeight: 1.5 }} disabled={carregando} />
         </div>
         <div>
-          <label style={rotuloCompacto}>Qual mensagem de erro apareceu? <span style={{ color: CORES_APP.textoSuave, fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>opcional</span></label>
-          <input value={errMsg} onChange={e => setErrMsg(e.target.value)} placeholder="Ex: Erro 404, tela azul, acesso negado..." style={campoCompacto} disabled={carregando} />
+          <label style={rotuloCompacto}>Qual mensagem de erro apareceu?</label>
+          <input value={errMsg} onChange={e => setErrMsg(e.target.value)} placeholder="Ex: 'Acesso negado', tela azul do Windows, ou a mensagem exata que apareceu" style={campoCompacto} disabled={carregando} />
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: largura < 500 ? '1fr' : '1fr 1fr', gap: 10 }}>
           <div>
@@ -151,7 +151,7 @@ function ITAbrirChamado({ onSubmit }) {
           </div>
         </div>
         <div>
-          <label style={rotuloCompacto}>Prints do erro <span style={{ color: CORES_APP.textoSuave, fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>opcional</span></label>
+          <label style={rotuloCompacto}>Prints do erro</label>
           <div onClick={() => !carregando && fileRef.current?.click()}
             style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, border: `2px dashed ${arquivos.length ? 'rgba(0,120,81,0.4)' : CORES_APP.borda}`, borderRadius: 10, padding: '22px 14px', textAlign: 'center', cursor: carregando ? 'default' : 'pointer', background: arquivos.length ? 'rgba(0,179,81,0.05)' : 'transparent', transition: 'all 0.2s' }}>
             <span style={{ color: arquivos.length ? '#00b351' : CORES_APP.textoFraco, display: 'flex', flexShrink: 0 }}>
@@ -193,7 +193,7 @@ function ITAbrirChamado({ onSubmit }) {
           )}
         </div>
         <div>
-          <label style={rotuloCompacto}>ID do AnyDesk (para acesso remoto) <span style={{ color: CORES_APP.textoSuave, fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>opcional</span></label>
+          <label style={rotuloCompacto}>ID do AnyDesk (para acesso remoto)</label>
           {/* Mesmo filtro de CreateTicket.jsx — só dígitos, removidos a
               cada tecla em vez de validados só no envio. */}
           <input value={anydeskId} onChange={e => setAnydeskId(e.target.value.replace(/\D/g, ''))} inputMode="numeric" placeholder="Ex: 123456789" style={campoCompacto} disabled={carregando} />

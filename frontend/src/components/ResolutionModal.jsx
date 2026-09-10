@@ -70,13 +70,13 @@ function ResolutionModal({ carregando: carregandoExterno, onConfirm, onCancel })
           <label style={estilos.label}>Como foi resolvido? <span style={{ color: '#ef4444' }}>*</span></label>
           <textarea
             value={texto} onChange={e => setTexto(e.target.value)} autoFocus disabled={carregando}
-            placeholder="Descreva a causa do problema e os passos que resolveram. Seja específico – isso vai ajudar na próxima vez que o problema aparecer."
+            placeholder="Causa e passos da solução — ajuda a resolver mais rápido da próxima vez"
             style={{ ...estilos.input, minHeight: 110, resize: 'vertical', lineHeight: 1.7, fontSize: 14 }}
           />
         </div>
 
         <div>
-          <label style={estilos.label}>Prints da solução <span style={{ color: CORES_APP.textoSuave, fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>opcional</span></label>
+          <label style={estilos.label}>Prints da solução</label>
           <div onClick={() => !carregando && fileRef.current?.click()}
             style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, border: `2px dashed ${arquivos.length ? 'rgba(0,120,81,0.4)' : CORES_APP.borda}`, borderRadius: 10, padding: '22px 14px', textAlign: 'center', cursor: carregando ? 'default' : 'pointer', background: arquivos.length ? 'rgba(0,179,81,0.05)' : 'transparent', transition: 'all 0.2s' }}>
             <span style={{ color: arquivos.length ? '#00b351' : CORES_APP.textoFraco, display: 'flex', flexShrink: 0 }}>
