@@ -13,6 +13,11 @@ import Paginacao from './Paginacao'
 // tranquilo para o tamanho de equipe desse sistema; se a lista de
 // colaboradores crescesse muito, isso viraria candidato a um endpoint de
 // resumo no backend.
+// 20 (era 10, o padrão da API) só pra esta tela — passado explicitamente
+// pro backend via `porPagina`, sem mexer no LIMITE_PADRAO compartilhado
+// por Meus Chamados/Minhas Tarefas/etc.
+const COLABORADORES_POR_PAGINA = 20
+
 function ITUsers({ onSelect }) {
   const { token, tratarErroApi } = useAuth()
   const [usuarios, setUsuarios] = useState([])
@@ -27,7 +32,7 @@ function ITUsers({ onSelect }) {
     setCarregando(true)
     setErro('')
     try {
-      const resposta = await buscarColaboradores(token, { pagina })
+      const resposta = await buscarColaboradores(token, { pagina, porPagina: COLABORADORES_POR_PAGINA })
       const lista = resposta.itens
       setUsuarios(lista)
       setTotal(resposta.total)
@@ -69,7 +74,14 @@ function ITUsers({ onSelect }) {
         </p>
       </div>
       <EstadoRequisicao carregando={carregando} erro={erro} aoTentarNovamente={buscar}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(270px, 1fr))', gap: 14 }}>
+        {/* auto-fit (não auto-fill): com poucos colaboradores na página,
+            auto-fill reservava colunas "fantasmas" vazias até o fim da
+            linha (cada uma ainda ocupando 1fr de largura, só que sem
+            conteúdo) — sobrava um vão em branco à direita mesmo a página
+            tendo espaço de sobra. auto-fit colapsa as colunas sem
+            conteúdo a 0, deixando os cards que existem esticarem (1fr)
+            pra preencher a linha toda de verdade. */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 18 }}>
           {usuarios.map(usuario => {
             const c = contagens[usuario.id] ?? { total: 0, abertos: 0, finalizados: 0 }
             return (

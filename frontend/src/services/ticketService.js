@@ -370,10 +370,18 @@ export async function criarComentario(token, chamadoId, { texto, interno, imagem
 // "Solicitante") — manda um limite bem alto pra não cair no padrão de 10
 // da API. Com `pagina`: usado pela tela "Colaboradores" (ITUsers.jsx),
 // que aí sim pagina de verdade.
-export async function buscarColaboradores(token, { pagina } = {}) {
+export async function buscarColaboradores(token, { pagina, porPagina } = {}) {
   const params = new URLSearchParams()
-  if (pagina) params.set('pagina', pagina)
-  else params.set('limite', 10000)
+  if (pagina) {
+    params.set('pagina', pagina)
+    // Padrão da API é 10 por página (ver LIMITE_PADRAO no backend,
+    // compartilhado por toda listagem paginada) — ITUsers.jsx manda um
+    // valor maior só pra ELA, sem mexer nesse padrão compartilhado, que
+    // outras telas (Meus Chamados, Minhas Tarefas etc.) continuam usando.
+    if (porPagina) params.set('limite', porPagina)
+  } else {
+    params.set('limite', 10000)
+  }
   const resposta = await chamarApi(`/usuarios?${params.toString()}`, { token })
   return mapearRespostaPaginada(resposta, mapearUsuario)
 }
