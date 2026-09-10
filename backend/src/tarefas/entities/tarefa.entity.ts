@@ -9,6 +9,7 @@ import {
 } from 'typeorm';
 import { StatusTarefa } from '../../common/enums/status-tarefa.enum';
 import { Usuario } from '../../usuarios/entities/usuario.entity';
+import { campoCriptografado } from '../../common/transformers/campo-criptografado.transformer';
 
 // Bloco de notas pessoal com status — sem NENHUMA relação com Chamado de
 // propósito (ver pedido da feature: é uma lista própria da pessoa, não
@@ -21,10 +22,13 @@ export class Tarefa {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
+  // Criptografado em repouso (AES-256-GCM, ver campo-criptografado.transformer.ts)
+  // — resto do código (service/controller) continua lendo/escrevendo
+  // texto puro normalmente, a conversão é automática no save()/find().
+  @Column({ transformer: campoCriptografado })
   titulo: string;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ type: 'text', nullable: true, transformer: campoCriptografado })
   descricao: string | null;
 
   @Column({ type: 'enum', enum: StatusTarefa, default: StatusTarefa.A_FAZER })

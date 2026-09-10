@@ -8,6 +8,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { Usuario } from '../../usuarios/entities/usuario.entity';
+import { campoCriptografado } from '../../common/transformers/campo-criptografado.transformer';
 
 // Bloco de notas de texto livre — SEM nenhuma relação com Chamado nem com
 // Tarefa de propósito (feature separada, ver pedido). Mesmo raciocínio de
@@ -19,7 +20,9 @@ export class Anotacao {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ type: 'text' })
+  // Criptografado em repouso (AES-256-GCM, ver campo-criptografado.transformer.ts)
+  // — resto do código continua lendo/escrevendo texto puro normalmente.
+  @Column({ type: 'text', transformer: campoCriptografado })
   conteudo: string;
 
   @CreateDateColumn()

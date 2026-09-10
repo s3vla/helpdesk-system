@@ -1,5 +1,12 @@
 # Deploy no IIS + iisnode
 
+> ⚠️ **Substituído por [`DEPLOY-NSSM.md`](./DEPLOY-NSSM.md).** A produção
+> migrou de IIS+iisnode para NSSM por causa de um erro 502.3/permissão no
+> iisnode que nunca foi resolvido (ver Troubleshooting abaixo). Este
+> arquivo fica só como histórico/referência — para o processo real de
+> deploy hoje (incluindo variáveis de ambiente e a sequência especial da
+> migração de criptografia de campo), use `DEPLOY-NSSM.md`.
+
 Passo a passo pra você rodar no Gerenciador do IIS do servidor — nada
 disso é automatizável daqui, precisa ser feito manualmente lá.
 

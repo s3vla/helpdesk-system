@@ -110,6 +110,58 @@ alguém da lista exige alterar esse arquivo e fazer um novo deploy, não dá
 pra mudar só editando o `.env` do servidor. Ver comentário no topo do
 arquivo para o motivo.
 
+## ⚠️ Criptografia de campo (Tarefas e Anotações) — JWT_SECRET agora também protege dado em repouso
+
+`Tarefa.titulo`, `Tarefa.descricao` e `Anotacao.conteudo` são
+criptografados (AES-256-GCM) antes de gravar no banco — quem abrir o
+banco direto (pgAdmin, DBeaver, um dump) não vê o texto em claro, só
+bytes/base64. A chave de criptografia é **derivada do `JWT_SECRET`** via
+HKDF (`src/common/transformers/campo-criptografado.transformer.ts`) — não
+é uma variável separada, é o mesmo segredo que já existe, só usado de um
+jeito novo.
+
+**Isso muda o que significa perder ou trocar o `JWT_SECRET`.** Antes,
+trocar essa variável só derrubava sessões ativas (token JWT assinado com o
+valor antigo passa a ser rejeitado — inconveniente, mas reversível, todo
+mundo só loga de novo). **Agora, trocar o `JWT_SECRET` sem um plano de
+migração também torna toda Tarefa e Anotação já salva permanentemente
+ilegível** — não tem como "recuperar depois", a chave derivada do segredo
+antigo simplesmente não existe mais em lugar nenhum. Isso não é uma
+falha, é a garantia de segurança funcionando como projetado (é
+literalmente o que impede alguém com o banco, mas sem o segredo, de ler o
+conteúdo) — mas precisa ser um risco CONHECIDO antes de mexer nessa
+variável, não descoberto depois.
+
+**Nunca troque `JWT_SECRET` em produção sem antes rodar uma migração de
+dado** (descriptografar tudo com o segredo antigo, trocar a variável,
+recriptografar com o segredo novo — não existe script pronto pra esse
+cenário específico ainda, só pro caso oposto: dado em texto puro virando
+criptografado pela primeira vez, ver abaixo).
+
+### Rodando pela primeira vez num banco com dado antigo em texto puro
+
+Se já existir Tarefa/Anotação criada ANTES desse transformer existir no
+código, rode uma vez, manualmente:
+
+```bash
+npm run criptografar:migrar        # dev, via ts-node
+npm run criptografar:migrar:prod   # ou against dist/ já buildado, sem ts-node
+```
+
+Script em `src/scripts/criptografar-dados-existentes.ts` — lê e escreve
+via SQL bruto (não usa Repository/Entity do TypeORM, que já tentaria
+descriptografar o texto puro e falharia). Idempotente: rodar de novo não
+criptografa duas vezes por cima (detecta o que já está criptografado e
+pula).
+
+**Sequência de deploy obrigatória pra essa atualização específica —
+diferente do fluxo normal**: parar o processo → rodar o script de
+migração → só então subir o código novo pra valer. Se subir o código
+antes de migrar o dado, toda leitura de Tarefa/Anotação existente
+começa a dar 500 (o transformer tenta descriptografar texto puro e
+falha) até o script rodar. Ver a seção destacada equivalente em
+`DEPLOY-NSSM.md`.
+
 ## Deployment
 
 Deploy real deste projeto é via **IIS + iisnode** (Windows Server) — ver
