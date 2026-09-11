@@ -15,11 +15,15 @@ import SlaLegenda from './SlaLegenda'
 import EstadoRequisicao from './EstadoRequisicao'
 import { IconSearch, IconCalendar, IconClock, IconHeadset, IconCheckCircle, IconInfo, IconEdit } from './icons'
 import { calcularSituacaoSla } from '../utils/slaConfig'
-import Paginacao from './Paginacao'
 
 const FILTROS_STATUS = [['all', 'Todos'], ['parado', 'Parados'], ['andamento', 'Em andamento'], ['finalizado', 'Finalizados']]
 const FILTROS_NIVEL = [['all', 'N1–N3'], ['N1', 'N1'], ['N2', 'N2'], ['N3', 'N3']]
 const COLUNAS_TABELA = '64px 2fr 1fr 152px 130px 108px 118px 76px'
+// Central de Chamados mostra só os mais recentes, sem paginação completa
+// — decisão deliberada (não um limite técnico): o histórico mais antigo
+// continua acessível, só que por outro caminho (Colaboradores → detalhe
+// do colaborador → chamados dele).
+const LIMITE_RECENTES = 10
 
 // Central de Chamados: busca no backend com os filtros já traduzidos para
 // os query params esperados pela API (GET /chamados?status=...&nivel=...&
@@ -38,8 +42,6 @@ function ITDashboard({ versaoDados, onSelect, onAbrirChamado }) {
   const largura = useWindowWidth()
   const [chamados, setChamados] = useState([])
   const [contagensPorStatus, setContagensPorStatus] = useState({})
-  const [pagina, setPagina] = useState(1)
-  const [totalPaginas, setTotalPaginas] = useState(1)
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState('')
   const debounceRef = useRef(null)
@@ -57,21 +59,17 @@ function ITDashboard({ versaoDados, onSelect, onAbrirChamado }) {
     return () => clearTimeout(debounceRef.current)
   }, [buscaInput])
 
-  // Qualquer filtro que vai pro backend (status/nível/busca) volta pra
-  // página 1 — senão dá pra ficar "presa" numa página que não existe mais
-  // depois de um filtro que reduziu o total de resultados.
-  useEffect(() => {
-    setPagina(1)
-  }, [filtroStatus, filtroNivel, busca])
-
+  // Sem paginação de propósito (ver LIMITE_RECENTES abaixo) — mostra só
+  // os mais recentes; o histórico completo de um colaborador específico
+  // continua acessível via Colaboradores → detalhe → chamados dele
+  // (ITUserDetail.jsx, que usa GET /usuarios/:id/chamados, sem limite).
   async function buscar() {
     setCarregando(true)
     setErro('')
     try {
-      const resposta = await buscarChamadosTI(token, { status: filtroStatus, nivel: filtroNivel, busca, pagina })
+      const resposta = await buscarChamadosTI(token, { status: filtroStatus, nivel: filtroNivel, busca, limite: LIMITE_RECENTES })
       setChamados(resposta.itens)
       setContagensPorStatus(resposta.contagensPorStatus)
-      setTotalPaginas(resposta.totalPaginas)
     } catch (e) {
       if (!tratarErroApi(e)) setErro(traduzirErroApi(e))
     } finally {
@@ -82,7 +80,7 @@ function ITDashboard({ versaoDados, onSelect, onAbrirChamado }) {
   useEffect(() => {
     buscar()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [versaoDados, filtroStatus, filtroNivel, busca, pagina])
+  }, [versaoDados, filtroStatus, filtroNivel, busca])
 
   function aoPressionarEnterNaBusca(e) {
     if (e.key !== 'Enter') return
@@ -112,9 +110,12 @@ function ITDashboard({ versaoDados, onSelect, onAbrirChamado }) {
     { label: 'Resolvidos', valor: porStatus.finalizado ?? 0, cor: CORES_STATUS.finalizado.dot, icon: IconCheckCircle },
   ]
 
+  // height:'100%' + coluna flex, mesma técnica de ITUsers.jsx — título,
+  // cards de estatística e filtros ficam fixos no topo (flexShrink:0);
+  // só a lista de chamados (EstadoRequisicao) rola por dentro.
   return (
-    <div className="animate-fade-up">
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', marginBottom: 26 }}>
+    <div className="animate-fade-up" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', marginBottom: 26, flexShrink: 0 }}>
         <div>
           <h1 style={estilos.sectionTitle}>Central de Chamados</h1>
           <p style={{ color: CORES_APP.textoFraco, fontSize: 14, margin: 0 }}>Todos os chamados abertos no sistema</p>
@@ -126,7 +127,7 @@ function ITDashboard({ versaoDados, onSelect, onAbrirChamado }) {
       </div>
 
       {!carregando && !erro && (
-        <div style={{ display: 'grid', gridTemplateColumns: largura < 600 ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 12, marginBottom: 26 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: largura < 600 ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 12, marginBottom: 26, flexShrink: 0 }}>
           {stats.map(s => (
             <div key={s.label} style={{ ...estilos.card, borderTop: `3px solid ${s.cor}`, borderTopLeftRadius: 14, borderTopRightRadius: 14, padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 10 }}>
               <s.icon width={16} height={16} style={{ color: s.cor }} />
@@ -139,7 +140,7 @@ function ITDashboard({ versaoDados, onSelect, onAbrirChamado }) {
         </div>
       )}
 
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, marginBottom: 18, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, marginBottom: 18, flexWrap: 'wrap', flexShrink: 0 }}>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
           <span style={{ color: CORES_APP.textoSuave, fontFamily: 'Outfit, sans-serif', fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', marginRight: 2 }}>Status:</span>
           {FILTROS_STATUS.map(([valor, label]) => {
@@ -176,6 +177,7 @@ function ITDashboard({ versaoDados, onSelect, onAbrirChamado }) {
         </div>
       </div>
 
+      <div style={{ flex: '1 1 auto', minHeight: 0, overflowY: 'auto' }}>
       <EstadoRequisicao carregando={carregando} erro={erro} aoTentarNovamente={buscar}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {largura >= 900 && (
@@ -252,7 +254,7 @@ function ITDashboard({ versaoDados, onSelect, onAbrirChamado }) {
           })}
         </div>
       </EstadoRequisicao>
-      <Paginacao paginaAtual={pagina} totalPaginas={totalPaginas} aoMudarPagina={setPagina} />
+      </div>
     </div>
   )
 }

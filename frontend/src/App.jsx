@@ -107,7 +107,7 @@ function App() {
           <TicketSent onNew={() => setTela('emp-home')} onView={() => setTela('emp-tickets')} />
         )}
         {telaColaborador === 'emp-home' && (
-          <CreateTicket onSubmit={() => setTela('emp-sent')} />
+          <CreateTicket onSubmit={() => setTela('emp-sent')} onSelect={setChamadoSelecionado} />
         )}
         {telaColaborador === 'emp-tickets' && (
           <MyTickets versaoDados={versaoDados} onSelect={setChamadoSelecionado} />

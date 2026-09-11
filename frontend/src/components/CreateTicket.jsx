@@ -1,14 +1,19 @@
-import { useRef, useState } from 'react'
-import { estilos, CORES_PRIORIDADE, CORES_APP } from '../styles/theme'
+import { useEffect, useRef, useState } from 'react'
+import { estilos, CORES_PRIORIDADE, CORES_APP, CORES_TI } from '../styles/theme'
 import { useWindowWidth } from '../hooks/useWindowWidth'
 import { useAuth } from '../hooks/useAuth'
 import { useAvisoSairSemSalvar } from '../hooks/useAvisoSairSemSalvar'
 import { useEnterParaEnviar } from '../hooks/useEnterParaEnviar'
-import { criarChamado, enviarImagem } from '../services/ticketService'
+import { criarChamado, enviarImagem, buscarChamadosSemelhantes, buscarChamado } from '../services/ticketService'
 import { traduzirErroApi } from '../utils/traduzirErroApi'
 import CategoriaSelect from './CategoriaSelect'
 import ResumoSolicitacao from './ResumoSolicitacao'
-import { IconPaperclip } from './icons'
+import { IconPaperclip, IconInfo } from './icons'
+
+// Tamanho mínimo de descrição antes de checar semelhantes — bate com
+// @MinLength(5) de VerificarSemelhantesDto no backend, sem sentido
+// disparar a chamada antes disso.
+const TAMANHO_MINIMO_BUSCA_SEMELHANTES = 5
 const PRIORIDADES = [
   { valor: 'baixa', label: 'Baixa', cor: CORES_PRIORIDADE.baixa.dot },
   { valor: 'media', label: 'Média', cor: CORES_PRIORIDADE.media.dot },
@@ -35,7 +40,7 @@ const rotuloCompacto = { ...estilos.label, marginBottom: 5 }
 // Envio de imagem acontece em duas etapas: primeiro sobe o arquivo
 // (POST /uploads), só depois cria o chamado com a URL recebida — por isso
 // o botão mostra dois estágios de carregamento diferentes.
-function CreateTicket({ onSubmit }) {
+function CreateTicket({ onSubmit, onSelect }) {
   const { token, tratarErroApi } = useAuth()
   const [desc, setDesc] = useState('')
   const [errMsg, setErrMsg] = useState('')
@@ -45,13 +50,52 @@ function CreateTicket({ onSubmit }) {
   const [arquivos, setArquivos] = useState([])
   const [etapa, setEtapa] = useState(null) // null | 'enviando-imagem' | 'criando'
   const [erro, setErro] = useState('')
+  const [semelhantes, setSemelhantes] = useState([])
   const fileRef = useRef(null)
+  const debounceSemelhantesRef = useRef(null)
   const largura = useWindowWidth()
 
   // Avisa antes de fechar a aba/recarregar só enquanto tiver algo digitado
   // ou anexado que ainda não foi enviado — formulário vazio não dispara
   // aviso nenhum (ver useAvisoSairSemSalvar).
   useAvisoSairSemSalvar(Boolean(desc.trim() || errMsg.trim() || anydeskId.trim() || arquivos.length > 0))
+
+  // Aviso não-bloqueante de "você já tem algo parecido em aberto" —
+  // debounce (mesmo padrão já usado em ITSolutions.jsx pra busca):
+  // espera parar de digitar antes de checar, pra não disparar uma
+  // requisição a cada tecla. Só verifica com categoria escolhida e
+  // descrição com tamanho mínimo — abaixo disso, nem tenta (texto curto
+  // demais não tem sinal nenhum de similaridade, ver
+  // TAMANHO_MINIMO_BUSCA_SEMELHANTES).
+  useEffect(() => {
+    clearTimeout(debounceSemelhantesRef.current)
+    if (desc.trim().length < TAMANHO_MINIMO_BUSCA_SEMELHANTES) {
+      setSemelhantes([])
+      return
+    }
+    debounceSemelhantesRef.current = setTimeout(() => {
+      buscarChamadosSemelhantes(token, { categoria: cat, texto: desc.trim() })
+        .then(setSemelhantes)
+        .catch(() => setSemelhantes([])) // nunca atrapalha o preenchimento por causa disso
+    }, 500)
+    return () => clearTimeout(debounceSemelhantesRef.current)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [desc, cat])
+
+  // O aviso só tem {id, titulo, status} (resposta enxuta de
+  // verificar-semelhantes) — TicketPanel espera o chamado MAPEADO
+  // completo (mesmo formato que MyTickets/AcompanhandoTickets já
+  // passam), então busca os dados de verdade antes de abrir o painel,
+  // em vez de empurrar um objeto parcial que deixaria a maioria dos
+  // campos undefined na primeira renderização.
+  async function abrirSemelhante(id) {
+    try {
+      const chamado = await buscarChamado(token, id)
+      onSelect?.(chamado)
+    } catch (e) {
+      if (!tratarErroApi(e)) setErro(traduzirErroApi(e))
+    }
+  }
 
   async function enviar() {
     if (!desc.trim()) return
@@ -105,6 +149,29 @@ function CreateTicket({ onSubmit }) {
           <label style={rotuloCompacto}>O que você precisa? <span style={{ color: '#ef4444' }}>*</span></label>
           <textarea value={desc} onChange={e => setDesc(e.target.value)} onKeyDown={aoTeclarEnter} placeholder="Ex: impressora do setor não imprime, aparece 'sem papel' mas tem papel na bandeja"
             style={{ ...campoCompacto, minHeight: 96, maxHeight: 200, overflowY: 'auto', resize: 'vertical', lineHeight: 1.5 }} disabled={carregando} />
+          {/* Só informativo, nunca bloqueia — colaborador pode ignorar e
+              seguir abrindo o chamado novo normalmente. Só olha pros
+              PRÓPRIOS chamados ainda abertos (o backend garante isso via
+              token, ver ChamadosService.buscarSemelhantesDoUsuario). */}
+          {semelhantes.length > 0 && (
+            <div style={{ marginTop: 10, background: CORES_TI.accentBg, border: `1px solid ${CORES_TI.accentBorda}`, borderRadius: 10, padding: '11px 13px', display: 'flex', gap: 9 }}>
+              <span style={{ color: CORES_TI.accent, flexShrink: 0, display: 'flex', marginTop: 1 }}><IconInfo width={15} height={15} /></span>
+              <div style={{ fontSize: 12.5, color: CORES_APP.texto, lineHeight: 1.5 }}>
+                Você já tem {semelhantes.length > 1 ? 'chamados parecidos em aberto' : 'um chamado parecido em aberto'}:
+                {' '}
+                {semelhantes.map((s, indice) => (
+                  <span key={s.id}>
+                    <button type="button" onClick={() => abrirSemelhante(s.id)}
+                      style={{ background: 'none', border: 'none', padding: 0, color: CORES_TI.accent, fontWeight: 600, fontSize: 12.5, textDecoration: 'underline', cursor: 'pointer' }}>
+                      "{s.titulo}"
+                    </button>
+                    {indice < semelhantes.length - 1 ? ', ' : ''}
+                  </span>
+                ))}
+                {' '}— quer conferir antes de abrir outro?
+              </div>
+            </div>
+          )}
         </div>
         <div>
           <label style={rotuloCompacto}>Qual mensagem de erro apareceu?</label>

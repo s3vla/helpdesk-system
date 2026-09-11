@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react'
-import { estilos, CORES_APP, CORES_TI } from '../styles/theme'
+import { estilos, CORES_APP } from '../styles/theme'
 import { useAuth } from '../hooks/useAuth'
 import { buscarWidgets } from '../services/dashboardService'
 import { traduzirErroApi } from '../utils/traduzirErroApi'
 import { dataFimPadrao, dataInicioPadrao } from '../utils/periodoPadrao'
-import { IconBarChart } from './icons'
 import EstadoRequisicao from './EstadoRequisicao'
 import WidgetRenderer from './WidgetRenderer'
 
@@ -45,10 +44,7 @@ function DashboardTI() {
   return (
     <div className="animate-fade-up">
       <div style={{ marginBottom: 22 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-          <div style={{ width: 32, height: 32, borderRadius: 10, background: CORES_TI.accentBg, border: `1px solid ${CORES_TI.accentBorda}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: CORES_TI.accent }}><IconBarChart width={16} height={16} /></div>
-          <h1 style={estilos.sectionTitle}>Dashboard</h1>
-        </div>
+        <h1 style={estilos.sectionTitle}>Dashboard</h1>
         <p style={{ color: CORES_APP.textoFraco, fontSize: 14, margin: 0 }}>Métricas e padrões dos chamados no período selecionado</p>
       </div>
 

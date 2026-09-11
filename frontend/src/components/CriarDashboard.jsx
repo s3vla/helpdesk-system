@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
-import { estilos, CORES_APP, CORES_TI } from '../styles/theme'
+import { estilos, CORES_APP } from '../styles/theme'
 import { useAuth } from '../hooks/useAuth'
 import { useWindowWidth } from '../hooks/useWindowWidth'
 import { buscarWidgets, criarWidget, atualizarWidget, moverWidget, removerWidget } from '../services/dashboardService'
 import { traduzirErroApi } from '../utils/traduzirErroApi'
 import { dataFimPadrao, dataInicioPadrao } from '../utils/periodoPadrao'
-import { IconSettings, IconPlus, IconEdit, IconTrash, IconChevronUp, IconChevronDown } from './icons'
+import { IconPlus, IconEdit, IconTrash, IconChevronUp, IconChevronDown } from './icons'
 import EstadoRequisicao from './EstadoRequisicao'
 import WidgetRenderer from './WidgetRenderer'
 
@@ -155,10 +155,7 @@ function CriarDashboard() {
     <div className="animate-fade-up">
       <div style={{ marginBottom: 22, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-            <div style={{ width: 32, height: 32, borderRadius: 10, background: CORES_TI.accentBg, border: `1px solid ${CORES_TI.accentBorda}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: CORES_TI.accent }}><IconSettings width={16} height={16} /></div>
-            <h1 style={estilos.sectionTitle}>Criar Dashboard</h1>
-          </div>
+          <h1 style={estilos.sectionTitle}>Criar Dashboard</h1>
           <p style={{ color: CORES_APP.textoFraco, fontSize: 14, margin: 0 }}>Configure os widgets exibidos na tela Dashboard — compartilhado entre os técnicos</p>
         </div>
         {!mostrarFormulario && (

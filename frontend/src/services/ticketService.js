@@ -48,6 +48,12 @@ export function mapearUsuario(u) {
     // true só pros 2 técnicos de seed até a primeira troca de senha —
     // AuthContext usa isso pra forçar a tela de troca antes do Painel TI.
     deveTrocarSenha: u.deveTrocarSenha ?? false,
+    // Só presentes na resposta de GET /usuarios (tela Colaboradores) — os
+    // outros usos deste mapeador (login, SolicitanteSelect etc.) simplesmente
+    // não têm esses campos, e ficam undefined sem problema.
+    totalChamados: u.totalChamados,
+    chamadosAbertos: u.chamadosAbertos,
+    chamadosFinalizados: u.chamadosFinalizados,
   }
 }
 
@@ -213,6 +219,7 @@ export async function buscarChamadosTI(token, filtros = {}) {
   if (filtros.categoria && filtros.categoria !== 'all') params.set('categoria', CATEGORIA_PARA_API[filtros.categoria])
   if (filtros.busca?.trim()) params.set('busca', filtros.busca.trim())
   params.set('pagina', filtros.pagina ?? 1)
+  if (filtros.limite) params.set('limite', filtros.limite)
   const resposta = await chamarApi(`/chamados?${params.toString()}`, { token })
   // `contagensPorStatus` vem com as chaves em maiúsculo (enum cru do
   // backend) — traduz pro mesmo formato minúsculo que `chamado.status` já
@@ -247,6 +254,19 @@ export async function criarChamado(token, { descricao, mensagemErro, categoria, 
     },
   })
   return mapearChamado(chamado)
+}
+
+// GET /chamados/verificar-semelhantes — chamado enquanto o colaborador
+// ainda está PREENCHENDO o formulário "Abrir chamado" (CreateTicket.jsx),
+// com debounce, pra avisar se ele já tem algo parecido em aberto antes de
+// duplicar. Sempre olha só os PRÓPRIOS chamados de quem está logado (o
+// backend decide isso pelo token, nunca por um id daqui) — diferente de
+// solucoes-sugeridas (TECNICO-only, sobre um chamado já existente).
+export async function buscarChamadosSemelhantes(token, { categoria, texto }) {
+  const params = new URLSearchParams()
+  params.set('categoria', CATEGORIA_PARA_API[categoria])
+  params.set('texto', texto)
+  return chamarApi(`/chamados/verificar-semelhantes?${params.toString()}`, { token })
 }
 
 // Técnico abre um chamado em nome de um colaborador (cenário "colega

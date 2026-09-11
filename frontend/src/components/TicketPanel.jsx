@@ -118,6 +118,10 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
   const [comentarioInterno, setComentarioInterno] = useState(false)
   const [enviandoComentario, setEnviandoComentario] = useState(false)
   const [mostrarModalResolucao, setMostrarModalResolucao] = useState(false)
+  // Só usado no bloco "Reabrir" (chamado.resolution existe e ainda não
+  // está marcada como conhecida) — decide se o PATCH de reabertura vai
+  // junto com marcadaComo:true, ver mudarStatus('parado', extras).
+  const [marcarConhecidaAoReabrir, setMarcarConhecidaAoReabrir] = useState(false)
   const [carregandoAcao, setCarregandoAcao] = useState(false)
   const [erroAcao, setErroAcao] = useState('')
   const [sugestoes, setSugestoes] = useState([])
@@ -344,11 +348,11 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
     }
   }
 
-  async function mudarStatus(novoStatus) {
+  async function mudarStatus(novoStatus, extras = {}) {
     setErroAcao('')
     setCarregandoAcao(true)
     try {
-      const atualizado = await atualizarStatusChamado(token, chamado.id, { status: novoStatus })
+      const atualizado = await atualizarStatusChamado(token, chamado.id, { status: novoStatus, ...extras })
       setChamado(atualizado)
       onAtualizado()
     } catch (e) {
@@ -765,10 +769,23 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
                       </>
                     )}
                     {chamado.status === 'finalizado' && (
-                      <button onClick={() => mudarStatus('parado')} disabled={carregandoAcao}
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: CORES_STATUS.parado.bg, color: CORES_STATUS.parado.fg, border: '1px solid rgba(138,150,163,0.35)', borderRadius: 8, padding: '9px 18px', fontSize: 13, fontFamily: 'Outfit, sans-serif', fontWeight: 600, cursor: carregandoAcao ? 'default' : 'pointer', opacity: carregandoAcao ? 0.6 : 1 }}>
-                        <IconRotateCcw width={13} height={13} /> Reabrir
-                      </button>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                        <button onClick={() => mudarStatus('parado', marcarConhecidaAoReabrir ? { marcadaComo: true } : {})} disabled={carregandoAcao}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: CORES_STATUS.parado.bg, color: CORES_STATUS.parado.fg, border: '1px solid rgba(138,150,163,0.35)', borderRadius: 8, padding: '9px 18px', fontSize: 13, fontFamily: 'Outfit, sans-serif', fontWeight: 600, cursor: carregandoAcao ? 'default' : 'pointer', opacity: carregandoAcao ? 0.6 : 1 }}>
+                          <IconRotateCcw width={13} height={13} /> Reabrir
+                        </button>
+                        {/* Só oferece a opção quando ainda NÃO está marcada
+                            — se já é solução conhecida, não tem o que
+                            marcar de novo aqui (ver item 5 do pedido: a
+                            oportunidade que faltava era exatamente essa,
+                            hoje só dava pra marcar na finalização original). */}
+                        {chamado.resolution && !chamado.resolution.isKnownSolution && (
+                          <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: carregandoAcao ? 'default' : 'pointer', fontSize: 12.5, color: CORES_APP.textoFraco }}>
+                            <input type="checkbox" checked={marcarConhecidaAoReabrir} onChange={e => setMarcarConhecidaAoReabrir(e.target.checked)} disabled={carregandoAcao} />
+                            Marcar como solução conhecida ao reabrir
+                          </label>
+                        )}
+                      </div>
                     )}
                   </div>
                 </div>

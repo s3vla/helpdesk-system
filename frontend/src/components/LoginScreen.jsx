@@ -84,7 +84,7 @@ function LoginScreen({ onLoginColaborador, onSwitchIT }) {
           <div style={estilosAuth.coluna}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <span style={estilosAuth.eyebrow}>ACESSO COLABORADOR</span>
-              <h2 style={estilosAuth.titulo}>Entrar no help desk</h2>
+              <h2 style={estilosAuth.titulo}>Entrar no NovaDesk</h2>
               <p style={estilosAuth.texto}>{MENSAGEM_DOMINIO_INVALIDO}</p>
             </div>
 
