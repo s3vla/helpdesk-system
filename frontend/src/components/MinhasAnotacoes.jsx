@@ -70,11 +70,24 @@ function MinhasAnotacoes() {
       const jaAberta = atuais.find(j => j.id === anotacao.id)
       if (jaAberta) return atuais.map(j => (j.id === anotacao.id ? { ...j, z: proximoZ() } : j))
 
+      // O clamp da BASE precisa acontecer ANTES de somar o deslocamento da
+      // cascata, nunca depois — se o clique for perto da borda (ex: card no
+      // topo-esquerdo da grade, ou clique disparado sem coordenada real de
+      // mouse), `baseX + indiceCascata * CASCATA` podia dar um valor ainda
+      // menor que o mínimo (12), e o clamp de baixo "engolia" o deslocamento
+      // inteiro — a segunda janela caía exatamente em cima da primeira, sem
+      // cascata nenhuma. Clampando a base primeiro, a cascata sempre soma a
+      // partir de um ponto já válido, então cada janela nova SEMPRE aparece
+      // deslocada da anterior (até estourar a borda direita/inferior, onde
+      // só para de avançar mais — comportamento aceitável, não precisa
+      // "quicar").
       const indiceCascata = atuais.length % 6
-      const baseX = evento.clientX - LARGURA_JANELA / 3
-      const baseY = evento.clientY - 20
-      const x = Math.min(Math.max(baseX + indiceCascata * CASCATA, 12), window.innerWidth - LARGURA_JANELA - 12)
-      const y = Math.min(Math.max(baseY + indiceCascata * CASCATA, 12), window.innerHeight - 140)
+      const maxX = window.innerWidth - LARGURA_JANELA - 12
+      const maxY = window.innerHeight - 140
+      const baseX = Math.min(Math.max(evento.clientX - LARGURA_JANELA / 3, 12), maxX)
+      const baseY = Math.min(Math.max(evento.clientY - 20, 12), maxY)
+      const x = Math.min(baseX + indiceCascata * CASCATA, maxX)
+      const y = Math.min(baseY + indiceCascata * CASCATA, maxY)
       return [...atuais, { id: anotacao.id, x, y, z: proximoZ() }]
     })
   }
