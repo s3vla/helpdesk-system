@@ -7,7 +7,7 @@
 // da API pra um erro óbvio de domínio digitado errado.
 export const DOMINIOS_EMAIL_AUTORIZADOS = [
   'novatechagro.com.br',
-  'alvotechagro.com.br',
+  'alvotech.com.br',
 ]
 
 export function emailComDominioAutorizado(email) {

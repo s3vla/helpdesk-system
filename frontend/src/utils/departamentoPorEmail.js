@@ -39,7 +39,7 @@ const DEPARTAMENTO_POR_PREFIXO = {
   // propósito).
   'sandro.huber': 'Gerência',
   // Prefixo, não domínio: "financeiro" aqui já cobre tanto
-  // financeiro@novatechagro.com.br quanto financeiro@alvotechagro.com.br
+  // financeiro@novatechagro.com.br quanto financeiro@alvotech.com.br
   // (departamentoPorEmail só olha a parte antes do @, ver função abaixo) —
   // nenhuma entrada nova precisa ser adicionada só por causa do domínio.
   //

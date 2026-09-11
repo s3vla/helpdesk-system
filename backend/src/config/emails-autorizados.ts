@@ -19,7 +19,7 @@
 // quem está literalmente nas listas abaixo.
 export const DOMINIOS_EMAIL_AUTORIZADOS = [
   'novatechagro.com.br',
-  'alvotechagro.com.br',
+  'alvotech.com.br',
 ];
 
 // Só estes dois e-mails podem logar na Área Técnica. Diferente dos
@@ -52,10 +52,10 @@ export const EMAILS_COLABORADOR_AUTORIZADOS = [
   'comercial@novatechagro.com.br',
   'scapini@novatechagro.com.br',
   'fabiom@novatechagro.com.br',
-  // Financeiro de outro domínio/empresa (Alvotech Agro) — pessoa/setor
+  // Financeiro de outro domínio/empresa (Alvotech) — pessoa/setor
   // diferente do financeiro@novatechagro.com.br já existente acima, os
   // dois coexistem.
-  'financeiro@alvotechagro.com.br',
+  'financeiro@alvotech.com.br',
 ];
 
 export function emailColaboradorAutorizado(email: string): boolean {
