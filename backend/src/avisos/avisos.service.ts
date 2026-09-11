@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Not, IsNull, Repository } from 'typeorm';
+import { Not, IsNull, QueryFailedError, Repository } from 'typeorm';
 import { Aviso } from './entities/aviso.entity';
 import { AvisoLeitura } from './entities/aviso-leitura.entity';
 import { Usuario } from '../usuarios/entities/usuario.entity';
@@ -265,11 +265,38 @@ export class AvisosService {
     });
     if (jaLido) return;
 
-    const leitura = this.leituraRepository.create({
-      aviso: { id: avisoId } as Aviso,
-      usuario: { id: usuarioId } as Usuario,
-    });
-    await this.leituraRepository.save(leitura);
+    // O findOne acima NÃO elimina a corrida: duas requisições concorrentes
+    // pro mesmo aviso/usuário (ex: MuralAvisos.jsx dispara um
+    // Promise.all(...marcarAvisoLido) por aviso não lido ao montar a tela,
+    // e o StrictMode do React roda esse efeito duas vezes) podem passar
+    // pelo "jaLido? não" as duas, e a segunda INSERT bate na constraint
+    // única @Unique(['aviso', 'usuario']) de AvisoLeitura. Isso é
+    // exatamente o cenário — não uma hipótese: reproduzido de verdade num
+    // teste de estresse com volume alto de avisos não lidos, virando um
+    // 500 cru que derrubava a tela inteira do Mural.
+    //
+    // Em vez de tentar eliminar a corrida com lock/transação (mais
+    // complexo do que o problema pede), tratamos o sintoma da forma
+    // correta pro que essa operação realmente significa: chegar aqui e a
+    // constraint reclamar SÓ pode significar "alguém já inseriu essa
+    // leitura entre o SELECT e o INSERT" — ou seja, o estado que
+    // marcarLido() deveria deixar já é verdade. Idempotente por
+    // definição (ver comentário da função), então essa violação
+    // específica também deve ser um retorno silencioso, não um erro.
+    try {
+      const leitura = this.leituraRepository.create({
+        aviso: { id: avisoId } as Aviso,
+        usuario: { id: usuarioId } as Usuario,
+      });
+      await this.leituraRepository.save(leitura);
+    } catch (erro: unknown) {
+      const codigoPg =
+        erro instanceof QueryFailedError
+          ? (erro as unknown as { code?: string }).code
+          : undefined;
+      if (codigoPg === '23505') return;
+      throw erro;
+    }
   }
 
   private async buscarPorIdOuFalhar(id: number): Promise<Aviso> {
