@@ -53,14 +53,19 @@ function AcompanhandoTickets({ versaoDados, onSelect }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [versaoDados, pagina])
 
+  // height:'100%' + coluna flex, mesma técnica de ITUsers.jsx/
+  // TicketPanel.jsx: só o bloco do meio (EstadoRequisicao + kanban) rola
+  // por dentro (flex:'1 1 auto' + minHeight:0); título e paginação ficam
+  // fora, sempre visíveis.
   return (
-    <div className="animate-fade-up">
-      <div style={{ marginBottom: 28 }}>
+    <div className="animate-fade-up" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ marginBottom: 28, flexShrink: 0 }}>
         <h1 style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: largura < 640 ? 24 : 28, color: CORES_APP.tinta, margin: '0 0 6px' }}>Acompanhando</h1>
         <p style={{ color: CORES_APP.textoFraco, fontSize: 14, margin: 0 }}>
           {carregando ? 'Carregando...' : `${total} chamado${total !== 1 ? 's' : ''} onde você foi incluído como Cc`}
         </p>
       </div>
+      <div style={{ flex: '1 1 auto', minHeight: 0, overflowY: 'auto' }}>
       <EstadoRequisicao carregando={carregando} erro={erro} aoTentarNovamente={buscar}>
         {chamados.length === 0 ? (
           <div style={{ padding: '60px 20px', textAlign: 'center', color: CORES_APP.textoSuave, fontSize: 14 }}>
@@ -117,6 +122,7 @@ function AcompanhandoTickets({ versaoDados, onSelect }) {
           </div>
         )}
       </EstadoRequisicao>
+      </div>
       <Paginacao paginaAtual={pagina} totalPaginas={totalPaginas} aoMudarPagina={setPagina} />
     </div>
   )

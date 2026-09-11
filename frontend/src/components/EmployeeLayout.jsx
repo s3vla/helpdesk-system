@@ -44,8 +44,20 @@ function EmployeeLayout({ user, telaAtiva, onNav, onLogout, onTrocarSenha, largu
   ]
 
   return (
-    <div style={{ minHeight: '100vh', background: CORES_APP.fundo, display: 'flex', flexDirection: 'column' }}>
-      <header style={{ background: CORES_APP.card, borderBottom: `1px solid ${CORES_APP.bordaSuave}`, padding: '0 20px', height: 60, display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 40, flexShrink: 0, gap: 12 }}>
+    // height (não minHeight) + overflow hidden: fecha a página inteira na
+    // altura exata da viewport, então quem decide como rolar o que sobra é
+    // sempre um filho específico, nunca a janela do navegador como um
+    // todo. `main` abaixo vira o container de scroll padrão (mesmo
+    // resultado visual de antes pra toda tela que não pede nada especial
+    // — cabeçalho continua fixo, conteúdo rola por baixo dele); as 6 telas
+    // paginadas (Colaboradores, Acompanhando, Fórum, Central de Chamados,
+    // Soluções Conhecidas, Mural de Avisos) usam `height:'100%'` no
+    // próprio wrapper pra assumir SEU PRÓPRIO scroll interno em vez do de
+    // `main`, com a paginação ancorada fora dessa área — mesma técnica de
+    // "coluna flex + flex:1 1 auto + minHeight:0" já usada em
+    // TicketPanel.jsx pro bloco de comentários.
+    <div style={{ height: '100vh', overflow: 'hidden', background: CORES_APP.fundo, display: 'flex', flexDirection: 'column' }}>
+      <header style={{ background: CORES_APP.card, borderBottom: `1px solid ${CORES_APP.bordaSuave}`, padding: '0 20px', height: 60, display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 40, flexShrink: 0, gap: 12 }}>
         {/* flexShrink: 0 na logo e no bloco da direita — só o <nav> do meio
             pode ceder espaço (rolando por dentro dele mesmo, ver abaixo).
             Sem isso, a logo/avatar também poderiam ser espremidos ou
@@ -126,7 +138,7 @@ function EmployeeLayout({ user, telaAtiva, onNav, onLogout, onTrocarSenha, largu
           )}
         </div>
       </header>
-      <main style={{ flex: 1, padding: mobile ? '24px 16px' : '36px 28px', maxWidth: larguraMaxima, width: '100%', margin: '0 auto', boxSizing: 'border-box' }}>
+      <main style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: mobile ? '24px 16px' : '36px 28px', maxWidth: larguraMaxima, width: '100%', margin: '0 auto', boxSizing: 'border-box' }}>
         {children}
       </main>
       <ChatFlutuante />

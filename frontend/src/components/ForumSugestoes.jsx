@@ -48,10 +48,12 @@ function ForumSugestoes({ onSelecionar }) {
     buscar()
   }
 
+  // height:'100%' + coluna flex, mesma técnica de ITUsers.jsx — só a lista
+  // rola por dentro, título/botão e paginação ficam sempre visíveis.
   return (
     <>
-    <div className="animate-fade-up" style={{ maxWidth: 860, margin: '0 auto' }}>
-      <div style={{ marginBottom: 18, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+    <div className="animate-fade-up" style={{ maxWidth: 860, margin: '0 auto', height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ marginBottom: 18, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', flexShrink: 0 }}>
         <div>
           <h1 style={estilos.sectionTitle}>Fórum de Sugestões</h1>
           <p style={{ color: CORES_APP.textoFraco, fontSize: 14, margin: 0 }}>Opiniões, ideias e sugestões de ajuste sobre o sistema</p>
@@ -62,6 +64,7 @@ function ForumSugestoes({ onSelecionar }) {
         </button>
       </div>
 
+      <div style={{ flex: '1 1 auto', minHeight: 0, overflowY: 'auto' }}>
       <EstadoRequisicao carregando={carregando} erro={erro} aoTentarNovamente={buscar}>
         {sugestoes.length === 0 ? (
           <div style={{ ...estilos.card, padding: 32, textAlign: 'center' }}>
@@ -96,6 +99,7 @@ function ForumSugestoes({ onSelecionar }) {
           </div>
         )}
       </EstadoRequisicao>
+      </div>
       <Paginacao paginaAtual={pagina} totalPaginas={totalPaginas} aoMudarPagina={setPagina} />
     </div>
 

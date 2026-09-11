@@ -126,10 +126,13 @@ function MuralAvisos({ podePublicar, onAlterou }) {
   // a ESTA div (que rola junto com a página) em vez de relativo à tela,
   // cortando o cabeçalho pra fora da área visível sempre que o conteúdo
   // da tela empurrava essa div pra baixo o suficiente.
+  // height:'100%' + coluna flex, mesma técnica de ITUsers.jsx — só a
+  // lista rola por dentro, título/botão e paginação ficam sempre
+  // visíveis.
   return (
     <>
-    <div className="animate-fade-up" style={{ maxWidth: 860, margin: '0 auto' }}>
-      <div style={{ marginBottom: 18, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+    <div className="animate-fade-up" style={{ maxWidth: 860, margin: '0 auto', height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ marginBottom: 18, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', flexShrink: 0 }}>
         <div>
           <h1 style={estilos.sectionTitle}>Mural de Avisos</h1>
           <p style={{ color: CORES_APP.textoFraco, fontSize: 14, margin: 0 }}>Comunicados da equipe de TI para toda a empresa</p>
@@ -142,6 +145,7 @@ function MuralAvisos({ podePublicar, onAlterou }) {
         )}
       </div>
 
+      <div style={{ flex: '1 1 auto', minHeight: 0, overflowY: 'auto' }}>
       <EstadoRequisicao carregando={carregando} erro={erro} aoTentarNovamente={buscar}>
         {avisos.length === 0 ? (
           <div style={{ ...estilos.card, padding: 32, textAlign: 'center' }}>
@@ -251,6 +255,7 @@ function MuralAvisos({ podePublicar, onAlterou }) {
           </div>
         )}
       </EstadoRequisicao>
+      </div>
       <Paginacao paginaAtual={pagina} totalPaginas={totalPaginas} aoMudarPagina={setPagina} />
     </div>
 

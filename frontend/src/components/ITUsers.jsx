@@ -2,17 +2,18 @@ import { useEffect, useState } from 'react'
 import { estilos, CORES_APP } from '../styles/theme'
 import { obterIniciais } from '../utils/formatters'
 import { useAuth } from '../hooks/useAuth'
-import { buscarColaboradores, buscarChamadosDoColaborador } from '../services/ticketService'
+import { buscarColaboradores } from '../services/ticketService'
 import { traduzirErroApi } from '../utils/traduzirErroApi'
 import EstadoRequisicao from './EstadoRequisicao'
 import Paginacao from './Paginacao'
 
 // Lista de colaboradores cadastrados, com contagem de chamados por pessoa.
-// A API não devolve essa contagem pronta, então buscamos os chamados de
-// cada colaborador em paralelo (Promise.all) depois de carregar a lista —
-// tranquilo para o tamanho de equipe desse sistema; se a lista de
-// colaboradores crescesse muito, isso viraria candidato a um endpoint de
-// resumo no backend.
+// A própria resposta de GET /usuarios já vem com essas contagens embutidas
+// (totalChamados/chamadosAbertos/chamadosFinalizados, calculadas numa
+// query agrupada só no backend) — não busca mais o histórico de cada
+// colaborador separado (era 1 requisição POR linha da lista, um padrão N+1
+// que gerava requisição de sobra suficiente pra estourar o rate limit
+// global só de abrir esta tela com volume normal de gente cadastrada).
 // 20 (era 10, o padrão da API) só pra esta tela — passado explicitamente
 // pro backend via `porPagina`, sem mexer no LIMITE_PADRAO compartilhado
 // por Meus Chamados/Minhas Tarefas/etc.
@@ -21,7 +22,6 @@ const COLABORADORES_POR_PAGINA = 20
 function ITUsers({ onSelect }) {
   const { token, tratarErroApi } = useAuth()
   const [usuarios, setUsuarios] = useState([])
-  const [contagens, setContagens] = useState({})
   const [total, setTotal] = useState(0)
   const [pagina, setPagina] = useState(1)
   const [totalPaginas, setTotalPaginas] = useState(1)
@@ -33,26 +33,9 @@ function ITUsers({ onSelect }) {
     setErro('')
     try {
       const resposta = await buscarColaboradores(token, { pagina, porPagina: COLABORADORES_POR_PAGINA })
-      const lista = resposta.itens
-      setUsuarios(lista)
+      setUsuarios(resposta.itens)
       setTotal(resposta.total)
       setTotalPaginas(resposta.totalPaginas)
-      // Só busca o histórico de chamados de quem está NESTA página — a
-      // API de trás (GET /usuarios/:id/chamados) continua sem paginação
-      // própria de propósito (essas contagens têm que ser exatas), mas não
-      // faz sentido buscar isso pra colaboradores de outras páginas que
-      // nem estão sendo mostrados agora.
-      const listasDeChamados = await Promise.all(lista.map(u => buscarChamadosDoColaborador(token, u.id)))
-      const novasContagens = {}
-      lista.forEach((u, indice) => {
-        const chamadosDoUsuario = listasDeChamados[indice]
-        novasContagens[u.id] = {
-          total: chamadosDoUsuario.length,
-          abertos: chamadosDoUsuario.filter(c => c.status !== 'finalizado').length,
-          finalizados: chamadosDoUsuario.filter(c => c.status === 'finalizado').length,
-        }
-      })
-      setContagens(novasContagens)
     } catch (e) {
       if (!tratarErroApi(e)) setErro(traduzirErroApi(e))
     } finally {
@@ -65,25 +48,46 @@ function ITUsers({ onSelect }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pagina])
 
+  // height:'100%' + coluna flex: o wrapper assume TODO o espaço vertical
+  // que o `main` do layout já reserva (ver EmployeeLayout.jsx/
+  // ITLayout.jsx), em vez de crescer com o conteúdo. Só o bloco do meio
+  // (EstadoRequisicao + grid) rola por dentro — `flex:'1 1 auto'` +
+  // `minHeight:0` é o que permite o overflow funcionar dentro de uma
+  // coluna flex (mesma técnica de TicketPanel.jsx). Título e paginação
+  // ficam FORA dessa área, sempre visíveis, nunca soterrados pelo scroll.
   return (
-    <div className="animate-fade-up">
-      <div style={{ marginBottom: 26 }}>
+    <div className="animate-fade-up" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ marginBottom: 26, flexShrink: 0 }}>
         <h1 style={estilos.sectionTitle}>Colaboradores</h1>
         <p style={{ color: CORES_APP.textoFraco, fontSize: 14, margin: 0 }}>
           {carregando ? 'Carregando...' : `${total} colaboradores cadastrados`}
         </p>
       </div>
+      <div style={{ flex: '1 1 auto', minHeight: 0, overflowY: 'auto' }}>
       <EstadoRequisicao carregando={carregando} erro={erro} aoTentarNovamente={buscar}>
         {/* auto-fit (não auto-fill): com poucos colaboradores na página,
             auto-fill reservava colunas "fantasmas" vazias até o fim da
             linha (cada uma ainda ocupando 1fr de largura, só que sem
             conteúdo) — sobrava um vão em branco à direita mesmo a página
             tendo espaço de sobra. auto-fit colapsa as colunas sem
-            conteúdo a 0, deixando os cards que existem esticarem (1fr)
-            pra preencher a linha toda de verdade. */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 18 }}>
+            conteúdo a 0, deixando os cards que existem esticarem pra
+            preencher a linha toda de verdade.
+            Teto de 380px (não 1fr) no minmax — com 1fr, a ÚNICA coluna
+            que sobra na última página (ex: resto de 1 item) vira 100% da
+            largura da linha inteira, um card enorme e desproporcional.
+            Com um teto fixo, o card ainda estica pra preencher espaço
+            vazio quando faz sentido, mas nunca passa de um tamanho de
+            card razoável, sozinho ou acompanhado. justifyContent:'start'
+            (não 'center') mantém os cards alinhados à esquerda — mesmo
+            com um item sobrando sozinho na última página, ele fica no
+            canto esquerdo como qualquer outro card, não centralizado. */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 380px))', gap: 18, justifyContent: 'start' }}>
           {usuarios.map(usuario => {
-            const c = contagens[usuario.id] ?? { total: 0, abertos: 0, finalizados: 0 }
+            const c = {
+              total: usuario.totalChamados ?? 0,
+              abertos: usuario.chamadosAbertos ?? 0,
+              finalizados: usuario.chamadosFinalizados ?? 0,
+            }
             return (
               <div key={usuario.id} onClick={() => onSelect(usuario)}
                 style={{ ...estilos.card, padding: '20px', cursor: 'pointer', opacity: usuario.emAguardoDeCadastro ? 0.7 : 1 }}>
@@ -122,6 +126,7 @@ function ITUsers({ onSelect }) {
           })}
         </div>
       </EstadoRequisicao>
+      </div>
       <Paginacao paginaAtual={pagina} totalPaginas={totalPaginas} aoMudarPagina={setPagina} />
     </div>
   )

@@ -130,10 +130,16 @@ function ITLayout({ tela, usuario, onNav, onLogout, onTrocarSenha, children }) {
     </aside>
   )
 
+  // height (não minHeight) + overflow hidden nos dois wrappers, mesmo
+  // raciocínio de EmployeeLayout.jsx: fecha a página na altura exata da
+  // viewport, `main` vira o container de scroll padrão pra qualquer tela
+  // comum, e as 6 telas paginadas usam `height:'100%'` no próprio wrapper
+  // pra assumir seu próprio scroll interno com a paginação ancorada fora
+  // dele (mesma técnica de TicketPanel.jsx).
   if (mobile) {
     return (
-      <div style={{ minHeight: '100vh', background: CORES_APP.fundo, display: 'flex', flexDirection: 'column' }}>
-        <header style={{ background: CORES_APP.card, borderBottom: `1px solid ${CORES_APP.bordaSuave}`, height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', position: 'sticky', top: 0, zIndex: 40, flexShrink: 0 }}>
+      <div style={{ height: '100vh', overflow: 'hidden', background: CORES_APP.fundo, display: 'flex', flexDirection: 'column' }}>
+        <header style={{ background: CORES_APP.card, borderBottom: `1px solid ${CORES_APP.bordaSuave}`, height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', zIndex: 40, flexShrink: 0 }}>
           <Logo size={30} />
           <button onClick={() => setMenuAberto(v => !v)} style={{ background: 'none', border: 'none', color: CORES_APP.textoFraco, cursor: 'pointer', display: 'flex' }}>
             <IconMenu width={22} height={22} />
@@ -146,15 +152,15 @@ function ITLayout({ tela, usuario, onNav, onLogout, onTrocarSenha, children }) {
             </div>
           </div>
         )}
-        <main style={{ flex: 1, padding: '22px 16px', boxSizing: 'border-box' }}>{children}</main>
+        <main style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '22px 16px', boxSizing: 'border-box' }}>{children}</main>
       </div>
     )
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: CORES_APP.fundo, display: 'flex' }}>
+    <div style={{ height: '100vh', overflow: 'hidden', background: CORES_APP.fundo, display: 'flex' }}>
       <div style={{ width: 220, position: 'fixed', top: 0, left: 0, bottom: 0, zIndex: 40 }}>{sidebar}</div>
-      <main style={{ flex: 1, marginLeft: 220, padding: '34px 32px', minHeight: '100vh', boxSizing: 'border-box' }}>{children}</main>
+      <main style={{ flex: 1, marginLeft: 220, padding: '34px 32px', height: '100vh', overflowY: 'auto', boxSizing: 'border-box' }}>{children}</main>
     </div>
   )
 }

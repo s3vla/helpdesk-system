@@ -43,8 +43,20 @@ function Paginacao({ paginaAtual, totalPaginas, aoMudarPagina }) {
     alignItems: 'center', justifyContent: 'center', flexShrink: 0,
   }
 
+  // Fica de propósito FORA da área com overflowY:'auto' de quem chama
+  // (ver ITUsers.jsx e as outras 5 telas paginadas) — não position:sticky
+  // nem fixed, porque com um ancestral de altura travada de verdade
+  // (height:'100%' + flex column, mesma técnica de TicketPanel.jsx) a
+  // paginação já fica ancorada embaixo simplesmente por estar fora do
+  // bloco que rola, sem precisar de nenhum truque de posicionamento CSS.
+  // Borda superior separa visualmente da lista, já que agora fica
+  // sempre visível ali, mesmo com a lista rolando por baixo dela.
   return (
-    <nav style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, marginTop: 20, flexWrap: 'wrap' }} aria-label="Paginação">
+    <nav style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, flexWrap: 'wrap',
+      marginTop: 20, paddingTop: 16, flexShrink: 0,
+      borderTop: `1px solid ${CORES_APP.bordaSuave}`,
+    }} aria-label="Paginação">
       <button type="button" onClick={() => aoMudarPagina(paginaAtual - 1)} disabled={paginaAtual === 1}
         title="Página anterior"
         style={{ ...estiloBotaoBase, background: CORES_APP.fundoCampo, border: `1px solid ${CORES_APP.borda}`, color: paginaAtual === 1 ? CORES_APP.borda : CORES_APP.textoFraco, cursor: paginaAtual === 1 ? 'default' : 'pointer' }}>

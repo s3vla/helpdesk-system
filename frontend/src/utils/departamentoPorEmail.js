@@ -22,6 +22,7 @@ const DEPARTAMENTO_POR_PREFIXO = {
   marketing: 'Marketing',
   fiscal: 'Fiscal',
   deposito: 'Depósito',
+  deposito02: 'Depósito',
   logistica: 'Logística',
   recepcao: 'Recepção',
   fabrica: 'Fábrica',
