@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
 import { Chamado } from '../chamados/entities/chamado.entity';
+import { Usuario } from '../usuarios/entities/usuario.entity';
 import { Aviso } from '../avisos/entities/aviso.entity';
 import { CategoriaChamado } from '../common/enums/categoria-chamado.enum';
 import { PrioridadeChamado } from '../common/enums/prioridade-chamado.enum';
@@ -251,6 +252,31 @@ export class EmailService {
       html: this.envelope(`
         <p>Olá! Boas notícias: <strong>${nomeTecnico}</strong> começou a atender o seu chamado "${chamado.titulo}".</p>
         <p>Você pode acompanhar o andamento ou adicionar mais informações a qualquer momento pelo sistema.</p>
+        ${this.botaoLink(this.linkDoChamado(chamado.id), 'Ver chamado no sistema')}
+      `),
+    });
+  }
+
+  // Dispara quando um colaborador é adicionado como observador ("Cc") de
+  // um chamado — mensagem PRÓPRIA, deliberadamente diferente da genérica
+  // de atualização abaixo: explica O QUE aconteceu ("você foi adicionado
+  // como observador") e o que isso significa daqui pra frente (vai
+  // receber as próximas atualizações), não só "o chamado mudou". Sem
+  // `autorId` pra excluir — quem adiciona é sempre técnico, nunca o
+  // próprio observador, então não existe o caso "notificar a própria
+  // ação". `chamado.solicitante` não precisa vir carregado aqui (só usa
+  // id/título/categoria/status via dadosChamado, que já lida com isso).
+  async enviarNotificacaoAdicionadoComoObservador(
+    chamado: Chamado,
+    colaborador: Usuario,
+  ): Promise<void> {
+    await this.enviarComSeguranca({
+      to: colaborador.email,
+      subject: `Você foi adicionado ao chamado ${numeroChamado(chamado.id)} — ${chamado.titulo}`,
+      html: this.envelope(`
+        <p>Olá! Você foi adicionado como observador no chamado "${chamado.titulo}".</p>
+        <p>A partir de agora você vai receber por e-mail as próximas atualizações desse chamado (mudança de status, novos comentários), mesmo sem ser quem abriu.</p>
+        ${this.blocoDados(this.dadosChamado(chamado))}
         ${this.botaoLink(this.linkDoChamado(chamado.id), 'Ver chamado no sistema')}
       `),
     });

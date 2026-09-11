@@ -15,6 +15,7 @@ import { PaginacaoDto } from '../common/dto/paginacao.dto';
 import { UsuariosService } from './usuarios.service';
 import { ChamadosService } from '../chamados/chamados.service';
 import { mapUsuarioParaResposta } from './dto/usuario-response.dto';
+import { ColaboradorListaResponseDto } from './dto/colaborador-lista-response.dto';
 import { mapChamadoParaResposta } from '../chamados/dto/chamado-response.dto';
 
 // GET /usuarios/:id/chamados nunca deve truncar: ITUsers.jsx soma esses
@@ -43,7 +44,28 @@ export class UsuariosController {
       filtros.pagina,
       filtros.limite,
     );
-    return { ...resultado, itens: resultado.itens.map(mapUsuarioParaResposta) };
+    // Uma query agrupada só pra TODOS os colaboradores desta página, em
+    // vez do frontend pedir GET /usuarios/:id/chamados uma vez por linha
+    // (ver comentário em ChamadosService.contarPorSolicitantes).
+    const contagens = await this.chamadosService.contarPorSolicitantes(
+      resultado.itens.map((usuario) => usuario.id),
+    );
+    const itens: ColaboradorListaResponseDto[] = resultado.itens.map(
+      (usuario) => {
+        const c = contagens.get(usuario.id) ?? {
+          total: 0,
+          abertos: 0,
+          finalizados: 0,
+        };
+        return {
+          ...mapUsuarioParaResposta(usuario),
+          totalChamados: c.total,
+          chamadosAbertos: c.abertos,
+          chamadosFinalizados: c.finalizados,
+        };
+      },
+    );
+    return { ...resultado, itens };
   }
 
   // Precisa vir ANTES de @Get(':id/chamados') só por hábito de organização

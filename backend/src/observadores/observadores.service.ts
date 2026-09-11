@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -10,9 +11,12 @@ import { ChamadoObservador } from './entities/chamado-observador.entity';
 import { Chamado } from '../chamados/entities/chamado.entity';
 import { Usuario } from '../usuarios/entities/usuario.entity';
 import { TipoUsuario } from '../common/enums/tipo-usuario.enum';
+import { EmailService } from '../email/email.service';
 
 @Injectable()
 export class ObservadoresService {
+  private readonly logger = new Logger(ObservadoresService.name);
+
   constructor(
     @InjectRepository(ChamadoObservador)
     private readonly observadorRepository: Repository<ChamadoObservador>,
@@ -25,6 +29,7 @@ export class ObservadoresService {
     // ativa (não resetada) antes de deixar um técnico adicioná-lo como Cc.
     @InjectRepository(Usuario)
     private readonly usuarioRepository: Repository<Usuario>,
+    private readonly emailService: EmailService,
   ) {}
 
   async adicionar(chamadoId: number, usuarioId: number): Promise<void> {
@@ -72,11 +77,20 @@ export class ObservadoresService {
     });
     await this.observadorRepository.save(observador);
 
-    // TODO: notificar por e-mail ("Você foi incluído para acompanhar o
-    // chamado X") assim que existir infraestrutura de e-mail no projeto —
-    // decisão explícita de deixar o envio de fora por enquanto (mesma
-    // decisão já tomada antes pra menção de anexo em notificação),
-    // implementando o resto da funcionalidade normalmente.
+    // Fire-and-forget, mesmo padrão de ComentariosService.criar — uma
+    // falha de SMTP aqui não pode derrubar a resposta HTTP de "observador
+    // adicionado com sucesso" (a ação principal já foi concluída acima).
+    // `chamado` já veio carregado com `solicitante` (ver findOne no topo
+    // desta função), que é o que dadosChamado() precisa pro corpo do
+    // e-mail.
+    void this.emailService
+      .enviarNotificacaoAdicionadoComoObservador(chamado, usuario)
+      .catch((erro: unknown) =>
+        this.logger.error(
+          'Falha ao notificar novo observador por e-mail',
+          erro,
+        ),
+      );
   }
 
   async remover(chamadoId: number, usuarioId: number): Promise<void> {

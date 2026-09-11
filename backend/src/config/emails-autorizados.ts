@@ -45,6 +45,7 @@ export const EMAILS_COLABORADOR_AUTORIZADOS = [
   'marketing@novatechagro.com.br',
   'fiscal@novatechagro.com.br',
   'deposito@novatechagro.com.br',
+  'deposito02@novatechagro.com.br',
   'logistica@novatechagro.com.br',
   'sandro.huber@novatechagro.com.br',
   'recepcao@novatechagro.com.br',

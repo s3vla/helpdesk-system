@@ -29,6 +29,7 @@ import { LogAuditoriaService } from '../log-auditoria/log-auditoria.service';
 import { mapLogAuditoriaParaResposta } from '../log-auditoria/dto/log-auditoria-response.dto';
 import { FiltrosChamadoDto } from './dto/filtros-chamado.dto';
 import { BuscaChamadoDto } from './dto/busca-chamado.dto';
+import { VerificarSemelhantesDto } from './dto/verificar-semelhantes.dto';
 import { PaginacaoDto } from '../common/dto/paginacao.dto';
 import { PeriodoChamadoDto } from './dto/periodo-chamado.dto';
 import { MetricasChamadoDto } from './dto/metricas-chamado.dto';
@@ -99,6 +100,24 @@ export class ChamadosController {
       filtros.limite,
     );
     return { ...resultado, itens: resultado.itens.map(mapChamadoParaResposta) };
+  }
+
+  // Chamado no MEIO do preenchimento do formulário "Abrir chamado" (ainda
+  // não existe) — colaborador digitando categoria/descrição, avisando se
+  // já tem algo parecido em aberto. Sem @Roles, mesmo motivo de /meus e
+  // /observando: sempre pelos PRÓPRIOS chamados de quem está autenticado
+  // (`usuarioAtual.sub`), nunca de outro colaborador. Precisa vir ANTES
+  // de @Get(':id') pelo mesmo motivo de posicionamento das rotas acima.
+  @Get('verificar-semelhantes')
+  async verificarSemelhantes(
+    @Query() filtros: VerificarSemelhantesDto,
+    @UsuarioAtual() usuarioAtual: JwtPayload,
+  ) {
+    return this.chamadosService.buscarSemelhantesDoUsuario(
+      usuarioAtual.sub,
+      filtros.categoria,
+      filtros.texto,
+    );
   }
 
   // Motor genérico de agregação pro Dashboard TI configurável (ver

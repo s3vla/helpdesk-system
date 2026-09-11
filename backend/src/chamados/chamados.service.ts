@@ -8,7 +8,7 @@ import {
 import { TipoUsuario } from '../common/enums/tipo-usuario.enum';
 import { TipoComentario } from '../common/enums/tipo-comentario.enum';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Between, FindOptionsWhere, In, Like, Repository } from 'typeorm';
+import { Between, FindOptionsWhere, In, Like, Not, Repository } from 'typeorm';
 import { Chamado } from './entities/chamado.entity';
 import { Usuario } from '../usuarios/entities/usuario.entity';
 import { Comentario } from '../comentarios/entities/comentario.entity';
@@ -35,6 +35,10 @@ import { ObservadoresService } from '../observadores/observadores.service';
 import { EmailService } from '../email/email.service';
 import { calcularNivelSugerido } from './nivel-triagem.util';
 import { agruparChamadosRepetidos, GrupoRepetido } from './estatisticas.util';
+import {
+  extrairPalavrasChave,
+  contarPalavrasEmComum,
+} from '../solucoes-conhecidas/palavras-chave.util';
 import {
   calcularPaginacao,
   montarRespostaPaginada,
@@ -127,6 +131,10 @@ const VALORES_POR_AGRUPAMENTO: Record<AgruparPorEnum, string[]> = {
 };
 
 const LIMITE_RANKING_PADRAO = 10;
+
+// Mesmo teto de solucoes-conhecidas.service.ts (MAXIMO_SUGESTOES) — um
+// aviso com muitos links vira ruído em vez de ajuda.
+const MAXIMO_SEMELHANTES = 3;
 
 @Injectable()
 export class ChamadosService {
@@ -371,6 +379,107 @@ export class ChamadosService {
       total,
       paginacao.pagina,
       paginacao.limite,
+    );
+  }
+
+  // Contagem de chamados (total/abertos/finalizados) de VÁRIOS solicitantes
+  // de uma vez, numa query GROUP BY só — usado por UsuariosController pra
+  // montar os cards de "Colaboradores" sem precisar de uma chamada GET
+  // /usuarios/:id/chamados por linha da lista (era exatamente esse padrão
+  // N+1 que, com 20+ colaboradores na página, gerava requisição de sobra
+  // suficiente pra estourar o rate limit global só de abrir a tela — ver
+  // README/histórico do bug). Mesmo padrão de query agrupada já usado em
+  // AvisosService (contagem de leitores) e ForumService (contagem de
+  // comentários).
+  async contarPorSolicitantes(
+    solicitanteIds: number[],
+  ): Promise<
+    Map<number, { total: number; abertos: number; finalizados: number }>
+  > {
+    const mapa = new Map<
+      number,
+      { total: number; abertos: number; finalizados: number }
+    >();
+    if (solicitanteIds.length === 0) return mapa;
+
+    const linhas = await this.chamadoRepository
+      .createQueryBuilder('chamado')
+      .select('chamado.solicitanteId', 'solicitanteId')
+      .addSelect('chamado.status', 'status')
+      .addSelect('COUNT(*)', 'total')
+      .where('chamado.solicitanteId IN (:...ids)', { ids: solicitanteIds })
+      .groupBy('chamado.solicitanteId')
+      .addGroupBy('chamado.status')
+      .getRawMany<{
+        solicitanteId: number;
+        status: StatusChamado;
+        total: string;
+      }>();
+
+    for (const linha of linhas) {
+      const atual = mapa.get(linha.solicitanteId) ?? {
+        total: 0,
+        abertos: 0,
+        finalizados: 0,
+      };
+      const quantidade = Number(linha.total);
+      atual.total += quantidade;
+      if (linha.status === StatusChamado.FINALIZADO) {
+        atual.finalizados += quantidade;
+      } else {
+        atual.abertos += quantidade;
+      }
+      mapa.set(linha.solicitanteId, atual);
+    }
+    return mapa;
+  }
+
+  // GET /chamados/verificar-semelhantes — chamado no MEIO do preenchimento
+  // do formulário "Abrir chamado" (colaborador ainda digitando, chamado
+  // nem existe ainda), pra avisar "você já tem algo parecido em aberto"
+  // antes de duplicar. Deliberadamente DIFERENTE de
+  // solucoes-sugeridas: aquela é TECNICO-only, opera sobre um chamado JÁ
+  // criado, e sugere SOLUÇÕES resolvidas de qualquer colaborador; esta
+  // aqui é aberta a qualquer autenticado, roda ANTES de criar, e só olha
+  // pros PRÓPRIOS chamados ainda abertos (nunca de outro colaborador —
+  // não faz sentido avisar alguém sobre o chamado de outra pessoa, que
+  // ele nem tem acesso pra ver).
+  async buscarSemelhantesDoUsuario(
+    usuarioId: number,
+    categoria: CategoriaChamado,
+    texto: string,
+  ): Promise<Pick<Chamado, 'id' | 'titulo' | 'status'>[]> {
+    const candidatos = await this.chamadoRepository.find({
+      where: {
+        solicitante: { id: usuarioId },
+        categoria,
+        status: Not(StatusChamado.FINALIZADO),
+      },
+      select: { id: true, titulo: true, descricao: true, status: true },
+    });
+    if (candidatos.length === 0) return [];
+
+    const palavrasDoTexto = extrairPalavrasChave(texto);
+
+    return (
+      candidatos
+        .map((chamado) => ({
+          chamado,
+          pontuacao: contarPalavrasEmComum(
+            palavrasDoTexto,
+            extrairPalavrasChave(`${chamado.titulo} ${chamado.descricao}`),
+          ),
+        }))
+        // Mesma regra de solucoes-sugeridas: só "mesma categoria" não basta
+        // sozinho, precisa ter pelo menos uma palavra de assunto em comum.
+        .filter((item) => item.pontuacao > 0)
+        .sort((a, b) => b.pontuacao - a.pontuacao)
+        .slice(0, MAXIMO_SEMELHANTES)
+        .map(({ chamado }) => ({
+          id: chamado.id,
+          titulo: chamado.titulo,
+          status: chamado.status,
+        }))
     );
   }
 
@@ -673,6 +782,18 @@ export class ChamadosService {
           imagensUrls: dto.imagensUrlsSolucao ?? [],
         });
       }
+    }
+
+    // Reabertura (FINALIZADO -> PARADO) com `marcadaComo: true` — mesmo
+    // campo do DTO usado pra "criar" a solução na finalização, aqui
+    // reaproveitado pra ATUALIZAR uma solução que JÁ existe (toda
+    // finalização já cria uma, marcada ou não — ver
+    // SolucoesConhecidasService.criar). Só marca (nunca desmarca): não
+    // existe UI hoje pra "desmarcar como conhecida", e este DTO não tem
+    // como distinguir "não mandou o campo" de "mandou false" de propósito
+    // simples aqui.
+    if (dto.status === StatusChamado.PARADO && dto.marcadaComo) {
+      await this.solucoesConhecidasService.marcarComoConhecida(chamado.id);
     }
 
     // "Aguardando resposta de": só faz sentido durante atendimento ativo.

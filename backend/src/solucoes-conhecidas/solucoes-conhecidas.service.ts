@@ -81,6 +81,24 @@ export class SolucoesConhecidasService {
     return this.solucaoRepository.save(solucao);
   }
 
+  // Ao contrário de `criar` (chamada só na PRIMEIRA finalização), este
+  // método atualiza uma solução que JÁ EXISTE — usado quando o técnico
+  // reabre um chamado finalizado e aproveita pra marcar a solução
+  // original como conhecida (ver ChamadosService.atualizarStatus,
+  // transição PARADO com marcadaComo:true). Idempotente: chamar de novo
+  // numa solução já marcada não faz nada. Sem lançar erro se não existir
+  // solução — só deveria acontecer para um chamado que nunca foi
+  // finalizado, e reabrir via UI só é possível a partir de FINALIZADO,
+  // então isso é só um backstop defensivo, não um caminho esperado.
+  async marcarComoConhecida(chamadoId: number): Promise<void> {
+    const solucao = await this.solucaoRepository.findOne({
+      where: { chamado: { id: chamadoId } },
+    });
+    if (!solucao || solucao.marcadaComo) return;
+    solucao.marcadaComo = true;
+    await this.solucaoRepository.save(solucao);
+  }
+
   private async contarOcorrenciasPorCategoria(): Promise<
     Record<string, number>
   > {
