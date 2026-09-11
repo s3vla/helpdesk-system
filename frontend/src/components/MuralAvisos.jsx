@@ -4,7 +4,7 @@ import { useAuth } from '../hooks/useAuth'
 import { buscarAvisos, marcarAvisoLido, removerAviso, atualizarAviso, buscarLeitoresAviso } from '../services/avisosService'
 import { traduzirErroApi } from '../utils/traduzirErroApi'
 import { formatarDataHora } from '../utils/formatters'
-import { IconMegaphone, IconAlertTriangle, IconClock, IconInfo, IconEdit, IconTrash, IconPlus, IconChevronDown, IconChevronUp } from './icons'
+import { IconAlertTriangle, IconClock, IconInfo, IconEdit, IconTrash, IconPlus, IconChevronDown, IconChevronUp } from './icons'
 import EstadoRequisicao from './EstadoRequisicao'
 import PublicarAvisoModal from './PublicarAvisoModal'
 import Paginacao from './Paginacao'
@@ -131,10 +131,7 @@ function MuralAvisos({ podePublicar, onAlterou }) {
     <div className="animate-fade-up" style={{ maxWidth: 860, margin: '0 auto' }}>
       <div style={{ marginBottom: 18, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-            <div style={{ width: 32, height: 32, borderRadius: 10, background: CORES_TI.accentBg, border: `1px solid ${CORES_TI.accentBorda}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: CORES_TI.accent }}><IconMegaphone width={16} height={16} /></div>
-            <h1 style={estilos.sectionTitle}>Mural de Avisos</h1>
-          </div>
+          <h1 style={estilos.sectionTitle}>Mural de Avisos</h1>
           <p style={{ color: CORES_APP.textoFraco, fontSize: 14, margin: 0 }}>Comunicados da equipe de TI para toda a empresa</p>
         </div>
         {podePublicar && (
