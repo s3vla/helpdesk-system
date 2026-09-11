@@ -17,13 +17,14 @@ import CriarDashboard from './components/CriarDashboard'
 import MuralAvisos from './components/MuralAvisos'
 import MinhasTarefas from './components/MinhasTarefas'
 import MinhasAnotacoes from './components/MinhasAnotacoes'
+import Forum from './components/Forum'
 import TicketPanel from './components/TicketPanel'
 import TrocarSenhaModal from './components/TrocarSenhaModal'
 import { useAuth } from './hooks/useAuth'
 import { buscarContagemNaoLidos } from './services/avisosService'
 
-const TELAS_COLABORADOR = ['emp-home', 'emp-tickets', 'emp-observing', 'emp-sent', 'emp-avisos', 'emp-tarefas', 'emp-anotacoes']
-const TELAS_TI = ['it-dash', 'it-users', 'it-user', 'it-solutions', 'it-abrir-chamado', 'it-metricas', 'it-metricas-config', 'it-avisos', 'it-tarefas']
+const TELAS_COLABORADOR = ['emp-home', 'emp-tickets', 'emp-observing', 'emp-sent', 'emp-avisos', 'emp-tarefas', 'emp-anotacoes', 'emp-forum']
+const TELAS_TI = ['it-dash', 'it-users', 'it-user', 'it-solutions', 'it-abrir-chamado', 'it-metricas', 'it-metricas-config', 'it-avisos', 'it-tarefas', 'it-forum']
 
 // App.jsx só orquestra qual tela mostrar — não guarda mais usuários/chamados
 // centralizados (isso agora vive na API, cada tela busca o que precisa via
@@ -119,6 +120,7 @@ function App() {
         )}
         {telaColaborador === 'emp-tarefas' && <MinhasTarefas />}
         {telaColaborador === 'emp-anotacoes' && <MinhasAnotacoes />}
+        {telaColaborador === 'emp-forum' && <Forum podeAlterarStatus={false} />}
         {chamadoSelecionado && (
           <TicketPanel
             chamadoInicial={chamadoSelecionado}
@@ -165,6 +167,7 @@ function App() {
       {telaTI === 'it-metricas-config' && <CriarDashboard />}
       {telaTI === 'it-avisos' && <MuralAvisos podePublicar={true} />}
       {telaTI === 'it-tarefas' && <MinhasTarefas />}
+      {telaTI === 'it-forum' && <Forum podeAlterarStatus={true} />}
       {chamadoSelecionado && (
         <TicketPanel
           chamadoInicial={chamadoSelecionado}

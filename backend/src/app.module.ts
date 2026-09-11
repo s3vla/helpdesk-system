@@ -20,6 +20,7 @@ import { LogAuditoriaModule } from './log-auditoria/log-auditoria.module';
 import { AvisosModule } from './avisos/avisos.module';
 import { TarefasModule } from './tarefas/tarefas.module';
 import { AnotacoesModule } from './anotacoes/anotacoes.module';
+import { ForumModule } from './forum/forum.module';
 import { Usuario } from './usuarios/entities/usuario.entity';
 import { Chamado } from './chamados/entities/chamado.entity';
 import { Comentario } from './comentarios/entities/comentario.entity';
@@ -31,6 +32,8 @@ import { Aviso } from './avisos/entities/aviso.entity';
 import { AvisoLeitura } from './avisos/entities/aviso-leitura.entity';
 import { Tarefa } from './tarefas/entities/tarefa.entity';
 import { Anotacao } from './anotacoes/entities/anotacao.entity';
+import { SugestaoForum } from './forum/entities/sugestao-forum.entity';
+import { ComentarioForum } from './forum/entities/comentario-forum.entity';
 
 @Module({
   imports: [
@@ -64,6 +67,8 @@ import { Anotacao } from './anotacoes/entities/anotacao.entity';
           AvisoLeitura,
           Tarefa,
           Anotacao,
+          SugestaoForum,
+          ComentarioForum,
         ],
         // Migrations (não mais synchronize:true) são quem manda no schema —
         // ver src/migrations/ e src/data-source.ts (usado só pela CLI). O
@@ -109,6 +114,7 @@ import { Anotacao } from './anotacoes/entities/anotacao.entity';
     AvisosModule,
     TarefasModule,
     AnotacoesModule,
+    ForumModule,
   ],
   controllers: [AppController],
   providers: [

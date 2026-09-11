@@ -56,6 +56,19 @@ export const CORES_TIPO_AVISO = {
   MANUTENCAO: { bg: 'rgba(245,158,11,0.12)', fg: '#f59e0b', borda: 'rgba(245,158,11,0.3)', label: 'Manutenção' },
 }
 
+// Fonte ÚNICA da cor/rótulo de cada status de sugestão do Fórum — usada
+// tanto no badge do card (ForumSugestoes.jsx) quanto no seletor da tela de
+// detalhe (ForumDetalheSugestao.jsx). Reaproveita paletas já aprovadas em
+// vez de inventar cor nova: cinza = mesmo tom de CORES_STATUS.parado
+// ("aguardando"), azul = accent da área técnica, verde = mesmo tom de
+// "Resolvido"/ação positiva, vermelho = mesmo tom de prioridade alta.
+export const CORES_STATUS_SUGESTAO = {
+  ABERTA: { bg: CORES_STATUS.parado.bg, fg: CORES_STATUS.parado.fg, borda: 'rgba(138,150,163,0.35)', label: 'Aberta' },
+  EM_ANALISE: { bg: CORES_TI.accentBg, fg: CORES_TI.accent, borda: CORES_TI.accentBorda, label: 'Em análise' },
+  IMPLEMENTADA: { bg: CORES_STATUS.finalizado.bg, fg: CORES_STATUS.finalizado.fg, borda: 'rgba(0,120,81,0.3)', label: 'Implementada' },
+  RECUSADA: { bg: CORES_PRIORIDADE.alta.bg, fg: CORES_PRIORIDADE.alta.fg, borda: CORES_PRIORIDADE.alta.borda, label: 'Recusada' },
+}
+
 // Tokens de fundo/texto do sistema INTEIRO (pós-login — as telas de auth
 // continuam fixas no tema claro de authTheme.js, ver LoginScreen.jsx),
 // estruturados por modo. TEMA_CLARO é a mesma paleta já aprovada e usada em

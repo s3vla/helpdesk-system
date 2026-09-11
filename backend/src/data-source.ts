@@ -22,6 +22,8 @@ import { Aviso } from './avisos/entities/aviso.entity';
 import { AvisoLeitura } from './avisos/entities/aviso-leitura.entity';
 import { Tarefa } from './tarefas/entities/tarefa.entity';
 import { Anotacao } from './anotacoes/entities/anotacao.entity';
+import { SugestaoForum } from './forum/entities/sugestao-forum.entity';
+import { ComentarioForum } from './forum/entities/comentario-forum.entity';
 
 export const AppDataSource = new DataSource({
   type: 'postgres',
@@ -38,6 +40,8 @@ export const AppDataSource = new DataSource({
     AvisoLeitura,
     Tarefa,
     Anotacao,
+    SugestaoForum,
+    ComentarioForum,
   ],
   // migrations (não schema automático) é quem manda no schema a partir de
   // agora — ver app.module.ts (synchronize: false) e o README pra o

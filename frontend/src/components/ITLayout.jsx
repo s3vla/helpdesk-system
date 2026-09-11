@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import Logo from './Logo'
 import { useWindowWidth } from '../hooks/useWindowWidth'
-import { IconMenu, IconLock, IconLogOut, IconSun, IconMoon, IconBarChart, IconSettings, IconMegaphone, IconListChecks } from './icons'
+import { IconMenu, IconLock, IconLogOut, IconSun, IconMoon, IconBarChart, IconSettings, IconMegaphone, IconListChecks, IconLightbulb } from './icons'
 import { CORES_TI, CORES_APP } from '../styles/theme'
 import { obterIniciais } from '../utils/formatters'
 import { useTheme } from '../hooks/useTheme'
@@ -116,6 +116,9 @@ function ITLayout({ tela, usuario, onNav, onLogout, onTrocarSenha, children }) {
           style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: `1px solid ${CORES_APP.borda}`, borderRadius: 9, padding: '10px 13px', color: CORES_APP.textoFraco, fontFamily: 'Outfit, sans-serif', fontSize: 13, cursor: 'pointer', textAlign: 'left' }}>
           {modo === 'claro' ? <IconMoon width={14} height={14} /> : <IconSun width={14} height={14} />}
           {modo === 'claro' ? 'Tema escuro' : 'Tema claro'}
+        </button>
+        <button onClick={() => { onNav('it-forum'); setMenuAberto(false) }} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: `1px solid ${CORES_APP.borda}`, borderRadius: 9, padding: '10px 13px', color: CORES_APP.textoFraco, fontFamily: 'Outfit, sans-serif', fontSize: 13, cursor: 'pointer', textAlign: 'left' }}>
+          <IconLightbulb width={14} height={14} /> Fórum de Sugestões
         </button>
         <button onClick={() => { onTrocarSenha(); setMenuAberto(false) }} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: `1px solid ${CORES_APP.borda}`, borderRadius: 9, padding: '10px 13px', color: CORES_APP.textoFraco, fontFamily: 'Outfit, sans-serif', fontSize: 13, cursor: 'pointer', textAlign: 'left' }}>
           <IconLock width={14} height={14} /> Trocar senha

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import Logo from './Logo'
 import { useWindowWidth } from '../hooks/useWindowWidth'
 import { obterIniciais } from '../utils/formatters'
-import { IconEye, IconMenu, IconLock, IconLogOut, IconSun, IconMoon, IconMegaphone, IconListChecks, IconNote } from './icons'
+import { IconEye, IconMenu, IconLock, IconLogOut, IconSun, IconMoon, IconMegaphone, IconListChecks, IconNote, IconLightbulb } from './icons'
 import { CORES_APP } from '../styles/theme'
 import { useTheme } from '../hooks/useTheme'
 import ChatFlutuante from './ChatFlutuante'
@@ -108,6 +108,10 @@ function EmployeeLayout({ user, telaAtiva, onNav, onLogout, onTrocarSenha, largu
                   style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left', background: 'none', border: 'none', color: CORES_APP.texto, fontSize: 13, fontFamily: 'Inter, sans-serif', padding: '9px 10px', borderRadius: 6, cursor: 'pointer' }}>
                   {modo === 'claro' ? <IconMoon width={14} height={14} /> : <IconSun width={14} height={14} />}
                   {modo === 'claro' ? 'Tema escuro' : 'Tema claro'}
+                </button>
+                <button onClick={() => { setMenuAberto(false); onNav('emp-forum') }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left', background: 'none', border: 'none', color: CORES_APP.texto, fontSize: 13, fontFamily: 'Inter, sans-serif', padding: '9px 10px', borderRadius: 6, cursor: 'pointer' }}>
+                  <IconLightbulb width={14} height={14} /> Fórum de Sugestões
                 </button>
                 <button onClick={() => { setMenuAberto(false); onTrocarSenha() }}
                   style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left', background: 'none', border: 'none', color: CORES_APP.texto, fontSize: 13, fontFamily: 'Inter, sans-serif', padding: '9px 10px', borderRadius: 6, cursor: 'pointer' }}>
