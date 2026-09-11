@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/useAuth'
 import { criarAviso, atualizarAviso } from '../services/avisosService'
 import { traduzirErroApi } from '../utils/traduzirErroApi'
 import { paraDatetimeLocal } from '../utils/formatters'
+import { useEnterParaEnviar } from '../hooks/useEnterParaEnviar'
 
 const TIPOS = ['INFORMATIVO', 'ALERTA', 'MANUTENCAO']
 
@@ -26,6 +27,7 @@ function PublicarAvisoModal({ avisoEmEdicao, onFechar, onSalvou }) {
   const [salvando, setSalvando] = useState(false)
 
   const podeSalvar = titulo.trim() && mensagem.trim()
+  const aoTeclarEnter = useEnterParaEnviar(salvar)
 
   function fechar() {
     if (!salvando) onFechar()
@@ -73,7 +75,7 @@ function PublicarAvisoModal({ avisoEmEdicao, onFechar, onSalvou }) {
           </div>
           <div>
             <label style={estilos.label}>Mensagem</label>
-            <textarea value={mensagem} onChange={e => setMensagem(e.target.value)} placeholder="Ex: Sistema ficará indisponível das 22h às 23h para manutenção preventiva"
+            <textarea value={mensagem} onChange={e => setMensagem(e.target.value)} onKeyDown={aoTeclarEnter} placeholder="Ex: Sistema ficará indisponível das 22h às 23h para manutenção preventiva"
               style={{ ...estilos.input, minHeight: 90, resize: 'vertical', lineHeight: 1.5 }} disabled={salvando} />
           </div>
           <div>

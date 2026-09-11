@@ -921,7 +921,7 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
                         adicionarComentarioNoChamado()
                       }
                     }}
-                    placeholder="Escreva um comentário... (Enter envia)" disabled={enviandoComentario}
+                    placeholder="Escreva um comentário..." disabled={enviandoComentario}
                     style={{ ...estilos.input, minHeight: 88, resize: 'vertical', lineHeight: 1.65 }} />
                   <div>
                     <button type="button" onClick={() => !enviandoComentario && fileRefComentario.current?.click()} disabled={enviandoComentario}

@@ -70,7 +70,7 @@ function ChatFlutuante() {
               value={texto}
               onChange={(e) => setTexto(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); enviar() } }}
-              placeholder="Escreva sua dúvida... (Enter envia)"
+              placeholder="Escreva sua dúvida..."
               style={{ flex: 1, background: CORES_APP.fundoCampo, border: `1px solid ${CORES_APP.borda}`, borderRadius: 10, padding: '10px 12px', color: CORES_APP.texto, fontSize: 13.5, outline: 'none', boxSizing: 'border-box' }}
             />
             <button type="button" onClick={enviar} disabled={!texto.trim()} title="Enviar"

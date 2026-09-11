@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/useAuth'
 import { enviarImagem } from '../services/ticketService'
 import { traduzirErroApi } from '../utils/traduzirErroApi'
 import { IconPaperclip } from './icons'
+import { useEnterParaEnviar } from '../hooks/useEnterParaEnviar'
 
 // Modal exibido ao finalizar um chamado, para registrar "como foi
 // resolvido". Não recebe mais `resolvidoPor` — o backend sempre usa quem
@@ -25,6 +26,7 @@ function ResolutionModal({ carregando: carregandoExterno, onConfirm, onCancel })
   const fileRef = useRef(null)
   const pronto = texto.trim().length > 0
   const carregando = carregandoExterno || etapa !== null
+  const aoTeclarEnter = useEnterParaEnviar(confirmar)
 
   async function confirmar() {
     if (!pronto || carregando) return
@@ -69,7 +71,7 @@ function ResolutionModal({ carregando: carregandoExterno, onConfirm, onCancel })
         <div>
           <label style={estilos.label}>Como foi resolvido? <span style={{ color: '#ef4444' }}>*</span></label>
           <textarea
-            value={texto} onChange={e => setTexto(e.target.value)} autoFocus disabled={carregando}
+            value={texto} onChange={e => setTexto(e.target.value)} onKeyDown={aoTeclarEnter} autoFocus disabled={carregando}
             placeholder="Causa e passos da solução — ajuda a resolver mais rápido da próxima vez"
             style={{ ...estilos.input, minHeight: 110, resize: 'vertical', lineHeight: 1.7, fontSize: 14 }}
           />

@@ -3,6 +3,7 @@ import { estilos, CORES_APP } from '../styles/theme'
 import { useAuth } from '../hooks/useAuth'
 import { criarTarefa, atualizarTarefa } from '../services/tarefasService'
 import { traduzirErroApi } from '../utils/traduzirErroApi'
+import { useEnterParaEnviar } from '../hooks/useEnterParaEnviar'
 
 // Modal de criar/editar tarefa — mesmo padrão visual (cabeçalho + "×",
 // overlay, botões Salvar/Cancelar lado a lado) de PublicarAvisoModal.jsx.
@@ -15,6 +16,7 @@ function TarefaModal({ tarefaEmEdicao, onFechar, onSalvou }) {
   const [salvando, setSalvando] = useState(false)
 
   const podeSalvar = titulo.trim()
+  const aoTeclarEnter = useEnterParaEnviar(salvar)
 
   function fechar() {
     if (!salvando) onFechar()
@@ -62,7 +64,7 @@ function TarefaModal({ tarefaEmEdicao, onFechar, onSalvou }) {
           </div>
           <div>
             <label style={estilos.label}>Descrição</label>
-            <textarea value={descricao} onChange={e => setDescricao(e.target.value)} placeholder="Ex: Conferir notebooks da sala de reunião e atualizar o Windows"
+            <textarea value={descricao} onChange={e => setDescricao(e.target.value)} onKeyDown={aoTeclarEnter} placeholder="Ex: Conferir notebooks da sala de reunião e atualizar o Windows"
               style={{ ...estilos.input, minHeight: 90, resize: 'vertical', lineHeight: 1.5 }} disabled={salvando} />
           </div>
           {erro && <p style={{ color: CORES_APP.erro, fontSize: 13, margin: 0 }}>{erro}</p>}

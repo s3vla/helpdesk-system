@@ -3,6 +3,7 @@ import { estilos, CORES_APP } from '../styles/theme'
 import { useAuth } from '../hooks/useAuth'
 import { criarSugestao } from '../services/forumService'
 import { traduzirErroApi } from '../utils/traduzirErroApi'
+import { useEnterParaEnviar } from '../hooks/useEnterParaEnviar'
 
 // Modal de nova sugestão — mesmo padrão visual de overlay de
 // PublicarAvisoModal.jsx, só que mais simples (sem tipo/fixado/expiraEm,
@@ -16,6 +17,7 @@ function NovaSugestaoModal({ onFechar, onCriou }) {
   const [salvando, setSalvando] = useState(false)
 
   const podeSalvar = titulo.trim() && mensagem.trim()
+  const aoTeclarEnter = useEnterParaEnviar(salvar)
 
   function fechar() {
     if (!salvando) onFechar()
@@ -58,7 +60,7 @@ function NovaSugestaoModal({ onFechar, onCriou }) {
           </div>
           <div>
             <label style={estilos.label}>Mensagem</label>
-            <textarea value={mensagem} onChange={e => setMensagem(e.target.value)} placeholder="Descreva sua ideia, opinião ou sugestão de ajuste"
+            <textarea value={mensagem} onChange={e => setMensagem(e.target.value)} onKeyDown={aoTeclarEnter} placeholder="Descreva sua ideia, opinião ou sugestão de ajuste"
               style={{ ...estilos.input, minHeight: 120, resize: 'vertical', lineHeight: 1.5 }} disabled={salvando} />
           </div>
           {erro && <p style={{ color: CORES_APP.erro, fontSize: 13, margin: 0 }}>{erro}</p>}

@@ -3,6 +3,7 @@ import { estilos, CORES_APP } from '../styles/theme'
 import { useAuth } from '../hooks/useAuth'
 import { criarAnotacao, atualizarAnotacao } from '../services/anotacoesService'
 import { traduzirErroApi } from '../utils/traduzirErroApi'
+import { useEnterParaEnviar } from '../hooks/useEnterParaEnviar'
 
 // Modal de criar/editar anotação — mesmo padrão de TarefaModal.jsx, só que
 // com um único campo (`conteudo`, sem título separado). `anotacaoEmEdicao`
@@ -14,6 +15,7 @@ function AnotacaoModal({ anotacaoEmEdicao, onFechar, onSalvou }) {
   const [salvando, setSalvando] = useState(false)
 
   const podeSalvar = conteudo.trim()
+  const aoTeclarEnter = useEnterParaEnviar(salvar)
 
   function fechar() {
     if (!salvando) onFechar()
@@ -53,7 +55,7 @@ function AnotacaoModal({ anotacaoEmEdicao, onFechar, onSalvou }) {
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <textarea value={conteudo} onChange={e => setConteudo(e.target.value)} placeholder="Escreva sua anotação..." autoFocus
+          <textarea value={conteudo} onChange={e => setConteudo(e.target.value)} onKeyDown={aoTeclarEnter} placeholder="Escreva sua anotação..." autoFocus
             style={{ ...estilos.input, minHeight: 160, resize: 'vertical', lineHeight: 1.5 }} disabled={salvando} />
           {erro && <p style={{ color: CORES_APP.erro, fontSize: 13, margin: 0 }}>{erro}</p>}
           <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>

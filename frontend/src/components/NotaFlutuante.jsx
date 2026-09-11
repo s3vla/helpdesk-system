@@ -5,6 +5,7 @@ import { atualizarAnotacao, removerAnotacao } from '../services/anotacoesService
 import { traduzirErroApi } from '../utils/traduzirErroApi'
 import { formatarDataHora } from '../utils/formatters'
 import { IconEdit, IconTrash, IconChevronDown, IconChevronUp } from './icons'
+import { useEnterParaEnviar } from '../hooks/useEnterParaEnviar'
 
 const LARGURA = 300
 
@@ -81,6 +82,8 @@ function NotaFlutuante({ id, anotacao, posicaoInicial, zIndex, aoFechar, aoFocar
     }
   }
 
+  const aoTeclarEnter = useEnterParaEnviar(salvarEdicao)
+
   if (!anotacao) return null
 
   const primeiraLinha = anotacao.conteudo.split('\n')[0].slice(0, 48) || 'Anotação'
@@ -116,7 +119,7 @@ function NotaFlutuante({ id, anotacao, posicaoInicial, zIndex, aoFechar, aoFocar
       <div style={{ padding: '10px 12px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
         {editando ? (
           <>
-            <textarea value={rascunho} onChange={e => setRascunho(e.target.value)} autoFocus disabled={processando}
+            <textarea value={rascunho} onChange={e => setRascunho(e.target.value)} onKeyDown={aoTeclarEnter} autoFocus disabled={processando}
               style={{ ...estilos.input, minHeight: 120, resize: 'vertical', lineHeight: 1.5, fontSize: 13 }} />
             {erro && <p style={{ color: CORES_APP.erro, fontSize: 12, margin: 0 }}>{erro}</p>}
             <div style={{ display: 'flex', gap: 6 }}>

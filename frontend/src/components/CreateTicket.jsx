@@ -3,6 +3,7 @@ import { estilos, CORES_PRIORIDADE, CORES_APP } from '../styles/theme'
 import { useWindowWidth } from '../hooks/useWindowWidth'
 import { useAuth } from '../hooks/useAuth'
 import { useAvisoSairSemSalvar } from '../hooks/useAvisoSairSemSalvar'
+import { useEnterParaEnviar } from '../hooks/useEnterParaEnviar'
 import { criarChamado, enviarImagem } from '../services/ticketService'
 import { traduzirErroApi } from '../utils/traduzirErroApi'
 import CategoriaSelect from './CategoriaSelect'
@@ -76,6 +77,7 @@ function CreateTicket({ onSubmit }) {
     }
   }
 
+  const aoTeclarEnter = useEnterParaEnviar(enviar)
   const carregando = etapa !== null
   const textoBotao = etapa === 'enviando-imagem' ? 'Enviando imagens...' : etapa === 'criando' ? 'Enviando chamado...' : 'Enviar chamado'
   // 2/3 pro formulário, 1/3 pro resumo (proporção literal via fr, não só
@@ -101,7 +103,7 @@ function CreateTicket({ onSubmit }) {
       <div style={{ ...estilos.card, border: '1px solid rgba(0,120,81,0.14)', padding: largura < 640 ? 16 : 22, display: 'flex', flexDirection: 'column', gap: 10 }}>
         <div>
           <label style={rotuloCompacto}>O que você precisa? <span style={{ color: '#ef4444' }}>*</span></label>
-          <textarea value={desc} onChange={e => setDesc(e.target.value)} placeholder="Ex: impressora do setor não imprime, aparece 'sem papel' mas tem papel na bandeja"
+          <textarea value={desc} onChange={e => setDesc(e.target.value)} onKeyDown={aoTeclarEnter} placeholder="Ex: impressora do setor não imprime, aparece 'sem papel' mas tem papel na bandeja"
             style={{ ...campoCompacto, minHeight: 96, maxHeight: 200, overflowY: 'auto', resize: 'vertical', lineHeight: 1.5 }} disabled={carregando} />
         </div>
         <div>

@@ -6,6 +6,7 @@ import { traduzirErroApi } from '../utils/traduzirErroApi'
 import { formatarDataHora } from '../utils/formatters'
 import { IconChevronRight } from './icons'
 import EstadoRequisicao from './EstadoRequisicao'
+import { useEnterParaEnviar } from '../hooks/useEnterParaEnviar'
 
 const STATUS_ORDEM = ['ABERTA', 'EM_ANALISE', 'IMPLEMENTADA', 'RECUSADA']
 
@@ -74,6 +75,8 @@ function ForumDetalheSugestao({ sugestaoId, podeAlterarStatus, onVoltar }) {
     }
   }
 
+  const aoTeclarEnter = useEnterParaEnviar(enviarComentario)
+
   return (
     <div className="animate-fade-up" style={{ maxWidth: 720, margin: '0 auto' }}>
       <button onClick={onVoltar}
@@ -138,7 +141,7 @@ function ForumDetalheSugestao({ sugestaoId, podeAlterarStatus, onVoltar }) {
             </div>
 
             <div style={{ ...estilos.card, padding: 14 }}>
-              <textarea value={textoComentario} onChange={e => setTextoComentario(e.target.value)} placeholder="Escreva um comentário..."
+              <textarea value={textoComentario} onChange={e => setTextoComentario(e.target.value)} onKeyDown={aoTeclarEnter} placeholder="Escreva um comentário..."
                 style={{ ...estilos.input, minHeight: 70, resize: 'vertical', lineHeight: 1.5, marginBottom: 10 }} disabled={enviandoComentario} />
               {erroComentario && <p style={{ color: CORES_APP.erro, fontSize: 13, margin: '0 0 10px' }}>{erroComentario}</p>}
               <button onClick={enviarComentario} disabled={!textoComentario.trim() || enviandoComentario}

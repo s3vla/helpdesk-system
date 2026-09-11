@@ -3,6 +3,7 @@ import { estilos, CORES_APP, CORES_PRIORIDADE } from '../styles/theme'
 import { useWindowWidth } from '../hooks/useWindowWidth'
 import { useAuth } from '../hooks/useAuth'
 import { useAvisoSairSemSalvar } from '../hooks/useAvisoSairSemSalvar'
+import { useEnterParaEnviar } from '../hooks/useEnterParaEnviar'
 import { abrirChamadoComoTecnico, buscarColaboradores, enviarImagem } from '../services/ticketService'
 import { traduzirErroApi } from '../utils/traduzirErroApi'
 import CategoriaSelect from './CategoriaSelect'
@@ -87,6 +88,7 @@ function ITAbrirChamado({ onSubmit }) {
     }
   }
 
+  const aoTeclarEnter = useEnterParaEnviar(enviar)
   const carregando = etapa !== null
   const textoBotao = etapa === 'enviando-imagem' ? 'Enviando imagens...' : etapa === 'criando' ? 'Enviando chamado...' : 'Abrir chamado'
   const podeEnviar = !!solicitanteId && desc.trim() && !carregando
@@ -120,7 +122,7 @@ function ITAbrirChamado({ onSubmit }) {
         </div>
         <div>
           <label style={rotuloCompacto}>O que o colaborador precisa? <span style={{ color: '#ef4444' }}>*</span></label>
-          <textarea value={desc} onChange={e => setDesc(e.target.value)} placeholder="Ex: impressora do setor não imprime, aparece 'sem papel' mas tem papel na bandeja"
+          <textarea value={desc} onChange={e => setDesc(e.target.value)} onKeyDown={aoTeclarEnter} placeholder="Ex: impressora do setor não imprime, aparece 'sem papel' mas tem papel na bandeja"
             style={{ ...campoCompacto, minHeight: 96, maxHeight: 200, overflow: 'auto', resize: 'vertical', lineHeight: 1.5 }} disabled={carregando} />
         </div>
         <div>
