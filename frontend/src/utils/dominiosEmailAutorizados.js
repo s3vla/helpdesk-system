@@ -1,10 +1,9 @@
 // Mesma lista de domínios aceitos pelo backend (ver DOMINIOS_EMAIL_AUTORIZADOS
 // em backend/src/config/emails-autorizados.ts) — duplicada aqui de
-// propósito, mesmo raciocínio de departamentoPorEmail.js: quem de fato
-// decide se um domínio/e-mail é aceito é sempre o backend (ValidationPipe
-// rejeita com 400 antes de qualquer outra coisa); esta checagem no
-// frontend só existe pra dar feedback imediato, sem esperar o round-trip
-// da API pra um erro óbvio de domínio digitado errado.
+// propósito: quem de fato decide se um domínio/e-mail é aceito é sempre o
+// backend (ValidationPipe rejeita com 400 antes de qualquer outra coisa);
+// esta checagem no frontend só existe pra dar feedback imediato, sem
+// esperar o round-trip da API pra um erro óbvio de domínio digitado errado.
 export const DOMINIOS_EMAIL_AUTORIZADOS = [
   'novatechagro.com.br',
   'alvotech.com.br',

@@ -25,7 +25,9 @@
     "migration:revert": "npm run typeorm -- migration:revert",
     "migration:run:prod": "typeorm migration:run -d dist/data-source.js",
     "criptografar:migrar": "ts-node src/scripts/criptografar-dados-existentes.ts",
-    "criptografar:migrar:prod": "node dist/scripts/criptografar-dados-existentes.js"
+    "criptografar:migrar:prod": "node dist/scripts/criptografar-dados-existentes.js",
+    "setores:preencher": "ts-node src/scripts/preencher-setor-por-prefixo.ts",
+    "setores:preencher:prod": "node dist/scripts/preencher-setor-por-prefixo.js"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

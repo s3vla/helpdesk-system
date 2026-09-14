@@ -6,6 +6,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Usuario } from './entities/usuario.entity';
+import { Setor } from '../setores/entities/setor.entity';
 import { TipoUsuario } from '../common/enums/tipo-usuario.enum';
 import {
   calcularPaginacao,
@@ -20,7 +21,11 @@ interface CriarUsuarioParams {
   // Opcional porque a tela de Primeiro Acesso não coleta mais cargo — a
   // coluna no banco já era nullable, então isso nunca exigiu migração.
   cargo?: string | null;
+  // Texto legado, mantido como espelho de `setor?.nome` — ver comentário em
+  // Usuario.departamento. Quem chama é sempre quem já derivou o setor (ver
+  // AuthService.primeiroAcesso), nunca um valor arbitrário de cliente.
   departamento: string;
+  setor: Setor | null;
   tipo: TipoUsuario;
   // Opcional porque só o seed de técnico usa — o valor padrão da coluna
   // (`false`) já cobre todo o resto (colaboradores via Primeiro Acesso
@@ -33,6 +38,12 @@ interface CompletarCadastroParams {
   senhaHash: string;
   cargo?: string | null;
   departamento: string;
+  setor: Setor | null;
+  // Explícito (sem default aqui) de propósito: Primeiro Acesso self-service
+  // sempre manda `false` (a pessoa escolheu a própria senha, não precisa
+  // trocar de novo); cadastro pelo técnico sempre manda `true` (senha
+  // inicial escolhida por outra pessoa) — ver AuthService.
+  deveTrocarSenha: boolean;
 }
 
 // @Injectable é o que permite o NestJS instanciar esta classe e "injetá-la"
@@ -58,11 +69,15 @@ export class UsuariosService {
   async buscarPorEmail(email: string): Promise<Usuario | null> {
     return this.usuarioRepository.findOne({
       where: { email: email.toLowerCase() },
+      relations: { setor: true },
     });
   }
 
   async buscarPorId(id: number): Promise<Usuario | null> {
-    return this.usuarioRepository.findOne({ where: { id } });
+    return this.usuarioRepository.findOne({
+      where: { id },
+      relations: { setor: true },
+    });
   }
 
   // GET /usuarios (tela "Colaboradores" da Área Técnica) só lista quem abre
@@ -77,6 +92,7 @@ export class UsuariosService {
     const paginacao = calcularPaginacao(pagina, limite);
     const [usuarios, total] = await this.usuarioRepository.findAndCount({
       where: { tipo: TipoUsuario.COLABORADOR },
+      relations: { setor: true },
       order: { email: 'ASC' },
       skip: paginacao.skip,
       take: paginacao.limite,

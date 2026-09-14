@@ -10,12 +10,14 @@ import * as bcrypt from 'bcrypt';
 import { UsuariosService } from '../usuarios/usuarios.service';
 import { LoginDto } from './dto/login.dto';
 import { PrimeiroAcessoDto } from './dto/primeiro-acesso.dto';
+import { CadastrarColaboradorDto } from './dto/cadastrar-colaborador.dto';
 import { TrocarSenhaDto } from './dto/trocar-senha.dto';
 import { TipoUsuario } from '../common/enums/tipo-usuario.enum';
 import { JwtPayload } from '../common/interfaces/jwt-payload.interface';
 import { mapUsuarioParaResposta } from '../usuarios/dto/usuario-response.dto';
 import { Usuario } from '../usuarios/entities/usuario.entity';
 import { emailColaboradorAutorizado } from '../config/emails-autorizados';
+import { SetoresService } from '../setores/setores.service';
 
 // Custo do bcrypt: 12 "salt rounds". Cada +1 dobra o tempo de hash — 12 é a
 // recomendação atual da OWASP para senha de login interativo (~250-300ms
@@ -38,6 +40,9 @@ export class AuthService {
     // JwtService vem do @nestjs/jwt e já sabe assinar/verificar tokens com
     // o segredo configurado em AuthModule (via JwtModule.registerAsync).
     private readonly jwtService: JwtService,
+    // Deriva o setor a partir do e-mail no SERVIDOR (ver comentário em
+    // primeiroAcesso) — nunca mais um valor que o cliente possa mandar.
+    private readonly setoresService: SetoresService,
   ) {}
 
   async login(dto: LoginDto) {
@@ -97,7 +102,14 @@ export class AuthService {
     }
 
     const senhaHash = await bcrypt.hash(dto.senha, CUSTO_BCRYPT);
-    const departamento = dto.departamento ?? 'Novatech Agro';
+
+    // Derivado no SERVIDOR a partir do prefixo do e-mail — nunca mais um
+    // valor que o dto/frontend possa simplesmente mandar (ver comentário em
+    // Usuario.setor). `departamento` (texto legado) é gravado como espelho
+    // do nome do setor encontrado, ou o fallback de sempre quando o prefixo
+    // não tem mapeamento cadastrado.
+    const setor = await this.setoresService.buscarSetorPorEmail(dto.email);
+    const departamento = setor?.nome ?? 'Novatech Agro';
 
     // Conta resetada (ver UsuariosService.resetar): reaproveita a MESMA
     // linha em vez de criar um usuário novo — assim o histórico de
@@ -108,6 +120,10 @@ export class AuthService {
           senhaHash,
           cargo: dto.cargo ?? null,
           departamento,
+          setor,
+          // Self-service: a própria pessoa escolheu esta senha agora, não
+          // precisa trocar de novo no próximo login.
+          deveTrocarSenha: false,
         })
       : await this.usuariosService.criar({
           nome: dto.nome,
@@ -115,12 +131,59 @@ export class AuthService {
           senhaHash,
           cargo: dto.cargo ?? null,
           departamento,
+          setor,
           // Primeiro Acesso só existe pro lado do colaborador — técnicos
           // entram via seed (ver src/database/seed.service.ts).
           tipo: TipoUsuario.COLABORADOR,
         });
 
     return this.gerarRespostaAutenticada(usuario);
+  }
+
+  // Cadastro de colaborador feito DIRETO pelo técnico (Administração →
+  // Colaboradores) — em paralelo ao Primeiro Acesso self-service acima, não
+  // no lugar dele (decisão aprovada no plano). Duas diferenças chave em
+  // relação a primeiroAcesso():
+  // 1. NÃO checa EMAILS_COLABORADOR_AUTORIZADOS — a ação do técnico de
+  //    cadastrar já é a autorização (só o domínio do e-mail é validado, via
+  //    @EmailCorporativo no DTO).
+  // 2. NÃO devolve accessToken: quem chama é o TÉCNICO, não o colaborador
+  //    recém-criado — devolver um token aqui vazaria uma sessão da conta de
+  //    outra pessoa pra quem cadastrou. Só os dados do usuário voltam; o
+  //    colaborador loga por conta própria depois, com a senha que o técnico
+  //    definiu, e é forçado a trocá-la (deveTrocarSenha: true) — mesmo
+  //    mecanismo já usado pelos técnicos criados por seed.
+  async cadastrarColaborador(dto: CadastrarColaboradorDto) {
+    const existente = await this.usuariosService.buscarPorEmail(dto.email);
+    if (existente && existente.senhaHash !== null) {
+      throw new ConflictException('Já existe uma conta com este e-mail');
+    }
+
+    const senhaHash = await bcrypt.hash(dto.senha, CUSTO_BCRYPT);
+    const setor = await this.setoresService.buscarSetorPorEmail(dto.email);
+    const departamento = setor?.nome ?? 'Novatech Agro';
+
+    const usuario = existente
+      ? await this.usuariosService.completarCadastro(existente.id, {
+          nome: dto.nome,
+          senhaHash,
+          cargo: dto.cargo ?? null,
+          departamento,
+          setor,
+          deveTrocarSenha: true,
+        })
+      : await this.usuariosService.criar({
+          nome: dto.nome,
+          email: dto.email.toLowerCase(),
+          senhaHash,
+          cargo: dto.cargo ?? null,
+          departamento,
+          setor,
+          tipo: TipoUsuario.COLABORADOR,
+          deveTrocarSenha: true,
+        });
+
+    return mapUsuarioParaResposta(usuario);
   }
 
   // Qualquer usuário autenticado pode trocar a PRÓPRIA senha — repare que

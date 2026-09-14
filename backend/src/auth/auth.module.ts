@@ -6,10 +6,14 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { UsuariosModule } from '../usuarios/usuarios.module';
+import { SetoresModule } from '../setores/setores.module';
 
 @Module({
   imports: [
     UsuariosModule,
+    // Só pra AuthService.primeiroAcesso derivar o setor a partir do
+    // e-mail no servidor — ver comentário lá.
+    SetoresModule,
     PassportModule,
     // registerAsync (em vez de register) porque o segredo/expiração vêm do
     // .env via ConfigService, que só fica pronto depois que o ConfigModule

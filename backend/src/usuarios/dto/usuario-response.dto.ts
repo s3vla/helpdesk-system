@@ -29,7 +29,12 @@ export function mapUsuarioParaResposta(usuario: Usuario): UsuarioResponseDto {
     nome: usuario.nome,
     email: usuario.email,
     cargo: usuario.cargo,
-    departamento: usuario.departamento,
+    // Prefere o nome do setor (FK), com o texto legado como fallback — só
+    // fica sem `setor` carregado (relação não pedida na query) ou sem
+    // mapeamento cadastrado pro prefixo do e-mail. Mantém o contrato de
+    // resposta como string simples: nenhum consumidor do frontend precisa
+    // mudar.
+    departamento: usuario.setor?.nome ?? usuario.departamento,
     tipo: usuario.tipo,
     emAguardoDeCadastro: usuario.senhaHash === null,
     deveTrocarSenha: usuario.deveTrocarSenha,

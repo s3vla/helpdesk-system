@@ -77,6 +77,9 @@ export class SeedService implements OnApplicationBootstrap {
       senhaHash,
       cargo: 'Técnico de TI',
       departamento: 'Tecnologia da Informação',
+      // Técnicos ficam fora do sistema de Setor de propósito — não passam
+      // pelo Primeiro Acesso nem pelo mapeamento de prefixo de e-mail.
+      setor: null,
       tipo: TipoUsuario.TECNICO,
       // A senha do .env é só de bootstrap — o frontend força a troca antes
       // de liberar o Painel TI (ver PATCH /auth/minha-senha), então essa

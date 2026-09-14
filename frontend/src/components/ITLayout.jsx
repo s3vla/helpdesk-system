@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import Logo from './Logo'
 import { useWindowWidth } from '../hooks/useWindowWidth'
-import { IconMenu, IconLock, IconLogOut, IconSun, IconMoon, IconBarChart, IconSettings, IconMegaphone, IconListChecks, IconLightbulb } from './icons'
+import { IconMenu, IconLock, IconLogOut, IconSun, IconMoon, IconBarChart, IconSettings, IconMegaphone, IconListChecks, IconLightbulb, IconShield } from './icons'
 import { CORES_TI, CORES_APP } from '../styles/theme'
 import { obterIniciais } from '../utils/formatters'
 import { useTheme } from '../hooks/useTheme'
@@ -19,6 +19,15 @@ const ITENS_NAV = [
         <rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" />
       </svg>
     ),
+  },
+  {
+    tela: 'it-admin',
+    label: 'Administração',
+    icon: <IconShield width={16} height={16} />,
+    // Destaque: separa esta entrada das demais, em posição de destaque logo
+    // depois de "Chamados" — ver ITLayout abaixo, onde `destaque: true`
+    // ganha cor/negrito diferentes mesmo fora do estado ativo.
+    destaque: true,
   },
   {
     tela: 'it-users',
@@ -89,11 +98,13 @@ function ITLayout({ tela, usuario, onNav, onLogout, onTrocarSenha, children }) {
           return (
             <button key={item.tela} onClick={() => { onNav(item.tela); setMenuAberto(false) }}
               style={{
-                background: ativo ? 'rgba(0,73,192,0.1)' : 'transparent',
-                color: ativo ? CORES_TI.accent : CORES_APP.textoFraco,
-                border: 'none', borderRadius: 9, padding: '11px 13px', fontSize: 14,
-                fontFamily: 'Outfit, sans-serif', fontWeight: ativo ? 600 : 400, cursor: 'pointer',
+                background: ativo ? 'rgba(0,73,192,0.1)' : (item.destaque ? 'rgba(0,73,192,0.05)' : 'transparent'),
+                color: ativo || item.destaque ? CORES_TI.accent : CORES_APP.textoFraco,
+                border: item.destaque && !ativo ? '1px solid rgba(0,73,192,0.22)' : 'none',
+                borderRadius: 9, padding: '11px 13px', fontSize: 14,
+                fontFamily: 'Outfit, sans-serif', fontWeight: ativo || item.destaque ? 600 : 400, cursor: 'pointer',
                 textAlign: 'left', display: 'flex', alignItems: 'center', gap: 10, transition: 'all 0.15s',
+                marginBottom: item.destaque ? 8 : 0,
               }}>
               {item.icon}{item.label}
             </button>

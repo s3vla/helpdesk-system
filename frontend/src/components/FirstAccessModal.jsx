@@ -1,11 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import BrandPanel from './auth/BrandPanel'
 import FundoDecorativo from './auth/FundoDecorativo'
 import EmailInput from './auth/EmailInput'
 import PasswordInput from './PasswordInput'
 import PasswordStrengthBar, { ConfirmacaoSenha } from './auth/PasswordStrengthBar'
 import { estilosAuth, cores, botaoVerde, botaoInativo, forcaSenha } from '../styles/authTheme'
-import { departamentoPorEmail } from '../utils/departamentoPorEmail'
+import { sugerirSetorPorEmail } from '../services/setoresService'
 import { useAuth } from '../hooks/useAuth'
 import { useWindowWidth } from '../hooks/useWindowWidth'
 import { traduzirErroApi } from '../utils/traduzirErroApi'
@@ -21,10 +21,12 @@ import { emailComDominioAutorizado, MENSAGEM_DOMINIO_INVALIDO } from '../utils/d
 // um e-mail pré-verificado por convite. Aqui o backend nunca revela se um
 // e-mail já existe ou não (resposta genérica em caso de erro de login, por
 // segurança), então não dá pra "detectar"/travar isso automaticamente —
-// mostrar um selo de verificado seria enganoso. Departamento É travado
-// (readOnly) quando dá pra derivar do prefixo do e-mail via
-// departamentoPorEmail — nos casos sem mapeamento (ex: e-mail de pessoa,
-// não de setor), fica um campo comum, editável.
+// mostrar um selo de verificado seria enganoso. Departamento é SEMPRE
+// somente-leitura agora — é só um preview em tempo real do que o SERVIDOR
+// vai derivar do prefixo do e-mail (GET /setores/sugerir), nunca mais um
+// valor que este formulário envie; quando o prefixo não tem mapeamento
+// cadastrado, mostra "Não identificado automaticamente" (a conta é criada
+// sem setor mesmo assim, ver SetoresService.buscarSetorPorEmail).
 //
 // Antes era um modal sobreposto (overlay); agora é uma tela cheia própria
 // (troca de "roupa" pro layout split-screen), mas continua sendo montada
@@ -34,7 +36,6 @@ function FirstAccessModal({ emailInicial, onSucesso, onFechar }) {
   const { primeiroAcesso } = useAuth()
   const [email, setEmail] = useState(emailInicial ?? '')
   const [name, setName] = useState('')
-  const [departamentoManual, setDepartamentoManual] = useState('')
   const [senha, setSenha] = useState('')
   const [confirmarSenha, setConfirmarSenha] = useState('')
   const [erro, setErro] = useState('')
@@ -42,9 +43,36 @@ function FirstAccessModal({ emailInicial, onSucesso, onFechar }) {
   const largura = useWindowWidth()
   const mobile = largura < 900
 
-  const departamentoAutomatico = departamentoPorEmail(email)
-  const departamentoTravado = departamentoAutomatico !== null
-  const departamento = departamentoTravado ? departamentoAutomatico : departamentoManual
+  // Preview do setor sugerido pra este e-mail — só exibição, nunca enviado
+  // ao backend: o servidor deriva o setor de novo por conta própria a
+  // partir do e-mail (ver AuthService.primeiroAcesso), então mandar esse
+  // valor daqui seria redundante e, pior, sugeriria que o cliente ainda
+  // manda no que o campo Departamento acaba virando.
+  const [setorSugerido, setSetorSugerido] = useState(null)
+  const [consultandoSetor, setConsultandoSetor] = useState(false)
+  const debounceRef = useRef(null)
+
+  useEffect(() => {
+    clearTimeout(debounceRef.current)
+    const emailAparado = email.trim()
+    if (!emailAparado.includes('@')) {
+      setSetorSugerido(null)
+      setConsultandoSetor(false)
+      return
+    }
+    setConsultandoSetor(true)
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const resposta = await sugerirSetorPorEmail(emailAparado)
+        setSetorSugerido(resposta.setor)
+      } catch {
+        setSetorSugerido(null)
+      } finally {
+        setConsultandoSetor(false)
+      }
+    }, 400)
+    return () => clearTimeout(debounceRef.current)
+  }, [email])
 
   const podeContinuar = email.trim() && name.trim() && senha && confirmarSenha
   const forca = forcaSenha(senha)
@@ -66,7 +94,7 @@ function FirstAccessModal({ emailInicial, onSucesso, onFechar }) {
     setErro('')
     setCarregando(true)
     try {
-      await primeiroAcesso({ email: email.trim(), senha, nome: name.trim(), departamento: departamento.trim() || undefined })
+      await primeiroAcesso({ email: email.trim(), senha, nome: name.trim() })
       onSucesso()
     } catch (e) {
       setErro(traduzirErroApi(e))
@@ -103,12 +131,10 @@ function FirstAccessModal({ emailInicial, onSucesso, onFechar }) {
               <label style={estilosAuth.campo}>
                 <span style={estilosAuth.rotulo}>Departamento</span>
                 <input
-                  value={departamento}
-                  onChange={e => setDepartamentoManual(e.target.value)}
-                  placeholder={departamentoTravado ? undefined : 'Ex.: Financeiro'}
-                  readOnly={departamentoTravado}
-                  disabled={carregando}
-                  style={{ ...estilosAuth.input, ...(departamentoTravado ? { background: cores.fundoCampo, color: cores.texto, cursor: 'default' } : {}) }}
+                  value={consultandoSetor ? 'Identificando...' : (setorSugerido?.nome ?? 'Não identificado automaticamente')}
+                  readOnly
+                  disabled
+                  style={{ ...estilosAuth.input, background: cores.fundoCampo, color: cores.texto, cursor: 'default' }}
                 />
               </label>
 
