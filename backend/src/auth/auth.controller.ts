@@ -11,8 +11,12 @@ import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { PrimeiroAcessoDto } from './dto/primeiro-acesso.dto';
+import { CadastrarColaboradorDto } from './dto/cadastrar-colaborador.dto';
 import { TrocarSenhaDto } from './dto/trocar-senha.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { RolesGuard } from '../common/guards/roles.guard';
+import { Roles } from '../common/decorators/roles.decorator';
+import { TipoUsuario } from '../common/enums/tipo-usuario.enum';
 import { UsuarioAtual } from '../common/decorators/usuario-atual.decorator';
 import type { JwtPayload } from '../common/interfaces/jwt-payload.interface';
 
@@ -43,6 +47,20 @@ export class AuthController {
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
   primeiroAcesso(@Body() dto: PrimeiroAcessoDto) {
     return this.authService.primeiroAcesso(dto);
+  }
+
+  // Só TECNICO — cadastro de colaborador feito direto pela Área Técnica
+  // (Administração → Colaboradores), em paralelo ao Primeiro Acesso
+  // self-service acima (ver AuthService.cadastrarColaborador pras
+  // diferenças). Sem @Throttle específico: já exige um técnico autenticado
+  // (JwtAuthGuard + RolesGuard), diferente de login/primeiro-acesso, que
+  // são as portas de entrada sem sessão nenhuma — o vetor de força bruta
+  // que o throttle ali protege não existe aqui.
+  @Post('cadastrar-colaborador')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(TipoUsuario.TECNICO)
+  cadastrarColaborador(@Body() dto: CadastrarColaboradorDto) {
+    return this.authService.cadastrarColaborador(dto);
   }
 
   // Única rota de auth que EXIGE estar logado — troca a senha da PRÓPRIA
