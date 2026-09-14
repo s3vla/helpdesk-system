@@ -162,26 +162,31 @@ começa a dar 500 (o transformer tenta descriptografar texto puro e
 falha) até o script rodar. Ver a seção destacada equivalente em
 `DEPLOY-NSSM.md`.
 
-## ⚠️ Dívida técnica conhecida — Tempo de Atendimento depende de texto em LogAuditoria
+## ⚠️ Dívida técnica conhecida — Tempo de Atendimento/Carga entre Técnicos dependem de texto em LogAuditoria
 
-O relatório `GET /admin/relatorios/tempo-atendimento` (Administração →
-Atividade) calcula "quanto tempo um chamado esperou até entrar em
-atendimento" procurando, no histórico de `LogAuditoria`, a primeira linha
-com `acao = MUDANCA_STATUS` cujo `descricao` **termina com o texto**
-`"Em atendimento"` — porque `LogAuditoria` não guarda o status
-anterior/novo em colunas estruturadas, só um `descricao` de texto pronto
-pra leitura humana (ex: `Status alterado de "Na fila" para "Em
-atendimento"`, montado em `ChamadosService.atualizarStatus`).
+Os relatórios `GET /admin/relatorios/tempo-atendimento` e `GET
+/admin/relatorios/carga-tecnicos` (Administração → Atividade) calculam
+"quanto tempo um chamado esperou até entrar em atendimento" e "quanto
+tempo levou até a primeira finalização", respectivamente, procurando, no
+histórico de `LogAuditoria`, a primeira linha com `acao = MUDANCA_STATUS`
+cujo `descricao` **termina com o texto** `"Em atendimento"` ou
+`"Finalizado"` — porque `LogAuditoria` não guarda o status anterior/novo
+em colunas estruturadas, só um `descricao` de texto pronto pra leitura
+humana (ex: `Status alterado de "Na fila" para "Em atendimento"`, montado
+em `ChamadosService.atualizarStatus`).
 
-Isso significa que o relatório depende de uma constante de texto
-(`SUFIXO_TRANSICAO_PARA_ANDAMENTO` em `src/relatorios/relatorios.service.ts`)
-continuar batendo, caractere por caractere, com `LABEL_STATUS[StatusChamado.
-ANDAMENTO]` em `src/chamados/chamados.service.ts`. Se um dia alguém mudar
-esse rótulo sem atualizar o outro lado, **o relatório não quebra nem avisa
-— ele simplesmente para de encontrar as transições novas, em silêncio**, e
-os chamados afetados passam a contar como "sem transição pra atendimento"
-(`totalSemTransicaoParaAtendimento`) como se nunca tivessem sido
-atendidos.
+Isso significa que os dois relatórios dependem de duas constantes de
+texto (`SUFIXO_TRANSICAO_PARA_ANDAMENTO` e
+`SUFIXO_TRANSICAO_PARA_FINALIZADO` em
+`src/relatorios/relatorios.service.ts`) continuarem batendo, caractere
+por caractere, com `LABEL_STATUS[StatusChamado.ANDAMENTO]` e
+`LABEL_STATUS[StatusChamado.FINALIZADO]` em
+`src/chamados/chamados.service.ts`. Se um dia alguém mudar algum desses
+rótulos sem atualizar o outro lado, **o relatório afetado não quebra nem
+avisa — ele simplesmente para de encontrar as transições novas, em
+silêncio**, e os chamados afetados passam a contar como "sem transição"
+(`totalSemTransicaoParaAtendimento` / chamados fora de
+`totalFinalizados`) como se nunca tivessem avançado de status.
 
 Mitigação parcial já em vigor: `REABERTURA` (a outra ação que mexe em
 status) nunca aponta pra ANDAMENTO na máquina de estados atual (reabertura

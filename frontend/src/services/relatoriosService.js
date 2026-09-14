@@ -26,3 +26,19 @@ export async function buscarRelatorioTempoAtendimento(token, { dataInicio, dataF
   const query = params.toString()
   return chamarApi(`/admin/relatorios/tempo-atendimento${query ? `?${query}` : ''}`, { token })
 }
+
+export async function buscarRelatorioCargaTecnicos(token, { dataInicio, dataFim } = {}) {
+  const params = new URLSearchParams()
+  if (dataInicio) params.set('dataInicio', dataInicio)
+  if (dataFim) params.set('dataFim', dataFim)
+  const query = params.toString()
+  return chamarApi(`/admin/relatorios/carga-tecnicos${query ? `?${query}` : ''}`, { token })
+}
+
+export async function buscarRelatorioReaberturas(token, { dataInicio, dataFim } = {}) {
+  const params = new URLSearchParams()
+  if (dataInicio) params.set('dataInicio', dataInicio)
+  if (dataFim) params.set('dataFim', dataFim)
+  const query = params.toString()
+  return chamarApi(`/admin/relatorios/reaberturas${query ? `?${query}` : ''}`, { token })
+}

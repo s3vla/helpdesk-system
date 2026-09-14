@@ -33,4 +33,14 @@ export class RelatoriosController {
   async tempoAtendimento(@Query() filtros: PeriodoChamadoDto) {
     return this.relatoriosService.relatorioTempoAtendimento(filtros);
   }
+
+  @Get('carga-tecnicos')
+  async cargaTecnicos(@Query() filtros: PeriodoChamadoDto) {
+    return this.relatoriosService.relatorioCargaTecnicos(filtros);
+  }
+
+  @Get('reaberturas')
+  async reaberturas(@Query() filtros: PeriodoChamadoDto) {
+    return this.relatoriosService.relatorioReaberturas(filtros);
+  }
 }

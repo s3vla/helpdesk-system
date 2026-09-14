@@ -25,6 +25,8 @@ import {
   buscarRelatorioAcesso,
   buscarRelatorioAtividadeChamados,
   buscarRelatorioTempoAtendimento,
+  buscarRelatorioCargaTecnicos,
+  buscarRelatorioReaberturas,
 } from '../services/relatoriosService'
 import { emailComDominioAutorizado, MENSAGEM_DOMINIO_INVALIDO } from '../utils/dominiosEmailAutorizados'
 import { formatarDataHora, tempoDecorrido } from '../utils/formatters'
@@ -686,6 +688,8 @@ const SUBABAS_ATIVIDADE = [
   { id: 'acesso', label: 'Acesso ao sistema' },
   { id: 'chamados', label: 'Chamados por colaborador' },
   { id: 'tempo', label: 'Tempo de atendimento' },
+  { id: 'carga', label: 'Carga entre técnicos' },
+  { id: 'reaberturas', label: 'Chamados reabertos' },
 ]
 
 function RelatorioAcessoSecao() {
@@ -948,6 +952,171 @@ function RelatorioTempoAtendimentoSecao() {
   )
 }
 
+function RelatorioCargaTecnicosSecao() {
+  const { token, tratarErroApi } = useAuth()
+  const [dataInicio, setDataInicio] = useState(dataInicioPadrao)
+  const [dataFim, setDataFim] = useState(dataFimPadrao)
+  const [itens, setItens] = useState([])
+  const [carregando, setCarregando] = useState(true)
+  const [erro, setErro] = useState('')
+
+  async function carregar() {
+    setCarregando(true)
+    setErro('')
+    try {
+      setItens(await buscarRelatorioCargaTecnicos(token, { dataInicio, dataFim }))
+    } catch (e) {
+      if (!tratarErroApi(e)) setErro(traduzirErroApi(e))
+    } finally {
+      setCarregando(false)
+    }
+  }
+
+  useEffect(() => {
+    carregar()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dataInicio, dataFim])
+
+  const itensOrdenados = [...itens].sort((a, b) => b.totalChamados - a.totalChamados)
+
+  return (
+    <div>
+      <FiltroPeriodo dataInicio={dataInicio} setDataInicio={setDataInicio} dataFim={dataFim} setDataFim={setDataFim} />
+      <EstadoRequisicao carregando={carregando} erro={erro} aoTentarNovamente={carregar}>
+        <div style={estilos.card}>
+          <div style={{ padding: '16px 22px', borderBottom: `1px solid ${CORES_APP.bordaSuave}` }}>
+            <h2 style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: 16, color: CORES_APP.texto, margin: '0 0 3px' }}>Distribuição de carga entre técnicos</h2>
+            <p style={{ color: CORES_APP.textoFraco, fontSize: 13, margin: 0 }}>Chamados atribuídos no período e tempo médio até a primeira finalização.</p>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            {itensOrdenados.length === 0 ? (
+              <p style={{ color: CORES_APP.textoSuave, fontSize: 13, margin: 0, padding: '16px 22px' }}>Nenhum técnico cadastrado.</p>
+            ) : itensOrdenados.map(item => (
+              <div key={item.tecnicoId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 22px', borderTop: `1px solid ${CORES_APP.bordaSuave}`, gap: 10, flexWrap: 'wrap' }}>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: CORES_APP.texto }}>{item.nome ?? item.email}</div>
+                  <div style={{ fontSize: 12, color: CORES_APP.textoFraco }}>{item.email}</div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                  <span style={{ fontSize: 12, color: CORES_APP.textoFraco }}>
+                    {item.totalFinalizados} finalizado{item.totalFinalizados !== 1 ? 's' : ''} — média {item.tempoMedioResolucaoMinutos !== null ? formatarDuracaoMinutos(item.tempoMedioResolucaoMinutos) : '—'}
+                  </span>
+                  <span style={{ background: 'rgba(0,73,192,0.08)', color: '#0049C0', borderRadius: 999, padding: '3px 10px', fontSize: 12, fontFamily: 'Outfit, sans-serif', fontWeight: 700 }}>
+                    {item.totalChamados}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </EstadoRequisicao>
+    </div>
+  )
+}
+
+function RelatorioReaberturasSecao() {
+  const { token, tratarErroApi } = useAuth()
+  const [dataInicio, setDataInicio] = useState(dataInicioPadrao)
+  const [dataFim, setDataFim] = useState(dataFimPadrao)
+  const [relatorio, setRelatorio] = useState(null)
+  const [carregando, setCarregando] = useState(true)
+  const [erro, setErro] = useState('')
+
+  async function carregar() {
+    setCarregando(true)
+    setErro('')
+    try {
+      setRelatorio(await buscarRelatorioReaberturas(token, { dataInicio, dataFim }))
+    } catch (e) {
+      if (!tratarErroApi(e)) setErro(traduzirErroApi(e))
+    } finally {
+      setCarregando(false)
+    }
+  }
+
+  useEffect(() => {
+    carregar()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dataInicio, dataFim])
+
+  return (
+    <div>
+      <FiltroPeriodo dataInicio={dataInicio} setDataInicio={setDataInicio} dataFim={dataFim} setDataFim={setDataFim} />
+      <EstadoRequisicao carregando={carregando} erro={erro} aoTentarNovamente={carregar}>
+        {relatorio && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+            {relatorio.destaque.length > 0 && (
+              <div style={{ ...estilos.card, border: '1px solid rgba(239,68,68,0.25)' }}>
+                <div style={{ padding: '16px 22px', borderBottom: `1px solid ${CORES_APP.bordaSuave}` }}>
+                  <h2 style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: 16, color: CORES_APP.texto, margin: '0 0 3px' }}>Reabertos 2+ vezes</h2>
+                  <p style={{ color: CORES_APP.textoFraco, fontSize: 13, margin: 0 }}>{relatorio.destaque.length} chamado{relatorio.destaque.length !== 1 ? 's' : ''} reaberto{relatorio.destaque.length !== 1 ? 's' : ''} mais de uma vez — pode indicar resolução recorrentemente malfeita.</p>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  {relatorio.destaque.map(item => (
+                    <div key={item.chamadoId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 22px', borderTop: `1px solid ${CORES_APP.bordaSuave}`, gap: 10, flexWrap: 'wrap' }}>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: CORES_APP.texto }}>{item.titulo}</div>
+                        <div style={{ fontSize: 12, color: CORES_APP.textoFraco }}>{item.tecnicoResponsavelNome ?? 'Sem técnico responsável'}</div>
+                      </div>
+                      <span style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444', borderRadius: 999, padding: '3px 10px', fontSize: 12, fontFamily: 'Outfit, sans-serif', fontWeight: 700 }}>
+                        {item.totalReaberturas}x
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div style={estilos.card}>
+              <div style={{ padding: '16px 22px', borderBottom: `1px solid ${CORES_APP.bordaSuave}` }}>
+                <h2 style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: 16, color: CORES_APP.texto, margin: '0 0 3px' }}>Todos os chamados reabertos no período</h2>
+                <p style={{ color: CORES_APP.textoFraco, fontSize: 13, margin: 0 }}>{relatorio.porChamado.length} chamado{relatorio.porChamado.length !== 1 ? 's' : ''}.</p>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                {relatorio.porChamado.length === 0 ? (
+                  <p style={{ color: CORES_APP.textoSuave, fontSize: 13, margin: 0, padding: '16px 22px' }}>Nenhum chamado reaberto no período.</p>
+                ) : relatorio.porChamado.map(item => (
+                  <div key={item.chamadoId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 22px', borderTop: `1px solid ${CORES_APP.bordaSuave}`, gap: 10, flexWrap: 'wrap' }}>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: CORES_APP.texto }}>{item.titulo}</div>
+                      <div style={{ fontSize: 12, color: CORES_APP.textoFraco }}>{item.tecnicoResponsavelNome ?? 'Sem técnico responsável'}</div>
+                    </div>
+                    <span style={{ background: CORES_APP.fundoCampo, color: CORES_APP.textoFraco, borderRadius: 999, padding: '3px 10px', fontSize: 12, fontFamily: 'Outfit, sans-serif', fontWeight: 700 }}>
+                      {item.totalReaberturas}x
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div style={estilos.card}>
+              <div style={{ padding: '16px 22px', borderBottom: `1px solid ${CORES_APP.bordaSuave}` }}>
+                <h2 style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: 16, color: CORES_APP.texto, margin: '0 0 3px' }}>Por técnico responsável</h2>
+                <p style={{ color: CORES_APP.textoFraco, fontSize: 13, margin: 0 }}>Reaberturas somadas por quem resolveu originalmente — sem julgamento, só pra identificar padrão.</p>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                {relatorio.porTecnico.length === 0 ? (
+                  <p style={{ color: CORES_APP.textoSuave, fontSize: 13, margin: 0, padding: '16px 22px' }}>Nenhuma reabertura com técnico responsável identificado no período.</p>
+                ) : relatorio.porTecnico.map(item => (
+                  <div key={item.tecnicoId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 22px', borderTop: `1px solid ${CORES_APP.bordaSuave}`, gap: 10, flexWrap: 'wrap' }}>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: CORES_APP.texto }}>{item.nome ?? item.email}</div>
+                      <div style={{ fontSize: 12, color: CORES_APP.textoFraco }}>{item.email}</div>
+                    </div>
+                    <span style={{ background: 'rgba(0,73,192,0.08)', color: '#0049C0', borderRadius: 999, padding: '3px 10px', fontSize: 12, fontFamily: 'Outfit, sans-serif', fontWeight: 700 }}>
+                      {item.totalReaberturas}x
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </EstadoRequisicao>
+    </div>
+  )
+}
+
 function AtividadeTab() {
   const [subaba, setSubaba] = useState('acesso')
 
@@ -973,6 +1142,8 @@ function AtividadeTab() {
       {subaba === 'acesso' && <RelatorioAcessoSecao />}
       {subaba === 'chamados' && <RelatorioAtividadeChamadosSecao />}
       {subaba === 'tempo' && <RelatorioTempoAtendimentoSecao />}
+      {subaba === 'carga' && <RelatorioCargaTecnicosSecao />}
+      {subaba === 'reaberturas' && <RelatorioReaberturasSecao />}
     </div>
   )
 }
