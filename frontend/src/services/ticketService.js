@@ -6,10 +6,13 @@
 //
 // Duas responsabilidades extras que só fazem sentido aqui, na fronteira com
 // a API:
-// 1. Tradução de enum: a API usa maiúsculas (PARADO, BAIXA, HARDWARE...);
-//    o resto do app usa os valores em minúsculo/capitalizado que já
-//    existiam desde o protótipo (mantidos para não precisar reescrever
-//    StatusBadge, PriorityChip, os filtros de cada tela etc.).
+// 1. Tradução de enum: a API usa maiúsculas (PARADO, BAIXA...); o resto do
+//    app usa os valores em minúsculo que já existiam desde o protótipo
+//    (mantidos para não precisar reescrever StatusBadge, PriorityChip, os
+//    filtros de cada tela etc.). Categoria NÃO entra mais nessa tradução —
+//    desde que virou uma tabela administrável (Categoria, ver backend), o
+//    `nome` que a API manda já É o valor final de exibição, sem um "rótulo
+//    interno" separado (o técnico digita o nome que quer ver na tela).
 // 2. Tradução de formato: a API responde em português (titulo, descricao,
 //    solicitante...); os componentes esperam os nomes em inglês herdados do
 //    protótipo original (summary, description, userId...). mapearChamado
@@ -20,13 +23,6 @@ import { chamarApi } from './apiClient'
 const STATUS_PARA_API = { parado: 'PARADO', andamento: 'ANDAMENTO', finalizado: 'FINALIZADO' }
 const STATUS_DA_API = { PARADO: 'parado', ANDAMENTO: 'andamento', FINALIZADO: 'finalizado' }
 const PRIORIDADE_PARA_API = { baixa: 'BAIXA', media: 'MEDIA', alta: 'ALTA' }
-const CATEGORIA_PARA_API = { Hardware: 'HARDWARE', Software: 'SOFTWARE', Rede: 'REDE', Acesso: 'ACESSO', Outro: 'OUTRO' }
-// Exportada (diferente de STATUS_DA_API/PRIORIDADE_PARA_API) porque
-// WidgetRenderer.jsx também precisa traduzir uma categoria bruta vinda de
-// GET /chamados/metricas antes de aplicar LABEL_CATEGORIA (utils/categorias.js) —
-// diferente de status/prioridade, a capitalização de categoria não sai só
-// de um .toLowerCase() (ex: "HARDWARE" -> "Hardware", não "hardware").
-export const CATEGORIA_DA_API = { HARDWARE: 'Hardware', SOFTWARE: 'Software', REDE: 'Rede', ACESSO: 'Acesso', OUTRO: 'Outro' }
 
 // Exportada (diferente das outras funções de mapeamento) porque o
 // AuthContext também precisa dela: o usuário devolvido por /auth/login e
@@ -78,7 +74,7 @@ function mapearChamado(c) {
     aguardandoRespostaDe: c.aguardandoRespostaDe,
     priority: c.prioridade.toLowerCase(),
     level: c.nivel,
-    category: CATEGORIA_DA_API[c.categoria],
+    category: c.categoria,
     created: new Date(c.dataAbertura),
     updated: new Date(c.dataAtualizacao),
     assignedTo: c.tecnicoResponsavel?.nome,
@@ -128,8 +124,8 @@ function mapearComentario(c) {
 }
 
 // Rótulo em português de cada `acao` do log de auditoria — mesma ideia de
-// STATUS_DA_API/CATEGORIA_DA_API acima, só que pra um enum que só existe
-// pro "Histórico de alterações" (painel de TI).
+// STATUS_DA_API acima, só que pra um enum que só existe pro "Histórico de
+// alterações" (painel de TI).
 const LABEL_ACAO_AUDITORIA = {
   MUDANCA_STATUS: 'Status alterado',
   REABERTURA: 'Chamado reaberto',
@@ -155,7 +151,7 @@ function mapearLogAuditoria(l) {
 function mapearSolucao(s) {
   return {
     id: String(s.chamadoId),
-    category: CATEGORIA_DA_API[s.categoria],
+    category: s.categoria,
     summary: s.tituloChamado,
     description: s.descricaoChamado,
     ocorrenciasCategoria: s.ocorrenciasCategoria,
@@ -216,7 +212,7 @@ export async function buscarChamadosTI(token, filtros = {}) {
   const params = new URLSearchParams()
   if (filtros.status && filtros.status !== 'all') params.set('status', STATUS_PARA_API[filtros.status])
   if (filtros.nivel && filtros.nivel !== 'all') params.set('nivel', filtros.nivel)
-  if (filtros.categoria && filtros.categoria !== 'all') params.set('categoria', CATEGORIA_PARA_API[filtros.categoria])
+  if (filtros.categoria && filtros.categoria !== 'all') params.set('categoria', filtros.categoria)
   if (filtros.busca?.trim()) params.set('busca', filtros.busca.trim())
   params.set('pagina', filtros.pagina ?? 1)
   if (filtros.limite) params.set('limite', filtros.limite)
@@ -247,7 +243,7 @@ export async function criarChamado(token, { descricao, mensagemErro, categoria, 
       titulo: descricao.slice(0, 65),
       descricao,
       mensagemErro: mensagemErro || undefined,
-      categoria: CATEGORIA_PARA_API[categoria],
+      categoria,
       prioridade: PRIORIDADE_PARA_API[prioridade],
       imagensUrls: imagensUrls?.length ? imagensUrls : undefined,
       anydeskId: anydeskId || undefined,
@@ -264,7 +260,7 @@ export async function criarChamado(token, { descricao, mensagemErro, categoria, 
 // solucoes-sugeridas (TECNICO-only, sobre um chamado já existente).
 export async function buscarChamadosSemelhantes(token, { categoria, texto }) {
   const params = new URLSearchParams()
-  params.set('categoria', CATEGORIA_PARA_API[categoria])
+  params.set('categoria', categoria)
   params.set('texto', texto)
   return chamarApi(`/chamados/verificar-semelhantes?${params.toString()}`, { token })
 }
@@ -283,7 +279,7 @@ export async function abrirChamadoComoTecnico(token, { solicitanteId, descricao,
       titulo: descricao.slice(0, 65),
       descricao,
       mensagemErro: mensagemErro || undefined,
-      categoria: CATEGORIA_PARA_API[categoria],
+      categoria,
       prioridade: PRIORIDADE_PARA_API[prioridade],
       imagensUrls: imagensUrls?.length ? imagensUrls : undefined,
       anydeskId: anydeskId || undefined,
@@ -429,6 +425,17 @@ export async function resetarConta(token, usuarioId) {
   return mapearUsuario(usuario)
 }
 
+// Cadastro de colaborador feito DIRETO pelo técnico (Administração →
+// Colaboradores) — em paralelo ao Primeiro Acesso self-service (LoginScreen
+// → FirstAccessModal), não no lugar dele. Diferente de tudo que já existe
+// nesta camada: não devolve token nenhum (quem chama é o TÉCNICO logado,
+// não o colaborador recém-criado — ver AuthService.cadastrarColaborador).
+// `dados`: { email, nome, senha, cargo? }.
+export async function cadastrarColaborador(token, dados) {
+  const usuario = await chamarApi('/auth/cadastrar-colaborador', { token, metodo: 'POST', corpo: dados })
+  return mapearUsuario(usuario)
+}
+
 // ── Soluções conhecidas ──────────────────────────────────────────────────
 
 // `contagensPorCategoria` vem pronto do backend (ver
@@ -439,16 +446,12 @@ export async function resetarConta(token, usuarioId) {
 export async function buscarSolucoesConhecidas(token, { busca = '', categoria, pagina = 1 } = {}) {
   const params = new URLSearchParams()
   if (busca.trim()) params.set('busca', busca.trim())
-  if (categoria && categoria !== 'all') params.set('categoria', CATEGORIA_PARA_API[categoria])
+  if (categoria && categoria !== 'all') params.set('categoria', categoria)
   params.set('pagina', pagina)
   const resposta = await chamarApi(`/solucoes-conhecidas?${params.toString()}`, { token })
-  // Mesma tradução de chave de contagensPorStatus (buscarChamadosTI) — o
-  // backend manda o enum cru (HARDWARE/SOFTWARE/...), o frontend usa
-  // CATEGORIA_DA_API (Hardware/Software/...) em `chamado.category` e em
-  // CATEGORIAS (utils/categorias.js) pra tudo mais.
-  const contagensPorCategoria = Object.fromEntries(
-    Object.entries(resposta.contagensPorCategoria ?? {}).map(([categoria, valor]) => [CATEGORIA_DA_API[categoria] ?? categoria, valor]),
-  )
+  // Chaves já vêm no nome final da categoria — sem tradução (ver comentário
+  // no topo do arquivo).
+  const contagensPorCategoria = resposta.contagensPorCategoria ?? {}
   return { ...mapearRespostaPaginada(resposta, mapearSolucao), contagensPorCategoria }
 }
 

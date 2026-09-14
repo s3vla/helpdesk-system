@@ -5,6 +5,7 @@ import { useAuth } from '../hooks/useAuth'
 import { useAvisoSairSemSalvar } from '../hooks/useAvisoSairSemSalvar'
 import { useEnterParaEnviar } from '../hooks/useEnterParaEnviar'
 import { criarChamado, enviarImagem, buscarChamadosSemelhantes, buscarChamado } from '../services/ticketService'
+import { buscarCategoriasAtivas } from '../services/categoriasService'
 import { traduzirErroApi } from '../utils/traduzirErroApi'
 import CategoriaSelect from './CategoriaSelect'
 import ResumoSolicitacao from './ResumoSolicitacao'
@@ -44,7 +45,13 @@ function CreateTicket({ onSubmit, onSelect }) {
   const { token, tratarErroApi } = useAuth()
   const [desc, setDesc] = useState('')
   const [errMsg, setErrMsg] = useState('')
-  const [cat, setCat] = useState('Hardware')
+  // Categorias ativas buscadas do backend — não é mais um array fixo (ver
+  // Administração → Categorias). `cat` começa vazio e é preenchido com a
+  // primeira categoria ativa assim que a lista chega, em vez de um literal
+  // "Hardware" que poderia nem existir mais se o técnico desativasse essa
+  // categoria específica.
+  const [categorias, setCategorias] = useState([])
+  const [cat, setCat] = useState('')
   const [prio, setPrio] = useState('media')
   const [anydeskId, setAnydeskId] = useState('')
   const [arquivos, setArquivos] = useState([])
@@ -60,6 +67,14 @@ function CreateTicket({ onSubmit, onSelect }) {
   // aviso nenhum (ver useAvisoSairSemSalvar).
   useAvisoSairSemSalvar(Boolean(desc.trim() || errMsg.trim() || anydeskId.trim() || arquivos.length > 0))
 
+  useEffect(() => {
+    buscarCategoriasAtivas(token).then(lista => {
+      setCategorias(lista.map(c => c.nome))
+      setCat(atual => atual || lista[0]?.nome || '')
+    }).catch(() => {})
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   // Aviso não-bloqueante de "você já tem algo parecido em aberto" —
   // debounce (mesmo padrão já usado em ITSolutions.jsx pra busca):
   // espera parar de digitar antes de checar, pra não disparar uma
@@ -69,7 +84,7 @@ function CreateTicket({ onSubmit, onSelect }) {
   // TAMANHO_MINIMO_BUSCA_SEMELHANTES).
   useEffect(() => {
     clearTimeout(debounceSemelhantesRef.current)
-    if (desc.trim().length < TAMANHO_MINIMO_BUSCA_SEMELHANTES) {
+    if (desc.trim().length < TAMANHO_MINIMO_BUSCA_SEMELHANTES || !cat) {
       setSemelhantes([])
       return
     }
@@ -98,7 +113,7 @@ function CreateTicket({ onSubmit, onSelect }) {
   }
 
   async function enviar() {
-    if (!desc.trim()) return
+    if (!desc.trim() || !cat) return
     setErro('')
     try {
       const imagensUrls = []
@@ -180,7 +195,7 @@ function CreateTicket({ onSubmit, onSelect }) {
         <div style={{ display: 'grid', gridTemplateColumns: largura < 500 ? '1fr' : '1fr 1fr', gap: 10 }}>
           <div>
             <label style={rotuloCompacto}>Categoria</label>
-            <CategoriaSelect valor={cat} onChange={setCat} disabled={carregando} />
+            <CategoriaSelect opcoes={categorias} valor={cat} onChange={setCat} disabled={carregando} />
           </div>
           <div>
             <label style={rotuloCompacto}>Prioridade</label>
@@ -252,8 +267,8 @@ function CreateTicket({ onSubmit, onSelect }) {
           <p style={{ color: CORES_APP.textoSuave, fontSize: 12, margin: '4px 0 0' }}>Fica visível na tela inicial do AnyDesk.</p>
         </div>
         {erro && <p style={{ color: CORES_APP.erro, fontSize: 13, margin: 0 }}>{erro}</p>}
-        <button onClick={enviar} disabled={!desc.trim() || carregando}
-          style={{ ...estilos.btnPrimary, padding: '11px 28px', opacity: desc.trim() && !carregando ? 1 : 0.45, cursor: desc.trim() && !carregando ? 'pointer' : 'not-allowed', fontSize: 15 }}>
+        <button onClick={enviar} disabled={!desc.trim() || !cat || carregando}
+          style={{ ...estilos.btnPrimary, padding: '11px 28px', opacity: desc.trim() && cat && !carregando ? 1 : 0.45, cursor: desc.trim() && cat && !carregando ? 'pointer' : 'not-allowed', fontSize: 15 }}>
           {textoBotao}
         </button>
       </div>

@@ -224,7 +224,7 @@ function ITDashboard({ versaoDados, onSelect, onAbrirChamado }) {
                       <div style={{ fontSize: 13, color: CORES_APP.texto, fontWeight: 500 }}>{chamado.solicitanteNome}</div>
                       <div style={{ color: CORES_APP.textoSuave, fontSize: 11 }}>{chamado.solicitanteDept}</div>
                     </div>
-                    <span style={{ color: CORES_APP.textoFraco, fontSize: 12, fontFamily: 'Outfit, sans-serif', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{LABEL_CATEGORIA[chamado.category]}</span>
+                    <span style={{ color: CORES_APP.textoFraco, fontSize: 12, fontFamily: 'Outfit, sans-serif', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{LABEL_CATEGORIA[chamado.category] ?? chamado.category}</span>
                     <span style={{ color: chamado.assignedTo ? CORES_APP.texto : CORES_APP.textoSuave, fontSize: 12, fontWeight: chamado.assignedTo ? 500 : 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{chamado.assignedTo ?? 'Não atribuído'}</span>
                     <span style={{ color: CORES_APP.textoFraco, fontSize: 12, whiteSpace: 'nowrap' }}>{tempoDecorrido(chamado.updated)}</span>
                     <span style={{ justifySelf: 'start', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
@@ -246,7 +246,7 @@ function ITDashboard({ versaoDados, onSelect, onAbrirChamado }) {
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 4, alignItems: 'center' }}>
                     <StatusBadge status={chamado.status} />
                     <SlaBadge situacao={situacaoSla} />
-                    <span style={{ color: CORES_APP.textoFraco, fontSize: 12 }}>{chamado.solicitanteNome?.split(' ')[0]} · {LABEL_CATEGORIA[chamado.category]}</span>
+                    <span style={{ color: CORES_APP.textoFraco, fontSize: 12 }}>{chamado.solicitanteNome?.split(' ')[0]} · {LABEL_CATEGORIA[chamado.category] ?? chamado.category}</span>
                   </div>
                 )}
               </div>

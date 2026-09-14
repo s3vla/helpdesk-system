@@ -1,4 +1,4 @@
-import { CategoriaChamado } from '../common/enums/categoria-chamado.enum';
+import { Categoria } from '../categorias/entities/categoria.entity';
 import { NivelChamado } from '../common/enums/nivel-chamado.enum';
 
 // Menção ao ERP principal da empresa — sempre N3, não importa a categoria,
@@ -56,15 +56,21 @@ function contemAlgumTermo(textoNormalizado: string, termos: string[]): boolean {
 // que bater define o nível (ver CONTRATO.md):
 //   1. Menção ao Viasoft (ERP principal)                  -> N3
 //   2. Menção a infraestrutura crítica (servidor, backup...) -> N3
-//   3. Categoria REDE                                      -> N2
+//   3. Categoria.consideradaRede === true                  -> N2
 //   4. Qualquer outro caso                                 -> N1
 // Sem IA de propósito — é busca de termo simples, do mesmo jeito que a
 // comparação de soluções parecidas (ver solucoes-conhecidas/palavras-chave.util.ts).
 // Esse nível é só uma categorização/filtro pro técnico se organizar — NÃO é
 // controle de acesso: os dois técnicos continuam vendo e podendo assumir
 // qualquer chamado, seja qual for o nível calculado aqui.
+//
+// Recebe a Categoria inteira (não só o nome) porque a regra #3 depende do
+// flag `consideradaRede`, marcável na tela de Administração — comparar por
+// nome (`categoria.nome === 'Rede'`) quebraria assim que alguém renomeasse
+// a categoria ou criasse uma nova categoria "tipo rede" (ex: "VPN") sem se
+// chamar literalmente "Rede".
 export function calcularNivelSugerido(
-  categoria: CategoriaChamado,
+  categoria: Categoria,
   descricao: string,
   mensagemErro: string | null,
 ): NivelChamado {
@@ -76,7 +82,7 @@ export function calcularNivelSugerido(
   if (contemAlgumTermo(textoCombinado, TERMOS_N3_INFRAESTRUTURA)) {
     return NivelChamado.N3;
   }
-  if (categoria === CategoriaChamado.REDE) {
+  if (categoria.consideradaRede) {
     return NivelChamado.N2;
   }
   return NivelChamado.N1;

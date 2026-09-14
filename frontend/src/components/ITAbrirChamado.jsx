@@ -5,6 +5,7 @@ import { useAuth } from '../hooks/useAuth'
 import { useAvisoSairSemSalvar } from '../hooks/useAvisoSairSemSalvar'
 import { useEnterParaEnviar } from '../hooks/useEnterParaEnviar'
 import { abrirChamadoComoTecnico, buscarColaboradores, enviarImagem } from '../services/ticketService'
+import { buscarCategoriasAtivas } from '../services/categoriasService'
 import { traduzirErroApi } from '../utils/traduzirErroApi'
 import CategoriaSelect from './CategoriaSelect'
 import SolicitanteSelect from './SolicitanteSelect'
@@ -40,7 +41,10 @@ function ITAbrirChamado({ onSubmit }) {
   const [solicitanteId, setSolicitanteId] = useState(null)
   const [desc, setDesc] = useState('')
   const [errMsg, setErrMsg] = useState('')
-  const [cat, setCat] = useState('Hardware')
+  // Ver mesmo comentário em CreateTicket.jsx — lista dinâmica, não mais um
+  // array fixo.
+  const [categorias, setCategorias] = useState([])
+  const [cat, setCat] = useState('')
   const [prio, setPrio] = useState('media')
   const [anydeskId, setAnydeskId] = useState('')
   const [arquivos, setArquivos] = useState([])
@@ -64,8 +68,15 @@ function ITAbrirChamado({ onSubmit }) {
       .finally(() => setCarregandoColaboradores(false))
   }, [token])
 
+  useEffect(() => {
+    buscarCategoriasAtivas(token).then(lista => {
+      setCategorias(lista.map(c => c.nome))
+      setCat(atual => atual || lista[0]?.nome || '')
+    }).catch(() => {})
+  }, [token])
+
   async function enviar() {
-    if (!solicitanteId || !desc.trim()) return
+    if (!solicitanteId || !desc.trim() || !cat) return
     setErro('')
     try {
       const imagensUrls = []
@@ -91,7 +102,7 @@ function ITAbrirChamado({ onSubmit }) {
   const aoTeclarEnter = useEnterParaEnviar(enviar)
   const carregando = etapa !== null
   const textoBotao = etapa === 'enviando-imagem' ? 'Enviando imagens...' : etapa === 'criando' ? 'Enviando chamado...' : 'Abrir chamado'
-  const podeEnviar = !!solicitanteId && desc.trim() && !carregando
+  const podeEnviar = !!solicitanteId && desc.trim() && !!cat && !carregando
   // 2/3 pro formulário, 1/3 pro resumo (proporção literal via fr, não só
   // aproximada por px) em telas largas o bastante pra caber as duas
   // colunas sem apertar (coluna direita tem mínimo de 280px) — abaixo
@@ -132,7 +143,7 @@ function ITAbrirChamado({ onSubmit }) {
         <div style={{ display: 'grid', gridTemplateColumns: largura < 500 ? '1fr' : '1fr 1fr', gap: 10 }}>
           <div>
             <label style={rotuloCompacto}>Categoria</label>
-            <CategoriaSelect valor={cat} onChange={setCat} disabled={carregando} />
+            <CategoriaSelect opcoes={categorias} valor={cat} onChange={setCat} disabled={carregando} />
           </div>
           <div>
             <label style={rotuloCompacto}>Prioridade</label>

@@ -1,4 +1,3 @@
-import { CategoriaChamado } from '../../common/enums/categoria-chamado.enum';
 import { SolucaoConhecida } from '../entities/solucao-conhecida.entity';
 import {
   mapUsuarioParaResposta,
@@ -10,7 +9,7 @@ export class SolucaoConhecidaResponseDto {
   chamadoId: number;
   tituloChamado: string;
   descricaoChamado: string;
-  categoria: CategoriaChamado;
+  categoria: string;
   comoFoiResolvido: string;
   marcadaComo: boolean;
   imagensUrls: string[];
@@ -32,7 +31,7 @@ export function mapSolucaoParaResposta(
     chamadoId: solucao.chamado.id,
     tituloChamado: solucao.chamado.titulo,
     descricaoChamado: solucao.chamado.descricao,
-    categoria: solucao.categoria,
+    categoria: solucao.categoria.nome,
     comoFoiResolvido: solucao.comoFoiResolvido,
     marcadaComo: solucao.marcadaComo,
     imagensUrls: solucao.imagensUrls,

@@ -1,15 +1,20 @@
 import { useState } from 'react'
-import { CATEGORIAS, LABEL_CATEGORIA } from '../utils/categorias'
+import { LABEL_CATEGORIA } from '../utils/categorias'
 import { IconChevronDown } from './icons'
 import { CORES_APP } from '../styles/theme'
 
 // Dropdown customizado pra categoria do chamado: fechado, mostra só a opção
 // escolhida; clicar expande a lista de opções. Existe pra reduzir a
 // quantidade de controles visíveis de uma vez no formulário de abertura —
-// os 5 botões lado a lado antes ocupavam espaço permanentemente, mesmo
+// os botões lado a lado antes ocupavam espaço permanentemente, mesmo
 // depois de uma categoria já escolhida. Prioridade continua com botões
 // lado a lado (só 3 opções, cabe sem poluir a tela).
-function CategoriaSelect({ valor, onChange, disabled }) {
+//
+// `opcoes` vem de quem chama (busca em GET /categorias/ativas) — não é
+// mais um array fixo importado daqui: a lista de categorias agora é
+// administrável (Administração → Categorias), então este componente não
+// pode mais assumir quais existem.
+function CategoriaSelect({ opcoes, valor, onChange, disabled }) {
   const [aberto, setAberto] = useState(false)
 
   return (
@@ -22,7 +27,7 @@ function CategoriaSelect({ valor, onChange, disabled }) {
           borderRadius: 8, padding: '12px 14px', fontSize: 15, fontFamily: 'Outfit, sans-serif', fontWeight: 600,
           cursor: disabled ? 'default' : 'pointer', transition: 'all 0.15s',
         }}>
-        {LABEL_CATEGORIA[valor]}
+        {LABEL_CATEGORIA[valor] ?? valor}
         <IconChevronDown width={15} height={15} style={{ color: CORES_APP.textoFraco, transform: aberto ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s', flexShrink: 0 }} />
       </button>
 
@@ -30,7 +35,7 @@ function CategoriaSelect({ valor, onChange, disabled }) {
         <>
           <div style={{ position: 'fixed', inset: 0, zIndex: 4 }} onClick={() => setAberto(false)} />
           <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, zIndex: 5, background: CORES_APP.popover, border: `1px solid ${CORES_APP.borda}`, borderRadius: 8, padding: 4, boxShadow: '0 8px 24px rgba(16,35,31,0.18)' }}>
-            {CATEGORIAS.map(c => (
+            {opcoes.map(c => (
               <button key={c} type="button" onClick={() => { onChange(c); setAberto(false) }}
                 style={{
                   display: 'block', width: '100%', textAlign: 'left',
@@ -39,7 +44,7 @@ function CategoriaSelect({ valor, onChange, disabled }) {
                   border: 'none', borderRadius: 6, padding: '9px 11px', fontSize: 13, fontFamily: 'Outfit, sans-serif',
                   fontWeight: c === valor ? 600 : 400, cursor: 'pointer',
                 }}>
-                {LABEL_CATEGORIA[c]}
+                {LABEL_CATEGORIA[c] ?? c}
               </button>
             ))}
           </div>

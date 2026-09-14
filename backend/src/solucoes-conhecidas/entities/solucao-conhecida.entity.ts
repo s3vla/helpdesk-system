@@ -3,10 +3,11 @@ import {
   CreateDateColumn,
   Entity,
   JoinColumn,
+  ManyToOne,
   OneToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { CategoriaChamado } from '../../common/enums/categoria-chamado.enum';
+import { Categoria } from '../../categorias/entities/categoria.entity';
 import { Chamado } from '../../chamados/entities/chamado.entity';
 
 @Entity()
@@ -26,9 +27,13 @@ export class SolucaoConhecida {
 
   // Categoria copiada do chamado no momento da criação (denormalização
   // proposital) para permitir filtrar por categoria em /solucoes-conhecidas
-  // sem precisar fazer JOIN com "chamado" a cada consulta.
-  @Column({ type: 'enum', enum: CategoriaChamado })
-  categoria: CategoriaChamado;
+  // sem precisar fazer JOIN com "chamado" a cada consulta — agora FK, pelo
+  // mesmo motivo de Chamado.categoria (era enum fixo, virou tabela
+  // administrável). `eager: true` pelo mesmo motivo de lá — muita leitura
+  // espalhada que já assumia `solucao.categoria` vindo preenchido sozinho.
+  @ManyToOne(() => Categoria, { eager: true, nullable: false })
+  @JoinColumn({ name: 'categoriaId' })
+  categoria: Categoria;
 
   // Prints opcionais de "como ficou depois de resolvido" — mesmo padrão de
   // Chamado.imagensUrls (array via `simple-json`, não uma tabela separada:

@@ -21,6 +21,9 @@ import { AvisosModule } from './avisos/avisos.module';
 import { TarefasModule } from './tarefas/tarefas.module';
 import { AnotacoesModule } from './anotacoes/anotacoes.module';
 import { ForumModule } from './forum/forum.module';
+import { SetoresModule } from './setores/setores.module';
+import { GruposModule } from './grupos/grupos.module';
+import { CategoriasModule } from './categorias/categorias.module';
 import { Usuario } from './usuarios/entities/usuario.entity';
 import { Chamado } from './chamados/entities/chamado.entity';
 import { Comentario } from './comentarios/entities/comentario.entity';
@@ -34,6 +37,10 @@ import { Tarefa } from './tarefas/entities/tarefa.entity';
 import { Anotacao } from './anotacoes/entities/anotacao.entity';
 import { SugestaoForum } from './forum/entities/sugestao-forum.entity';
 import { ComentarioForum } from './forum/entities/comentario-forum.entity';
+import { Setor } from './setores/entities/setor.entity';
+import { MapeamentoSetorEmail } from './setores/entities/mapeamento-setor-email.entity';
+import { Grupo } from './grupos/entities/grupo.entity';
+import { Categoria } from './categorias/entities/categoria.entity';
 
 @Module({
   imports: [
@@ -69,6 +76,10 @@ import { ComentarioForum } from './forum/entities/comentario-forum.entity';
           Anotacao,
           SugestaoForum,
           ComentarioForum,
+          Setor,
+          MapeamentoSetorEmail,
+          Grupo,
+          Categoria,
         ],
         // Migrations (não mais synchronize:true) são quem manda no schema —
         // ver src/migrations/ e src/data-source.ts (usado só pela CLI). O
@@ -115,6 +126,9 @@ import { ComentarioForum } from './forum/entities/comentario-forum.entity';
     TarefasModule,
     AnotacoesModule,
     ForumModule,
+    SetoresModule,
+    GruposModule,
+    CategoriasModule,
   ],
   controllers: [AppController],
   providers: [

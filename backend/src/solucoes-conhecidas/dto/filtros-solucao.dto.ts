@@ -1,5 +1,4 @@
-import { IsEnum, IsOptional, IsString } from 'class-validator';
-import { CategoriaChamado } from '../../common/enums/categoria-chamado.enum';
+import { IsOptional, IsString } from 'class-validator';
 import { PaginacaoDto } from '../../common/dto/paginacao.dto';
 
 export class FiltrosSolucaoDto extends PaginacaoDto {
@@ -7,7 +6,8 @@ export class FiltrosSolucaoDto extends PaginacaoDto {
   @IsString()
   busca?: string;
 
+  // Nome da categoria — sem @IsEnum, mesmo motivo de FiltrosChamadoDto.
   @IsOptional()
-  @IsEnum(CategoriaChamado, { message: 'Categoria inválida' })
-  categoria?: CategoriaChamado;
+  @IsString()
+  categoria?: string;
 }

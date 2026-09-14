@@ -5,7 +5,6 @@ import {
   IsOptional,
   IsString,
 } from 'class-validator';
-import { CategoriaChamado } from '../../common/enums/categoria-chamado.enum';
 import { PrioridadeChamado } from '../../common/enums/prioridade-chamado.enum';
 
 // Repare no que NÃO está aqui: `nivel`, `status`, `solicitanteId`. Nível é
@@ -26,8 +25,15 @@ export class CriarChamadoDto {
   @IsString()
   mensagemErro?: string;
 
-  @IsEnum(CategoriaChamado, { message: 'Categoria inválida' })
-  categoria: CategoriaChamado;
+  // Era @IsEnum(CategoriaChamado) — agora é o NOME de uma categoria
+  // cadastrada em Administração → Categorias (string livre, sem lista
+  // fechada aqui no DTO). A existência/ativação de verdade é checada no
+  // service (CategoriasService.buscarAtivaPorNomeOuFalhar), não aqui —
+  // mesmo padrão de EMAILS_COLABORADOR_AUTORIZADOS, que também não é uma
+  // regra de formato, e sim de negócio.
+  @IsString()
+  @IsNotEmpty({ message: 'Escolha uma categoria' })
+  categoria: string;
 
   @IsEnum(PrioridadeChamado, { message: 'Prioridade inválida' })
   prioridade: PrioridadeChamado;

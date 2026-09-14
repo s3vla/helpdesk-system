@@ -4,21 +4,9 @@ import * as nodemailer from 'nodemailer';
 import { Chamado } from '../chamados/entities/chamado.entity';
 import { Usuario } from '../usuarios/entities/usuario.entity';
 import { Aviso } from '../avisos/entities/aviso.entity';
-import { CategoriaChamado } from '../common/enums/categoria-chamado.enum';
 import { PrioridadeChamado } from '../common/enums/prioridade-chamado.enum';
 import { TipoAviso } from '../common/enums/tipo-aviso.enum';
 import { EMAILS_TECNICO_AUTORIZADOS } from '../config/emails-autorizados';
-
-// Cópia local de rótulo em PT-BR — mesmo raciocínio de LABEL_STATUS em
-// ChamadosService: o backend nunca importa nada do frontend, então uma
-// pequena duplicação aqui é intencional, não uma fonte de verdade nova.
-const LABEL_CATEGORIA: Record<CategoriaChamado, string> = {
-  [CategoriaChamado.HARDWARE]: 'Hardware',
-  [CategoriaChamado.SOFTWARE]: 'Software',
-  [CategoriaChamado.REDE]: 'Rede',
-  [CategoriaChamado.ACESSO]: 'Acesso',
-  [CategoriaChamado.OUTRO]: 'Outro',
-};
 
 const LABEL_PRIORIDADE: Record<PrioridadeChamado, string> = {
   [PrioridadeChamado.BAIXA]: 'Baixa',
@@ -205,7 +193,7 @@ export class EmailService {
       ['Chamado', `${numeroChamado(chamado.id)} — ${chamado.titulo}`],
       [
         'Categoria',
-        `${LABEL_CATEGORIA[chamado.categoria]} &nbsp;|&nbsp; Prioridade: ${LABEL_PRIORIDADE[chamado.prioridade]} &nbsp;|&nbsp; Nível: ${chamado.nivel}`,
+        `${chamado.categoria.nome} &nbsp;|&nbsp; Prioridade: ${LABEL_PRIORIDADE[chamado.prioridade]} &nbsp;|&nbsp; Nível: ${chamado.nivel}`,
       ],
       ['Solicitante', chamado.solicitante.nome ?? chamado.solicitante.email],
     ];

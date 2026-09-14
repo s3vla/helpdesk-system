@@ -476,7 +476,7 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
                 ) : (
                   <span style={{ background: 'rgba(129,140,248,0.12)', color: '#818cf8', padding: '3px 10px', borderRadius: 99, fontSize: 12, fontWeight: 600, fontFamily: 'Outfit, sans-serif' }}>{chamado.level}</span>
                 )}
-                <span style={{ background: CORES_APP.fundoCampo, color: CORES_APP.textoFraco, padding: '3px 10px', borderRadius: 99, fontSize: 12, fontFamily: 'Outfit, sans-serif' }}>{LABEL_CATEGORIA[chamado.category]}</span>
+                <span style={{ background: CORES_APP.fundoCampo, color: CORES_APP.textoFraco, padding: '3px 10px', borderRadius: 99, fontSize: 12, fontFamily: 'Outfit, sans-serif' }}>{LABEL_CATEGORIA[chamado.category] ?? chamado.category}</span>
                 <ObservadoresCabecalho
                   observers={chamado.observers}
                   isIT={isIT}

@@ -3,15 +3,15 @@ import { estilos, CORES_APP } from '../styles/theme'
 import { formatarData } from '../utils/formatters'
 import { useAuth } from '../hooks/useAuth'
 import { buscarSolucoesConhecidas } from '../services/ticketService'
+import { buscarCategoriasAtivas } from '../services/categoriasService'
 import { traduzirErroApi } from '../utils/traduzirErroApi'
 import { URL_BASE } from '../services/apiClient'
-import { CATEGORIAS as CATEGORIAS_INTERNAS, LABEL_CATEGORIA as LABEL_CATEGORIA_BASE } from '../utils/categorias'
+import { LABEL_CATEGORIA as LABEL_CATEGORIA_BASE } from '../utils/categorias'
 import { IconBarChart, IconSearch, IconChevronDown } from './icons'
 import EstadoRequisicao from './EstadoRequisicao'
 import ImageLightbox from './ImageLightbox'
 import Paginacao from './Paginacao'
 
-const CATEGORIAS = ['all', ...CATEGORIAS_INTERNAS]
 const LABEL_CATEGORIA = { all: 'Todas', ...LABEL_CATEGORIA_BASE }
 
 // Base de "Soluções Conhecidas": busca as soluções catalogadas
@@ -27,6 +27,10 @@ function ITSolutions() {
   const [buscaInput, setBuscaInput] = useState('')
   const [busca, setBusca] = useState('')
   const [filtroCategoria, setFiltroCategoria] = useState('all')
+  // Categorias ativas buscadas do backend (não mais um array fixo) — uma
+  // categoria nova criada em Administração aparece aqui sem precisar de
+  // deploy nenhum.
+  const [categorias, setCategorias] = useState(['all'])
   const [solucoes, setSolucoes] = useState([])
   const [total, setTotal] = useState(0)
   const [contagensPorCategoria, setContagensPorCategoria] = useState({})
@@ -46,6 +50,13 @@ function ITSolutions() {
     debounceRef.current = setTimeout(() => setBusca(buscaInput.trim()), 400)
     return () => clearTimeout(debounceRef.current)
   }, [buscaInput])
+
+  useEffect(() => {
+    buscarCategoriasAtivas(token)
+      .then(lista => setCategorias(['all', ...lista.map(c => c.nome)]))
+      .catch(() => {})
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Busca ou categoria mudando volta pra página 1 — senão dá pra ficar
   // "presa" numa página que não existe mais depois de um filtro que
@@ -103,7 +114,7 @@ function ITSolutions() {
       </div>
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 24, flexWrap: 'wrap', flexShrink: 0 }}>
-        {CATEGORIAS.map(c => {
+        {categorias.map(c => {
           const contagem = c === 'all'
             ? Object.values(contagensPorCategoria).reduce((soma, n) => soma + n, 0)
             : contagensPorCategoria[c] ?? 0
@@ -111,7 +122,7 @@ function ITSolutions() {
           return (
             <button key={c} onClick={() => setFiltroCategoria(c)}
               style={{ background: ativo ? 'rgba(34,197,94,0.12)' : CORES_APP.fundoCampo, color: ativo ? '#007851' : CORES_APP.textoFraco, border: `1px solid ${ativo ? 'rgba(34,197,94,0.3)' : CORES_APP.borda}`, borderRadius: 8, padding: '7px 14px', fontSize: 13, fontFamily: 'Outfit, sans-serif', fontWeight: ativo ? 600 : 400, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
-              {LABEL_CATEGORIA[c]}
+              {LABEL_CATEGORIA[c] ?? c}
               <span style={{ background: ativo ? 'rgba(34,197,94,0.2)' : CORES_APP.fundoCampo, color: ativo ? '#007851' : CORES_APP.textoSuave, borderRadius: 99, padding: '1px 7px', fontSize: 11, fontFamily: 'Outfit, sans-serif', fontWeight: 700 }}>{contagem}</span>
             </button>
           )
@@ -141,7 +152,7 @@ function ITSolutions() {
                     style={{ width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 12 }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', gap: 6, marginBottom: 4, flexWrap: 'wrap', alignItems: 'center' }}>
-                        <span style={{ background: CORES_APP.fundoCampo, color: CORES_APP.textoFraco, padding: '2px 9px', borderRadius: 99, fontSize: 10.5, fontFamily: 'Outfit, sans-serif' }}>{LABEL_CATEGORIA[chamado.category]}</span>
+                        <span style={{ background: CORES_APP.fundoCampo, color: CORES_APP.textoFraco, padding: '2px 9px', borderRadius: 99, fontSize: 10.5, fontFamily: 'Outfit, sans-serif' }}>{LABEL_CATEGORIA[chamado.category] ?? chamado.category}</span>
                         <span style={{ background: 'rgba(34,197,94,0.12)', color: '#007851', padding: '2px 9px', borderRadius: 99, fontSize: 10.5, fontFamily: 'Outfit, sans-serif', fontWeight: 600 }}>Solução conhecida</span>
                       </div>
                       <h3 style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: 15, color: CORES_APP.tinta, margin: 0, lineHeight: 1.4 }}>{chamado.summary}</h3>
@@ -158,7 +169,7 @@ function ITSolutions() {
                     <div style={{ padding: '0 18px 18px', display: 'flex', flexDirection: 'column', gap: 14 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
                         <span style={{ color: '#f59e0b', fontSize: 12, fontFamily: 'Outfit, sans-serif', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
-                          <IconBarChart width={13} height={13} /> {ocorrencias} ocorrência{ocorrencias !== 1 ? 's' : ''} em {LABEL_CATEGORIA[chamado.category]}
+                          <IconBarChart width={13} height={13} /> {ocorrencias} ocorrência{ocorrencias !== 1 ? 's' : ''} em {LABEL_CATEGORIA[chamado.category] ?? chamado.category}
                         </span>
                         <div style={{ textAlign: 'right', flexShrink: 0 }}>
                           <div style={{ color: CORES_APP.textoSuave, fontSize: 11 }}>Resolvido em</div>

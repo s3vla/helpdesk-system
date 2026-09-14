@@ -3,7 +3,6 @@
 // já usa par-a-par (mesma categoria + pelo menos 1 palavra-chave em comum),
 // só que aplicada ao conjunto inteiro do período de uma vez, em vez de
 // comparado contra 1 chamado alvo.
-import { CategoriaChamado } from '../common/enums/categoria-chamado.enum';
 import {
   contarPalavrasEmComum,
   extrairPalavrasChave,
@@ -11,14 +10,17 @@ import {
 
 const MAXIMO_GRUPOS = 10;
 
+// `categoria` é o NOME (string) — era CategoriaChamado (enum fixo) antes de
+// virar uma tabela administrável (ver Categoria entity). Quem chama passa
+// `chamado.categoria.nome`, nunca a entity inteira.
 export interface ChamadoParaAgrupamento {
-  categoria: CategoriaChamado;
+  categoria: string;
   descricao: string;
   mensagemErro: string | null;
 }
 
 export interface GrupoRepetido {
-  categoria: CategoriaChamado;
+  categoria: string;
   rotulo: string;
   total: number;
 }
@@ -65,7 +67,7 @@ function palavraMaisFrequente(conjuntos: Set<string>[]): string {
 export function agruparChamadosRepetidos(
   chamados: ChamadoParaAgrupamento[],
 ): GrupoRepetido[] {
-  const porCategoria = new Map<CategoriaChamado, ChamadoParaAgrupamento[]>();
+  const porCategoria = new Map<string, ChamadoParaAgrupamento[]>();
   for (const chamado of chamados) {
     const lista = porCategoria.get(chamado.categoria) ?? [];
     lista.push(chamado);

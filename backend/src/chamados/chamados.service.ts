@@ -25,12 +25,12 @@ import { MetricasChamadoDto } from './dto/metricas-chamado.dto';
 import { MetricaItemResponseDto } from './dto/metrica-item-response.dto';
 import { StatusChamado } from '../common/enums/status-chamado.enum';
 import { NivelChamado } from '../common/enums/nivel-chamado.enum';
-import { CategoriaChamado } from '../common/enums/categoria-chamado.enum';
 import { PrioridadeChamado } from '../common/enums/prioridade-chamado.enum';
 import { AgruparPor } from '../common/enums/agrupar-por.enum';
 import { TipoMetrica } from '../common/enums/tipo-metrica.enum';
 import { JwtPayload } from '../common/interfaces/jwt-payload.interface';
 import { SolucoesConhecidasService } from '../solucoes-conhecidas/solucoes-conhecidas.service';
+import { CategoriasService } from '../categorias/categorias.service';
 import { ObservadoresService } from '../observadores/observadores.service';
 import { EmailService } from '../email/email.service';
 import { calcularNivelSugerido } from './nivel-triagem.util';
@@ -113,7 +113,9 @@ const EXTRATOR_POR_AGRUPAMENTO: Record<
   (chamado: Chamado) => string
 > = {
   [AgruparPor.NIVEL]: (chamado) => chamado.nivel,
-  [AgruparPor.CATEGORIA]: (chamado) => chamado.categoria,
+  // .categoria agora é a entity (relação eager) — o agrupamento continua
+  // sendo por NOME, mesmo formato de string que sempre foi.
+  [AgruparPor.CATEGORIA]: (chamado) => chamado.categoria.nome,
   [AgruparPor.STATUS]: (chamado) => chamado.status,
   [AgruparPor.PRIORIDADE]: (chamado) => chamado.prioridade,
 };
@@ -122,10 +124,12 @@ const EXTRATOR_POR_AGRUPAMENTO: Record<
 // tipo=contagem, pra zero-preencher os grupos sem nenhum chamado no
 // período (о gráfico de barras do frontend nunca fica com uma barra
 // faltando, mesmo raciocínio que `porNivel` já tinha antes desta rota
-// virar genérica).
-const VALORES_POR_AGRUPAMENTO: Record<AgruparPorEnum, string[]> = {
+// virar genérica). CATEGORIA fica de fora deste mapa estático de propósito
+// — não é mais um enum fixo, a lista de categorias ativas é buscada no
+// banco em obterMetricas() (ver CategoriasService.listarNomesAtivos).
+type AgruparPorEnumEstatico = Exclude<AgruparPorEnum, AgruparPor.CATEGORIA>;
+const VALORES_POR_AGRUPAMENTO: Record<AgruparPorEnumEstatico, string[]> = {
   [AgruparPor.NIVEL]: Object.values(NivelChamado),
-  [AgruparPor.CATEGORIA]: Object.values(CategoriaChamado),
   [AgruparPor.STATUS]: Object.values(StatusChamado),
   [AgruparPor.PRIORIDADE]: Object.values(PrioridadeChamado),
 };
@@ -177,6 +181,11 @@ export class ChamadosService {
     // pode lançar antes disso, por isso as chamadas abaixo levam .catch()
     // próprio (ver criar/atualizarStatus).
     private readonly emailService: EmailService,
+    // Resolve o `categoria` (nome, string) do DTO numa Categoria de verdade
+    // — nunca aceita um nome que não existe ou está desativado (ver
+    // criar()) — e fornece a lista de nomes ativos pra zero-preencher o
+    // gráfico "Distribuição por categoria" (ver obterMetricas).
+    private readonly categoriasService: CategoriasService,
   ) {}
 
   async criar(
@@ -184,16 +193,19 @@ export class ChamadosService {
     solicitanteId: number,
     abertoPorTecnicoId: number | null = null,
   ): Promise<Chamado> {
+    const categoria = await this.categoriasService.buscarAtivaPorNomeOuFalhar(
+      dto.categoria,
+    );
     const chamado = this.chamadoRepository.create({
       titulo: dto.titulo,
       descricao: dto.descricao,
       mensagemErro: dto.mensagemErro ?? null,
-      categoria: dto.categoria,
+      categoria,
       prioridade: dto.prioridade,
       imagensUrls: dto.imagensUrls ?? [],
       anydeskId: dto.anydeskId ?? null,
       nivel: calcularNivelSugerido(
-        dto.categoria,
+        categoria,
         dto.descricao,
         dto.mensagemErro ?? null,
       ),
@@ -293,7 +305,7 @@ export class ChamadosService {
   ): Promise<Record<StatusChamado, number>> {
     const base: FindOptionsWhere<Chamado> = {};
     if (filtros.nivel) base.nivel = filtros.nivel;
-    if (filtros.categoria) base.categoria = filtros.categoria;
+    if (filtros.categoria) base.categoria = { nome: filtros.categoria };
 
     const entradas = await Promise.all(
       Object.values(StatusChamado).map(async (status) => {
@@ -322,7 +334,7 @@ export class ChamadosService {
     const base: FindOptionsWhere<Chamado> = {};
     if (filtros.status) base.status = filtros.status;
     if (filtros.nivel) base.nivel = filtros.nivel;
-    if (filtros.categoria) base.categoria = filtros.categoria;
+    if (filtros.categoria) base.categoria = { nome: filtros.categoria };
 
     const { pagina, limite, skip } = calcularPaginacao(
       filtros.pagina,
@@ -446,13 +458,13 @@ export class ChamadosService {
   // ele nem tem acesso pra ver).
   async buscarSemelhantesDoUsuario(
     usuarioId: number,
-    categoria: CategoriaChamado,
+    categoria: string,
     texto: string,
   ): Promise<Pick<Chamado, 'id' | 'titulo' | 'status'>[]> {
     const candidatos = await this.chamadoRepository.find({
       where: {
         solicitante: { id: usuarioId },
-        categoria,
+        categoria: { nome: categoria },
         status: Not(StatusChamado.FINALIZADO),
       },
       select: { id: true, titulo: true, descricao: true, status: true },
@@ -536,11 +548,23 @@ export class ChamadosService {
       );
     }
 
+    // CATEGORIA não tem mais uma lista fixa de valores (era Object.values
+    // do enum) — busca as categorias ATIVAS no banco só quando precisa
+    // zero-preencher (tipo=contagem); ranking não usa isso, então não vale
+    // a pena buscar à toa nesse caso.
+    const valoresParaZerar =
+      filtros.agruparPor === AgruparPor.CATEGORIA
+        ? filtros.tipo === TipoMetrica.CONTAGEM
+          ? await this.categoriasService.listarNomesAtivos()
+          : []
+        : VALORES_POR_AGRUPAMENTO[filtros.agruparPor];
+
     return this.agruparPorEnum(
       chamados,
       filtros.agruparPor,
       filtros.tipo,
       filtros.limite,
+      valoresParaZerar,
     );
   }
 
@@ -555,7 +579,7 @@ export class ChamadosService {
 
     return agruparChamadosRepetidos(
       chamados.map((chamado) => ({
-        categoria: chamado.categoria,
+        categoria: chamado.categoria.nome,
         descricao: chamado.descricao,
         mensagemErro: chamado.mensagemErro,
       })),
@@ -583,6 +607,7 @@ export class ChamadosService {
     agruparPor: AgruparPorEnum,
     tipo: TipoMetrica,
     limite: number | undefined,
+    valoresParaZerar: string[],
   ): MetricaItemResponseDto[] {
     const extrair = EXTRATOR_POR_AGRUPAMENTO[agruparPor];
     const contagem = new Map<string, number>();
@@ -592,7 +617,7 @@ export class ChamadosService {
     }
 
     if (tipo === TipoMetrica.CONTAGEM) {
-      return VALORES_POR_AGRUPAMENTO[agruparPor].map((chave) => ({
+      return valoresParaZerar.map((chave) => ({
         chave,
         rotulo: chave,
         total: contagem.get(chave) ?? 0,

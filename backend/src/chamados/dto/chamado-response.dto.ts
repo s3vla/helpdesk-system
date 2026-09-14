@@ -1,4 +1,3 @@
-import { CategoriaChamado } from '../../common/enums/categoria-chamado.enum';
 import { PrioridadeChamado } from '../../common/enums/prioridade-chamado.enum';
 import { NivelChamado } from '../../common/enums/nivel-chamado.enum';
 import { StatusChamado } from '../../common/enums/status-chamado.enum';
@@ -24,7 +23,10 @@ export class ChamadoResponseDto {
   titulo: string;
   descricao: string;
   mensagemErro: string | null;
-  categoria: CategoriaChamado;
+  // Nome da categoria (não mais o enum cru) — o próprio nome já É o
+  // valor final de exibição agora, sem tradução de camada nenhuma (ver
+  // Categoria entity).
+  categoria: string;
   prioridade: PrioridadeChamado;
   nivel: NivelChamado;
   status: StatusChamado;
@@ -68,7 +70,7 @@ export function mapChamadoParaResposta(chamado: Chamado): ChamadoResponseDto {
     titulo: chamado.titulo,
     descricao: chamado.descricao,
     mensagemErro: chamado.mensagemErro,
-    categoria: chamado.categoria,
+    categoria: chamado.categoria.nome,
     prioridade: chamado.prioridade,
     nivel: chamado.nivel,
     status: chamado.status,

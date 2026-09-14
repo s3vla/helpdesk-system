@@ -1,12 +1,11 @@
-// Categorias de chamado — o valor interno (usado no estado dos componentes
-// e enviado pra API via CATEGORIA_PARA_API em ticketService.js) continua
-// sendo o nome técnico da categoria, igual ao enum do backend. LABEL_CATEGORIA
-// só controla o TEXTO exibido na tela, escolhido pra fazer sentido pra quem
-// não é da área de TI (ex: "Internet/Wi-Fi" em vez de "Rede") — trocar aqui
-// não afeta o que é salvo no banco nem os filtros que já dependem do valor
-// interno.
-export const CATEGORIAS = ['Hardware', 'Software', 'Rede', 'Acesso', 'Outro']
-
+// LABEL_CATEGORIA: cosmético, opcional — só existe pra dar um texto mais
+// "leigo" às 5 categorias originais (ex: "Internet/Wi-Fi" em vez de
+// "Rede"), igual antes. Não é mais a FONTE de quais categorias existem
+// (isso agora vem do backend, ver categoriasService.js — a categoria virou
+// uma tabela administrável em Administração → Categorias, não um enum
+// fixo). Qualquer categoria nova criada pelo técnico simplesmente não tem
+// entrada aqui — quem usa este dicionário sempre faz `LABEL_CATEGORIA[nome]
+// ?? nome`, caindo de volta no nome cru nesse caso.
 export const LABEL_CATEGORIA = {
   Hardware: 'Computador/Impressora',
   Software: 'Programas',

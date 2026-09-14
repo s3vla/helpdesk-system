@@ -1,7 +1,6 @@
 import { IsEnum, IsOptional, IsString } from 'class-validator';
 import { StatusChamado } from '../../common/enums/status-chamado.enum';
 import { NivelChamado } from '../../common/enums/nivel-chamado.enum';
-import { CategoriaChamado } from '../../common/enums/categoria-chamado.enum';
 import { PaginacaoDto } from '../../common/dto/paginacao.dto';
 
 // Este DTO descreve query params (?status=...&nivel=...&categoria=...), não
@@ -18,9 +17,12 @@ export class FiltrosChamadoDto extends PaginacaoDto {
   @IsEnum(NivelChamado, { message: 'Nível inválido' })
   nivel?: NivelChamado;
 
+  // Nome da categoria — sem @IsEnum: não é mais uma lista fechada em
+  // código. Um nome inexistente simplesmente não bate com nenhum chamado
+  // (WHERE categoria.nome = '...' sem resultado), não é um 400.
   @IsOptional()
-  @IsEnum(CategoriaChamado, { message: 'Categoria inválida' })
-  categoria?: CategoriaChamado;
+  @IsString()
+  categoria?: string;
 
   // Texto livre — filtra por número do chamado (ver
   // ChamadosService.listarTodos) ou por trecho contido em título/descrição.

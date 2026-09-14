@@ -3,7 +3,6 @@ import { ResponsiveContainer, BarChart, Bar, PieChart, Pie, XAxis, YAxis, Cartes
 import { estilos, CORES_APP, CORES_PRIORIDADE, CORES_STATUS } from '../styles/theme'
 import { useAuth } from '../hooks/useAuth'
 import { buscarMetricas, buscarRepeticao } from '../services/dashboardService'
-import { CATEGORIA_DA_API } from '../services/ticketService'
 import { LABEL_CATEGORIA } from '../utils/categorias'
 import { traduzirErroApi } from '../utils/traduzirErroApi'
 import EstadoRequisicao from './EstadoRequisicao'
@@ -26,15 +25,14 @@ const estiloPosicao = { color: CORES_APP.textoSuave, fontSize: 12, fontFamily: '
 const estiloContador = { background: CORES_APP.card, border: `1px solid ${CORES_APP.borda}`, color: CORES_APP.textoFraco, borderRadius: 99, padding: '3px 10px', fontSize: 11.5, fontFamily: 'Outfit, sans-serif', fontWeight: 700, flexShrink: 0, whiteSpace: 'nowrap' }
 
 // Traduz o `rotulo` bruto da API pro texto exibido, reaproveitando os
-// dicionários que já existem em vez de duplicar tradução — categoria vem
-// em MAIÚSCULO cru (precisa de CATEGORIA_DA_API antes de LABEL_CATEGORIA);
+// dicionários que já existem em vez de duplicar tradução — categoria já
+// vem no NOME final (não mais um enum maiúsculo cru, ver Categoria entity
+// no backend), só passa por LABEL_CATEGORIA se for uma das 5 originais que
+// ainda têm um rótulo mais "leigo" cadastrado; senão usa o nome cru mesmo.
 // status/prioridade só precisam de .toLowerCase() pra baterem com as
 // chaves de CORES_STATUS/CORES_PRIORIDADE (ambos em styles/theme.js).
 function traduzirRotulo(agruparPor, item) {
-  if (agruparPor === 'categoria') {
-    const categoriaInterna = CATEGORIA_DA_API[item.chave]
-    return LABEL_CATEGORIA[categoriaInterna] ?? item.rotulo
-  }
+  if (agruparPor === 'categoria') return LABEL_CATEGORIA[item.chave] ?? item.rotulo
   if (agruparPor === 'status') return CORES_STATUS[item.chave.toLowerCase()]?.label ?? item.rotulo
   if (agruparPor === 'prioridade') return CORES_PRIORIDADE[item.chave.toLowerCase()]?.label ?? item.rotulo
   return item.rotulo
@@ -69,7 +67,7 @@ function WidgetRenderer({ widget, periodo }) {
         const grupos = await buscarRepeticao(token, periodo)
         setItens(grupos.map(g => ({
           chave: `${g.categoria}-${g.rotulo}`,
-          rotulo: `${LABEL_CATEGORIA[CATEGORIA_DA_API[g.categoria]] ?? g.categoria} ${g.rotulo}`,
+          rotulo: `${LABEL_CATEGORIA[g.categoria] ?? g.categoria} ${g.rotulo}`,
           total: g.total,
         })))
       } else {

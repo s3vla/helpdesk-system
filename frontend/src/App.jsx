@@ -11,6 +11,7 @@ import ITDashboard from './components/ITDashboard'
 import ITUsers from './components/ITUsers'
 import ITUserDetail from './components/ITUserDetail'
 import ITSolutions from './components/ITSolutions'
+import Administracao from './components/Administracao'
 import ITAbrirChamado from './components/ITAbrirChamado'
 import DashboardTI from './components/DashboardTI'
 import CriarDashboard from './components/CriarDashboard'
@@ -24,7 +25,7 @@ import { useAuth } from './hooks/useAuth'
 import { buscarContagemNaoLidos } from './services/avisosService'
 
 const TELAS_COLABORADOR = ['emp-home', 'emp-tickets', 'emp-observing', 'emp-sent', 'emp-avisos', 'emp-tarefas', 'emp-anotacoes', 'emp-forum']
-const TELAS_TI = ['it-dash', 'it-users', 'it-user', 'it-solutions', 'it-abrir-chamado', 'it-metricas', 'it-metricas-config', 'it-avisos', 'it-tarefas', 'it-forum']
+const TELAS_TI = ['it-dash', 'it-admin', 'it-users', 'it-user', 'it-solutions', 'it-abrir-chamado', 'it-metricas', 'it-metricas-config', 'it-avisos', 'it-tarefas', 'it-forum']
 
 // App.jsx só orquestra qual tela mostrar — não guarda mais usuários/chamados
 // centralizados (isso agora vive na API, cada tela busca o que precisa via
@@ -80,11 +81,13 @@ function App() {
       : <ITLoginScreen onLoginTecnico={() => setTela('it-dash')} onBack={() => setTelaLogin('login')} />
   }
 
-  // Técnico recém-seedado ainda usando a senha de bootstrap do .env — nada
-  // do Painel TI aparece até trocar. Sem botão de cancelar (`obrigatorio`):
-  // ao trocar com sucesso, `usuario.deveTrocarSenha` vira false pela
-  // resposta da própria API (ver AuthContext.trocarSenha), então este
-  // bloco simplesmente para de bater e o Painel TI aparece sozinho.
+  // Alguém ainda usando uma senha que OUTRA pessoa escolheu — técnico
+  // recém-seedado (senha de bootstrap do .env) ou colaborador cadastrado
+  // direto pelo técnico (ver AuthService.cadastrarColaborador). Nada do
+  // painel (TI ou colaborador) aparece até trocar. Sem botão de cancelar
+  // (`obrigatorio`): ao trocar com sucesso, `usuario.deveTrocarSenha` vira
+  // false pela resposta da própria API (ver AuthContext.trocarSenha), então
+  // este bloco simplesmente para de bater e o painel aparece sozinho.
   if (usuario.deveTrocarSenha) {
     return <TrocarSenhaModal obrigatorio />
   }
@@ -153,6 +156,7 @@ function App() {
       {telaTI === 'it-dash' && (
         <ITDashboard versaoDados={versaoDados} onSelect={setChamadoSelecionado} onAbrirChamado={() => setTela('it-abrir-chamado')} />
       )}
+      {telaTI === 'it-admin' && <Administracao />}
       {telaTI === 'it-users' && (
         <ITUsers onSelect={u => { setUsuarioSelecionado(u); setTela('it-user') }} />
       )}

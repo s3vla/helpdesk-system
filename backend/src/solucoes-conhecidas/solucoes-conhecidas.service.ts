@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, SelectQueryBuilder } from 'typeorm';
 import { SolucaoConhecida } from './entities/solucao-conhecida.entity';
 import { Chamado } from '../chamados/entities/chamado.entity';
-import { CategoriaChamado } from '../common/enums/categoria-chamado.enum';
+import { Categoria } from '../categorias/entities/categoria.entity';
 import { FiltrosSolucaoDto } from './dto/filtros-solucao.dto';
 import {
   mapSolucaoParaResposta,
@@ -28,7 +28,7 @@ interface CriarSolucaoParams {
   chamadoId: number;
   comoFoiResolvido: string;
   marcadaComo: boolean;
-  categoria: CategoriaChamado;
+  categoria: Categoria;
   imagensUrls: string[];
 }
 
@@ -99,20 +99,30 @@ export class SolucoesConhecidasService {
     await this.solucaoRepository.save(solucao);
   }
 
+  // Chave por ID da categoria (não mais o nome cru) — agora que categoria é
+  // uma relação, agrupar direto pela FK (`chamado.categoriaId`) evita um
+  // JOIN só pra contar, e o id é uma chave sem ambiguidade nenhuma (nome
+  // pode em teoria repetir se alguém desativar e criar outra com o mesmo
+  // nome depois — id nunca).
   private async contarOcorrenciasPorCategoria(): Promise<
-    Record<string, number>
+    Record<number, number>
   > {
     const linhas = await this.chamadoRepository
       .createQueryBuilder('chamado')
-      .select('chamado.categoria', 'categoria')
+      // Sem JOIN de propósito: referenciar a relação direto (sem
+      // leftJoin antes) faz o TypeORM selecionar a coluna de FK crua
+      // (categoriaId) em vez de tentar montar a entity relacionada
+      // inteira — é o jeito idiomático de pegar só o id de uma relação
+      // to-one sem pagar o custo de um JOIN.
+      .select('chamado.categoria', 'categoriaId')
       .addSelect('COUNT(*)', 'total')
       .groupBy('chamado.categoria')
-      .getRawMany<{ categoria: string; total: string }>();
+      .getRawMany<{ categoriaId: number; total: string }>();
 
-    // `total` sai como string do driver do SQLite — convertendo pra number
-    // aqui, uma vez só, em vez de espalhar `Number(...)` na resposta.
+    // `total` sai como string do driver do Postgres — convertendo pra
+    // number aqui, uma vez só, em vez de espalhar `Number(...)` na resposta.
     return Object.fromEntries(
-      linhas.map((linha) => [linha.categoria, Number(linha.total)]),
+      linhas.map((linha) => [linha.categoriaId, Number(linha.total)]),
     );
   }
 
@@ -127,13 +137,17 @@ export class SolucoesConhecidasService {
       .createQueryBuilder('solucao')
       .innerJoinAndSelect('solucao.chamado', 'chamado')
       .leftJoinAndSelect('chamado.tecnicoResponsavel', 'tecnicoResponsavel')
+      // categoria é @ManyToOne + eager, mas eager só se aplica a
+      // find()/findOne() — QueryBuilder sempre precisa de JOIN explícito
+      // pra popular a relação.
+      .leftJoinAndSelect('solucao.categoria', 'categoria')
       // Só entram soluções que o técnico realmente marcou como
       // "reaproveitável" — é essa flag que distingue "chamado finalizado
       // qualquer" de "solução conhecida" (ver regra em ChamadosService).
       .where('solucao.marcadaComo = :marcada', { marcada: true });
 
     if (filtros.categoria) {
-      query.andWhere('solucao.categoria = :categoria', {
+      query.andWhere('categoria.nome = :categoria', {
         categoria: filtros.categoria,
       });
     }
@@ -141,7 +155,7 @@ export class SolucoesConhecidasService {
     if (filtros.busca?.trim()) {
       const termo = `%${filtros.busca.trim().toLowerCase()}%`;
       query.andWhere(
-        '(LOWER(chamado.titulo) LIKE :termo OR LOWER(solucao.comoFoiResolvido) LIKE :termo OR LOWER(solucao.categoria) LIKE :termo)',
+        '(LOWER(chamado.titulo) LIKE :termo OR LOWER(solucao.comoFoiResolvido) LIKE :termo OR LOWER(categoria.nome) LIKE :termo)',
         { termo },
       );
     }
@@ -161,9 +175,9 @@ export class SolucoesConhecidasService {
     filtros: Pick<FiltrosSolucaoDto, 'busca'>,
   ): Promise<Record<string, number>> {
     const linhas = await this.construirQuerySolucoes({ busca: filtros.busca })
-      .select('solucao.categoria', 'categoria')
+      .select('categoria.nome', 'categoria')
       .addSelect('COUNT(*)', 'total')
-      .groupBy('solucao.categoria')
+      .groupBy('categoria.nome')
       .getRawMany<{ categoria: string; total: string }>();
     return Object.fromEntries(
       linhas.map((linha) => [linha.categoria, Number(linha.total)]),
@@ -192,7 +206,7 @@ export class SolucoesConhecidasService {
       ]);
 
     const itens = solucoes.map((solucao) =>
-      mapSolucaoParaResposta(solucao, ocorrencias[solucao.categoria] ?? 0),
+      mapSolucaoParaResposta(solucao, ocorrencias[solucao.categoria.id] ?? 0),
     );
     return {
       ...montarRespostaPaginada(itens, total, pagina, limite),
@@ -209,7 +223,7 @@ export class SolucoesConhecidasService {
     chamado: Chamado,
   ): Promise<SolucaoSugeridaResponseDto[]> {
     const candidatas = await this.solucaoRepository.find({
-      where: { marcadaComo: true, categoria: chamado.categoria },
+      where: { marcadaComo: true, categoria: { id: chamado.categoria.id } },
       relations: { chamado: true },
     });
 
@@ -242,7 +256,7 @@ export class SolucoesConhecidasService {
       chamadoId: solucao.chamado.id,
       resumo: solucao.chamado.titulo,
       comoFoiResolvido: solucao.comoFoiResolvido,
-      ocorrenciasCategoria: ocorrencias[solucao.categoria] ?? 0,
+      ocorrenciasCategoria: ocorrencias[chamado.categoria.id] ?? 0,
     }));
   }
 }

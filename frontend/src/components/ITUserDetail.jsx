@@ -134,7 +134,7 @@ function ITUserDetail({ usuario, versaoDados, onVoltar, onSelect }) {
               style={{ ...estilos.card, borderLeft: `3px solid ${CORES_PRIORIDADE[chamado.priority].dot}`, padding: '14px 18px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 600, fontSize: 15, color: CORES_APP.tinta, marginBottom: 3 }}>{chamado.summary}</div>
-                <div style={{ color: CORES_APP.textoFraco, fontSize: 12 }}>{formatarData(chamado.created)} · {LABEL_CATEGORIA[chamado.category]}</div>
+                <div style={{ color: CORES_APP.textoFraco, fontSize: 12 }}>{formatarData(chamado.created)} · {LABEL_CATEGORIA[chamado.category] ?? chamado.category}</div>
               </div>
               <StatusBadge status={chamado.status} />
               <PriorityChip priority={chamado.priority} />

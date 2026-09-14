@@ -9,7 +9,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { CategoriaChamado } from '../../common/enums/categoria-chamado.enum';
+import { Categoria } from '../../categorias/entities/categoria.entity';
 import { PrioridadeChamado } from '../../common/enums/prioridade-chamado.enum';
 import { NivelChamado } from '../../common/enums/nivel-chamado.enum';
 import { StatusChamado } from '../../common/enums/status-chamado.enum';
@@ -35,8 +35,17 @@ export class Chamado {
   @Column({ type: 'text', nullable: true })
   mensagemErro: string | null;
 
-  @Column({ type: 'enum', enum: CategoriaChamado })
-  categoria: CategoriaChamado;
+  // Era um enum fixo (CategoriaChamado); agora é uma FK pra uma tabela que
+  // o técnico administra em Administração → Categorias (ver Categoria
+  // entity). `eager: true` — SEMPRE vem junto em qualquer find()/findOne()
+  // deste repositório, sem precisar listar `categoria: true` em `relations`
+  // em cada consulta espalhada por chamados.service.ts (muitos pontos
+  // dependiam de `chamado.categoria` já vir preenchido quando isso era só
+  // uma coluna simples). `nullable: false`: todo chamado sempre teve
+  // categoria, sem exceção.
+  @ManyToOne(() => Categoria, { eager: true, nullable: false })
+  @JoinColumn({ name: 'categoriaId' })
+  categoria: Categoria;
 
   @Column({ type: 'enum', enum: PrioridadeChamado })
   prioridade: PrioridadeChamado;
