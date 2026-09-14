@@ -1,7 +1,10 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   ParseIntPipe,
   Patch,
@@ -57,5 +60,16 @@ export class CategoriasController {
   ) {
     const categoria = await this.categoriasService.atualizar(id, dto);
     return mapCategoriaParaResposta(categoria);
+  }
+
+  // Exclusão física — só permitida quando a categoria nunca foi usada
+  // (ver CategoriasService.remover). Categoria já vinculada a algum
+  // chamado/solução responde 409, com a alternativa de desativar.
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(TipoUsuario.TECNICO)
+  async remover(@Param('id', ParseIntPipe) id: number) {
+    await this.categoriasService.remover(id);
   }
 }

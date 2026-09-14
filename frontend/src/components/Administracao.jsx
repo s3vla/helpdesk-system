@@ -20,6 +20,7 @@ import {
   buscarCategorias,
   criarCategoria,
   atualizarCategoria,
+  removerCategoria,
 } from '../services/categoriasService'
 import {
   buscarRelatorioAcesso,
@@ -239,6 +240,12 @@ function CategoriasTab() {
   const [criando, setCriando] = useState(false)
   const [erroCriar, setErroCriar] = useState('')
 
+  // Confirmação inline por linha (mesmo padrão de "Resetar conta" em
+  // ITUserDetail.jsx) — só uma categoria por vez em modo de confirmação.
+  const [confirmandoExclusaoId, setConfirmandoExclusaoId] = useState(null)
+  const [excluindo, setExcluindo] = useState(false)
+  const [erroExcluir, setErroExcluir] = useState('')
+
   async function carregar() {
     setCarregando(true)
     setErro('')
@@ -281,6 +288,39 @@ function CategoriasTab() {
     }
   }
 
+  function aoPedirExclusao(categoria) {
+    setConfirmandoExclusaoId(categoria.id)
+    setErroExcluir('')
+  }
+
+  function aoCancelarExclusao() {
+    setConfirmandoExclusaoId(null)
+    setErroExcluir('')
+  }
+
+  // 409 (categoria em uso) chega com a mensagem já pronta do backend — ver
+  // CategoriasService.remover — mostrada direto na linha, sem some a
+  // confirmação, pra a pessoa já ver o botão "Desativar" logo ali do lado
+  // como alternativa.
+  async function aoConfirmarExclusao(categoria) {
+    setExcluindo(true)
+    setErroExcluir('')
+    try {
+      await removerCategoria(token, categoria.id)
+      setCategorias(atual => atual.filter(c => c.id !== categoria.id))
+      setConfirmandoExclusaoId(null)
+    } catch (e) {
+      if (!tratarErroApi(e)) setErroExcluir(traduzirErroApi(e))
+    } finally {
+      setExcluindo(false)
+    }
+  }
+
+  async function aoDesativarEmVezDeExcluir(categoria) {
+    await aoAlternarCampo(categoria, 'ativo')
+    aoCancelarExclusao()
+  }
+
   return (
     <EstadoRequisicao carregando={carregando} erro={erro} aoTentarNovamente={carregar}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
@@ -288,7 +328,7 @@ function CategoriasTab() {
           <div style={{ padding: '18px 22px', borderBottom: `1px solid ${CORES_APP.bordaSuave}` }}>
             <h2 style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: 16, color: CORES_APP.texto, margin: '0 0 3px' }}>Categorias</h2>
             <p style={{ color: CORES_APP.textoFraco, fontSize: 13, margin: 0 }}>
-              {categorias.length} categoria{categorias.length !== 1 ? 's' : ''} cadastrada{categorias.length !== 1 ? 's' : ''} — sem exclusão, só ativar/desativar. &quot;Considerada rede&quot; classifica automaticamente o chamado como nível N2.
+              {categorias.length} categoria{categorias.length !== 1 ? 's' : ''} cadastrada{categorias.length !== 1 ? 's' : ''} — excluir só é permitido pra categoria nunca usada; caso contrário, desative. &quot;Considerada rede&quot; classifica automaticamente o chamado como nível N2.
             </p>
           </div>
           <div style={{ padding: '16px 22px', display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -308,30 +348,75 @@ function CategoriasTab() {
             {erroCriar && <p style={{ color: CORES_APP.erro, fontSize: 13, margin: 0 }}>{erroCriar}</p>}
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 6 }}>
-              {categorias.map(c => (
-                <div key={c.id} style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap',
-                  padding: '10px 12px', borderRadius: 8, border: `1px solid ${CORES_APP.bordaSuave}`,
-                  opacity: c.ativo ? 1 : 0.55,
-                }}>
-                  <span style={{ fontSize: 14, fontWeight: 600, color: CORES_APP.texto }}>{c.nome}</span>
-                  <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: CORES_APP.textoFraco, cursor: 'pointer' }}>
-                      <input type="checkbox" checked={c.consideradaRede} onChange={() => aoAlternarCampo(c, 'consideradaRede')} />
-                      Considerada rede (N2)
-                    </label>
-                    <button type="button" onClick={() => aoAlternarCampo(c, 'ativo')}
-                      style={{
-                        background: c.ativo ? 'rgba(0,73,192,0.08)' : 'rgba(0,120,81,0.08)',
-                        color: c.ativo ? '#0049C0' : '#007851',
-                        border: 'none', borderRadius: 999, padding: '5px 14px', fontSize: 12.5,
-                        fontFamily: 'Outfit, sans-serif', fontWeight: 600, cursor: 'pointer',
-                      }}>
-                      {c.ativo ? 'Desativar' : 'Ativar'}
-                    </button>
+              {categorias.map(c => {
+                const confirmando = confirmandoExclusaoId === c.id
+                return (
+                  <div key={c.id} style={{
+                    display: 'flex', flexDirection: 'column', gap: 8,
+                    padding: '10px 12px', borderRadius: 8,
+                    border: `1px solid ${confirmando ? 'rgba(239,68,68,0.35)' : CORES_APP.bordaSuave}`,
+                    opacity: c.ativo ? 1 : 0.55,
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: 14, fontWeight: 600, color: CORES_APP.texto }}>{c.nome}</span>
+                      <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: CORES_APP.textoFraco, cursor: 'pointer' }}>
+                          <input type="checkbox" checked={c.consideradaRede} onChange={() => aoAlternarCampo(c, 'consideradaRede')} />
+                          Considerada rede (N2)
+                        </label>
+                        <button type="button" onClick={() => aoAlternarCampo(c, 'ativo')}
+                          style={{
+                            background: c.ativo ? 'rgba(0,73,192,0.08)' : 'rgba(0,120,81,0.08)',
+                            color: c.ativo ? '#0049C0' : '#007851',
+                            border: 'none', borderRadius: 999, padding: '5px 14px', fontSize: 12.5,
+                            fontFamily: 'Outfit, sans-serif', fontWeight: 600, cursor: 'pointer',
+                          }}>
+                          {c.ativo ? 'Desativar' : 'Ativar'}
+                        </button>
+                        {!confirmando && (
+                          <button type="button" onClick={() => aoPedirExclusao(c)}
+                            style={{
+                              background: 'rgba(239,68,68,0.08)', color: '#ef4444',
+                              border: 'none', borderRadius: 999, padding: '5px 14px', fontSize: 12.5,
+                              fontFamily: 'Outfit, sans-serif', fontWeight: 600, cursor: 'pointer',
+                            }}>
+                            Excluir
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {confirmando && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 8, borderTop: `1px solid ${CORES_APP.bordaSuave}` }}>
+                        <div style={{ color: CORES_APP.tinta, fontSize: 13 }}>
+                          Tem certeza que quer excluir <strong>{c.nome}</strong>? Essa ação não pode ser desfeita.
+                        </div>
+                        {erroExcluir && <p style={{ color: CORES_APP.erro, fontSize: 13, margin: 0 }}>{erroExcluir}</p>}
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          <button type="button" onClick={() => aoConfirmarExclusao(c)} disabled={excluindo}
+                            style={{
+                              background: 'rgba(239,68,68,0.15)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.35)',
+                              borderRadius: 8, padding: '9px 16px', fontSize: 13, fontFamily: 'Outfit, sans-serif', fontWeight: 700,
+                              cursor: excluindo ? 'default' : 'pointer', opacity: excluindo ? 0.6 : 1,
+                            }}>
+                            {excluindo ? 'Excluindo...' : 'Sim, excluir'}
+                          </button>
+                          <button type="button" onClick={aoCancelarExclusao} disabled={excluindo}
+                            style={{ background: CORES_APP.fundoCampo, color: CORES_APP.textoFraco, border: `1px solid ${CORES_APP.borda}`, borderRadius: 8, padding: '9px 16px', fontSize: 13, fontFamily: 'Outfit, sans-serif', fontWeight: 500, cursor: 'pointer' }}>
+                            Cancelar
+                          </button>
+                          {erroExcluir && (
+                            <button type="button" onClick={() => aoDesativarEmVezDeExcluir(c)}
+                              style={{ background: 'rgba(0,73,192,0.08)', color: '#0049C0', border: 'none', borderRadius: 8, padding: '9px 16px', fontSize: 13, fontFamily: 'Outfit, sans-serif', fontWeight: 600, cursor: 'pointer' }}>
+                              Desativar em vez disso
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
         </div>

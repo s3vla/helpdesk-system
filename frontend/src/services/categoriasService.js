@@ -24,3 +24,10 @@ export async function criarCategoria(token, nome) {
 export async function atualizarCategoria(token, id, dados) {
   return chamarApi(`/categorias/${id}`, { token, metodo: 'PATCH', corpo: dados })
 }
+
+// Exclusão física — só funciona se a categoria nunca foi usada (backend
+// responde 409 com mensagem explicando o motivo quando já está vinculada
+// a algum chamado/solução, ver CategoriasService.remover).
+export async function removerCategoria(token, id) {
+  await chamarApi(`/categorias/${id}`, { token, metodo: 'DELETE' })
+}
