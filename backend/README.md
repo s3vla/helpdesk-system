@@ -162,6 +162,41 @@ começa a dar 500 (o transformer tenta descriptografar texto puro e
 falha) até o script rodar. Ver a seção destacada equivalente em
 `DEPLOY-NSSM.md`.
 
+## ⚠️ Dívida técnica conhecida — Tempo de Atendimento depende de texto em LogAuditoria
+
+O relatório `GET /admin/relatorios/tempo-atendimento` (Administração →
+Atividade) calcula "quanto tempo um chamado esperou até entrar em
+atendimento" procurando, no histórico de `LogAuditoria`, a primeira linha
+com `acao = MUDANCA_STATUS` cujo `descricao` **termina com o texto**
+`"Em atendimento"` — porque `LogAuditoria` não guarda o status
+anterior/novo em colunas estruturadas, só um `descricao` de texto pronto
+pra leitura humana (ex: `Status alterado de "Na fila" para "Em
+atendimento"`, montado em `ChamadosService.atualizarStatus`).
+
+Isso significa que o relatório depende de uma constante de texto
+(`SUFIXO_TRANSICAO_PARA_ANDAMENTO` em `src/relatorios/relatorios.service.ts`)
+continuar batendo, caractere por caractere, com `LABEL_STATUS[StatusChamado.
+ANDAMENTO]` em `src/chamados/chamados.service.ts`. Se um dia alguém mudar
+esse rótulo sem atualizar o outro lado, **o relatório não quebra nem avisa
+— ele simplesmente para de encontrar as transições novas, em silêncio**, e
+os chamados afetados passam a contar como "sem transição pra atendimento"
+(`totalSemTransicaoParaAtendimento`) como se nunca tivessem sido
+atendidos.
+
+Mitigação parcial já em vigor: `REABERTURA` (a outra ação que mexe em
+status) nunca aponta pra ANDAMENTO na máquina de estados atual (reabertura
+sempre vai de FINALIZADO → PARADO), então filtrar por `acao =
+MUDANCA_STATUS` já evita falso-positivo vindo dali, sem precisar checar o
+texto dela também.
+
+**Solução definitiva, se algum dia valer o esforço**: adicionar colunas
+estruturadas (`statusAnterior`/`statusNovo`, tipadas como o enum
+`StatusChamado`) em `LogAuditoria`, preenchidas junto com `descricao` em
+vez de só o texto pronto. Aí essa consulta vira um `WHERE` em coluna
+tipada, sem nenhuma dependência de string. Não fizemos essa migração agora
+porque o relatório é novo e a dependência de texto é um risco aceito e
+documentado — não um bug desconhecido.
+
 ## Deployment
 
 Deploy real deste projeto é via **IIS + iisnode** (Windows Server) — ver

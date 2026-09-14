@@ -5,8 +5,10 @@ import {
   HttpStatus,
   Patch,
   Post,
+  Req,
   UseGuards,
 } from '@nestjs/common';
+import type { Request } from 'express';
 import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
@@ -33,8 +35,8 @@ export class AuthController {
   // disso devolve 429 Too Many Requests em vez de deixar tentar de novo —
   // é a proteção básica contra força bruta de senha.
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
-  login(@Body() dto: LoginDto) {
-    return this.authService.login(dto);
+  login(@Body() dto: LoginDto, @Req() request: Request) {
+    return this.authService.login(dto, request.ip ?? null);
   }
 
   @Post('primeiro-acesso')

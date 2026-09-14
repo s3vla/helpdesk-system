@@ -28,6 +28,7 @@ import { Setor } from './setores/entities/setor.entity';
 import { MapeamentoSetorEmail } from './setores/entities/mapeamento-setor-email.entity';
 import { Grupo } from './grupos/entities/grupo.entity';
 import { Categoria } from './categorias/entities/categoria.entity';
+import { LogAcesso } from './log-acesso/entities/log-acesso.entity';
 
 export const AppDataSource = new DataSource({
   type: 'postgres',
@@ -50,6 +51,7 @@ export const AppDataSource = new DataSource({
     MapeamentoSetorEmail,
     Grupo,
     Categoria,
+    LogAcesso,
   ],
   // migrations (não schema automático) é quem manda no schema a partir de
   // agora — ver app.module.ts (synchronize: false) e o README pra o

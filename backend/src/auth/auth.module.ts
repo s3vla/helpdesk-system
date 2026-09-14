@@ -7,6 +7,7 @@ import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { UsuariosModule } from '../usuarios/usuarios.module';
 import { SetoresModule } from '../setores/setores.module';
+import { LogAcessoModule } from '../log-acesso/log-acesso.module';
 
 @Module({
   imports: [
@@ -14,6 +15,8 @@ import { SetoresModule } from '../setores/setores.module';
     // Só pra AuthService.primeiroAcesso derivar o setor a partir do
     // e-mail no servidor — ver comentário lá.
     SetoresModule,
+    // Registra um LogAcesso a cada login bem-sucedido — ver AuthService.login.
+    LogAcessoModule,
     PassportModule,
     // registerAsync (em vez de register) porque o segredo/expiração vêm do
     // .env via ConfigService, que só fica pronto depois que o ConfigModule

@@ -24,6 +24,8 @@ import { ForumModule } from './forum/forum.module';
 import { SetoresModule } from './setores/setores.module';
 import { GruposModule } from './grupos/grupos.module';
 import { CategoriasModule } from './categorias/categorias.module';
+import { LogAcessoModule } from './log-acesso/log-acesso.module';
+import { RelatoriosModule } from './relatorios/relatorios.module';
 import { Usuario } from './usuarios/entities/usuario.entity';
 import { Chamado } from './chamados/entities/chamado.entity';
 import { Comentario } from './comentarios/entities/comentario.entity';
@@ -41,6 +43,7 @@ import { Setor } from './setores/entities/setor.entity';
 import { MapeamentoSetorEmail } from './setores/entities/mapeamento-setor-email.entity';
 import { Grupo } from './grupos/entities/grupo.entity';
 import { Categoria } from './categorias/entities/categoria.entity';
+import { LogAcesso } from './log-acesso/entities/log-acesso.entity';
 
 @Module({
   imports: [
@@ -80,6 +83,7 @@ import { Categoria } from './categorias/entities/categoria.entity';
           MapeamentoSetorEmail,
           Grupo,
           Categoria,
+          LogAcesso,
         ],
         // Migrations (não mais synchronize:true) são quem manda no schema —
         // ver src/migrations/ e src/data-source.ts (usado só pela CLI). O
@@ -129,6 +133,8 @@ import { Categoria } from './categorias/entities/categoria.entity';
     SetoresModule,
     GruposModule,
     CategoriasModule,
+    LogAcessoModule,
+    RelatoriosModule,
   ],
   controllers: [AppController],
   providers: [

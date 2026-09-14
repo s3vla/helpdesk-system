@@ -21,20 +21,28 @@ import {
   criarCategoria,
   atualizarCategoria,
 } from '../services/categoriasService'
+import {
+  buscarRelatorioAcesso,
+  buscarRelatorioAtividadeChamados,
+  buscarRelatorioTempoAtendimento,
+} from '../services/relatoriosService'
 import { emailComDominioAutorizado, MENSAGEM_DOMINIO_INVALIDO } from '../utils/dominiosEmailAutorizados'
+import { formatarDataHora, tempoDecorrido } from '../utils/formatters'
+import { dataInicioPadrao, dataFimPadrao } from '../utils/periodoPadrao'
 import EstadoRequisicao from './EstadoRequisicao'
 import SolicitanteSelect from './SolicitanteSelect'
 import PasswordInput from './PasswordInput'
 import { IconX, IconPlus, IconSearch } from './icons'
 
 // Shell da nova seção "Administração" — abas internas por sub-recurso, as
-// 4 já com funcionalidade de verdade (último bloco do plano aprovado:
-// Categorias — a mudança de maior risco, enum virando FK administrável).
+// 5 já com funcionalidade de verdade (último bloco: Atividade e
+// Relatórios — 3 relatórios administrativos sobre acesso/uso do sistema).
 const ABAS = [
   { id: 'categorias', label: 'Categorias' },
   { id: 'setores', label: 'Setores' },
   { id: 'grupos', label: 'Grupos' },
   { id: 'colaboradores', label: 'Colaboradores' },
+  { id: 'atividade', label: 'Atividade' },
 ]
 
 function SetoresTab() {
@@ -664,6 +672,311 @@ function ColaboradoresTab() {
   )
 }
 
+// Minutos -> "Xh Ymin" (ou só "Ymin" quando < 1h) — mesma ideia de
+// tempoDecorrido (utils/formatters.js), só que pra uma DURAÇÃO em vez de
+// "quanto tempo atrás", por isso não reaproveita aquela função direto.
+function formatarDuracaoMinutos(minutos) {
+  if (minutos < 60) return `${minutos}min`
+  const horas = Math.floor(minutos / 60)
+  const resto = minutos % 60
+  return resto === 0 ? `${horas}h` : `${horas}h ${resto}min`
+}
+
+const SUBABAS_ATIVIDADE = [
+  { id: 'acesso', label: 'Acesso ao sistema' },
+  { id: 'chamados', label: 'Chamados por colaborador' },
+  { id: 'tempo', label: 'Tempo de atendimento' },
+]
+
+function RelatorioAcessoSecao() {
+  const { token, tratarErroApi } = useAuth()
+  const [itens, setItens] = useState([])
+  const [carregando, setCarregando] = useState(true)
+  const [erro, setErro] = useState('')
+  const [diasInatividade, setDiasInatividade] = useState(30)
+  const [soInativos, setSoInativos] = useState(false)
+
+  async function carregar() {
+    setCarregando(true)
+    setErro('')
+    try {
+      setItens(await buscarRelatorioAcesso(token, { diasInatividade }))
+    } catch (e) {
+      if (!tratarErroApi(e)) setErro(traduzirErroApi(e))
+    } finally {
+      setCarregando(false)
+    }
+  }
+
+  useEffect(() => {
+    carregar()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [diasInatividade])
+
+  const itensExibidos = soInativos ? itens.filter(i => i.inativo) : itens
+  const totalInativos = itens.filter(i => i.inativo).length
+
+  return (
+    <EstadoRequisicao carregando={carregando} erro={erro} aoTentarNovamente={carregar}>
+      <div style={estilos.card}>
+        <div style={{ padding: '16px 22px', borderBottom: `1px solid ${CORES_APP.bordaSuave}`, display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+          <div>
+            <h2 style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: 16, color: CORES_APP.texto, margin: '0 0 3px' }}>Último acesso por colaborador</h2>
+            <p style={{ color: CORES_APP.textoFraco, fontSize: 13, margin: 0 }}>
+              {itens.length} colaborador{itens.length !== 1 ? 'es' : ''} — {totalInativos} inativo{totalInativos !== 1 ? 's' : ''} há mais de {diasInatividade} dias.
+            </p>
+          </div>
+          <div style={{ display: 'flex', gap: 14, alignItems: 'flex-end' }}>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+              <span style={estilos.label}>Dias p/ inativo</span>
+              <input type="number" min="1" value={diasInatividade}
+                onChange={e => setDiasInatividade(Number(e.target.value) || 1)}
+                style={{ ...estilos.input, width: 90, padding: '9px 12px', fontSize: 14 }} />
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: CORES_APP.textoFraco, cursor: 'pointer', paddingBottom: 11 }}>
+              <input type="checkbox" checked={soInativos} onChange={e => setSoInativos(e.target.checked)} />
+              Só inativos
+            </label>
+          </div>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          {itensExibidos.length === 0 ? (
+            <p style={{ color: CORES_APP.textoSuave, fontSize: 13, margin: 0, padding: '16px 22px' }}>Nenhum colaborador encontrado.</p>
+          ) : itensExibidos.map(item => (
+            <div key={item.usuarioId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 22px', borderTop: `1px solid ${CORES_APP.bordaSuave}`, gap: 10, flexWrap: 'wrap' }}>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: CORES_APP.texto }}>{item.nome ?? '— (aguardando cadastro)'}</div>
+                <div style={{ fontSize: 12, color: CORES_APP.textoFraco }}>{item.email}</div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: 12.5, color: CORES_APP.textoFraco }}>
+                  {item.ultimoAcesso ? `${formatarDataHora(new Date(item.ultimoAcesso))} (${tempoDecorrido(new Date(item.ultimoAcesso))})` : 'Nunca acessou'}
+                </span>
+                {item.inativo && (
+                  <span style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444', borderRadius: 999, padding: '3px 10px', fontSize: 11, fontFamily: 'Outfit, sans-serif', fontWeight: 700 }}>
+                    Inativo
+                  </span>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </EstadoRequisicao>
+  )
+}
+
+// Compartilhado pelas duas seções seguintes (chamados/tempo) — mesmo par
+// de <input type="date"> já usado em DashboardTI.jsx, reaproveitado aqui
+// pela mesma consistência visual pedida.
+function FiltroPeriodo({ dataInicio, setDataInicio, dataFim, setDataFim }) {
+  return (
+    <div style={{ ...estilos.card, padding: '14px 16px', marginBottom: 18, display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+      <label style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+        <span style={estilos.label}>Data início</span>
+        <input type="date" value={dataInicio} max={dataFim}
+          onChange={e => setDataInicio(e.target.value)}
+          style={{ ...estilos.input, width: 'auto', padding: '9px 12px', fontSize: 14 }} />
+      </label>
+      <label style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+        <span style={estilos.label}>Data fim</span>
+        <input type="date" value={dataFim} min={dataInicio} max={dataFimPadrao()}
+          onChange={e => setDataFim(e.target.value)}
+          style={{ ...estilos.input, width: 'auto', padding: '9px 12px', fontSize: 14 }} />
+      </label>
+    </div>
+  )
+}
+
+function RelatorioAtividadeChamadosSecao() {
+  const { token, tratarErroApi } = useAuth()
+  const [dataInicio, setDataInicio] = useState(dataInicioPadrao)
+  const [dataFim, setDataFim] = useState(dataFimPadrao)
+  const [itens, setItens] = useState([])
+  const [carregando, setCarregando] = useState(true)
+  const [erro, setErro] = useState('')
+
+  async function carregar() {
+    setCarregando(true)
+    setErro('')
+    try {
+      setItens(await buscarRelatorioAtividadeChamados(token, { dataInicio, dataFim }))
+    } catch (e) {
+      if (!tratarErroApi(e)) setErro(traduzirErroApi(e))
+    } finally {
+      setCarregando(false)
+    }
+  }
+
+  useEffect(() => {
+    carregar()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dataInicio, dataFim])
+
+  const comChamados = itens.filter(i => i.totalChamados > 0).sort((a, b) => b.totalChamados - a.totalChamados)
+  const semChamados = itens.filter(i => i.totalChamados === 0)
+
+  return (
+    <div>
+      <FiltroPeriodo dataInicio={dataInicio} setDataInicio={setDataInicio} dataFim={dataFim} setDataFim={setDataFim} />
+      <EstadoRequisicao carregando={carregando} erro={erro} aoTentarNovamente={carregar}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+          <div style={estilos.card}>
+            <div style={{ padding: '16px 22px', borderBottom: `1px solid ${CORES_APP.bordaSuave}` }}>
+              <h2 style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: 16, color: CORES_APP.texto, margin: '0 0 3px' }}>Chamados abertos no período</h2>
+              <p style={{ color: CORES_APP.textoFraco, fontSize: 13, margin: 0 }}>{comChamados.length} colaborador{comChamados.length !== 1 ? 'es' : ''} abriu{comChamados.length !== 1 ? 'ram' : ''} pelo menos 1 chamado.</p>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              {comChamados.length === 0 ? (
+                <p style={{ color: CORES_APP.textoSuave, fontSize: 13, margin: 0, padding: '16px 22px' }}>Nenhum chamado no período.</p>
+              ) : comChamados.map(item => (
+                <div key={item.usuarioId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 22px', borderTop: `1px solid ${CORES_APP.bordaSuave}`, gap: 10, flexWrap: 'wrap' }}>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: CORES_APP.texto }}>{item.nome ?? '— (aguardando cadastro)'}</div>
+                    <div style={{ fontSize: 12, color: CORES_APP.textoFraco }}>{item.email}</div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ fontSize: 12, color: CORES_APP.textoFraco }}>Último: {formatarDataHora(new Date(item.ultimoChamadoEm))}</span>
+                    <span style={{ background: 'rgba(0,73,192,0.08)', color: '#0049C0', borderRadius: 999, padding: '3px 10px', fontSize: 12, fontFamily: 'Outfit, sans-serif', fontWeight: 700 }}>
+                      {item.totalChamados}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ ...estilos.card, border: '1px solid rgba(245,158,11,0.25)' }}>
+            <div style={{ padding: '16px 22px', borderBottom: `1px solid ${CORES_APP.bordaSuave}` }}>
+              <h2 style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: 16, color: CORES_APP.texto, margin: '0 0 3px' }}>Não abriram nenhum chamado no período</h2>
+              <p style={{ color: CORES_APP.textoFraco, fontSize: 13, margin: 0 }}>{semChamados.length} colaborador{semChamados.length !== 1 ? 'es' : ''}.</p>
+            </div>
+            {semChamados.length === 0 ? (
+              <p style={{ color: CORES_APP.textoSuave, fontSize: 13, margin: 0, padding: '16px 22px' }}>Todos os colaboradores abriram pelo menos 1 chamado no período.</p>
+            ) : (
+              <div style={{ padding: '12px 22px', display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {semChamados.map(item => (
+                  <span key={item.usuarioId} style={{ background: 'rgba(245,158,11,0.1)', color: '#f59e0b', borderRadius: 999, padding: '5px 12px', fontSize: 12.5, fontFamily: 'Outfit, sans-serif', fontWeight: 600 }}>
+                    {item.nome ?? item.email}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </EstadoRequisicao>
+    </div>
+  )
+}
+
+function RelatorioTempoAtendimentoSecao() {
+  const { token, tratarErroApi } = useAuth()
+  const [dataInicio, setDataInicio] = useState(dataInicioPadrao)
+  const [dataFim, setDataFim] = useState(dataFimPadrao)
+  const [relatorio, setRelatorio] = useState(null)
+  const [carregando, setCarregando] = useState(true)
+  const [erro, setErro] = useState('')
+
+  async function carregar() {
+    setCarregando(true)
+    setErro('')
+    try {
+      setRelatorio(await buscarRelatorioTempoAtendimento(token, { dataInicio, dataFim }))
+    } catch (e) {
+      if (!tratarErroApi(e)) setErro(traduzirErroApi(e))
+    } finally {
+      setCarregando(false)
+    }
+  }
+
+  useEffect(() => {
+    carregar()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dataInicio, dataFim])
+
+  return (
+    <div>
+      <FiltroPeriodo dataInicio={dataInicio} setDataInicio={setDataInicio} dataFim={dataFim} setDataFim={setDataFim} />
+      <EstadoRequisicao carregando={carregando} erro={erro} aoTentarNovamente={carregar}>
+        {relatorio && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+            <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap' }}>
+              <div style={{ ...estilos.card, padding: '18px 22px', flex: '1 1 200px' }}>
+                <div style={{ color: CORES_APP.textoFraco, fontSize: 12.5, marginBottom: 4 }}>Tempo médio de espera</div>
+                <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: 28, color: CORES_APP.tinta }}>
+                  {relatorio.mediaGeralMinutos !== null ? formatarDuracaoMinutos(relatorio.mediaGeralMinutos) : '—'}
+                </div>
+              </div>
+              <div style={{ ...estilos.card, padding: '18px 22px', flex: '1 1 200px' }}>
+                <div style={{ color: CORES_APP.textoFraco, fontSize: 12.5, marginBottom: 4 }}>Chamados medidos</div>
+                <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: 28, color: CORES_APP.tinta }}>{relatorio.itens.length}</div>
+              </div>
+              <div style={{ ...estilos.card, padding: '18px 22px', flex: '1 1 200px' }}>
+                <div style={{ color: CORES_APP.textoFraco, fontSize: 12.5, marginBottom: 4 }}>Sem transição p/ atendimento</div>
+                <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: 28, color: CORES_APP.textoSuave }}>{relatorio.totalSemTransicaoParaAtendimento}</div>
+              </div>
+            </div>
+
+            <div style={estilos.card}>
+              <div style={{ padding: '16px 22px', borderBottom: `1px solid ${CORES_APP.bordaSuave}` }}>
+                <h2 style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: 16, color: CORES_APP.texto, margin: '0 0 3px' }}>Mais demorados</h2>
+                <p style={{ color: CORES_APP.textoFraco, fontSize: 13, margin: 0 }}>Os 5 chamados que mais esperaram até entrar em atendimento no período.</p>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                {relatorio.maisDemorados.length === 0 ? (
+                  <p style={{ color: CORES_APP.textoSuave, fontSize: 13, margin: 0, padding: '16px 22px' }}>Nenhum chamado com tempo de atendimento calculado no período.</p>
+                ) : relatorio.maisDemorados.map((item, indice) => (
+                  <div key={item.chamadoId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 22px', borderTop: `1px solid ${CORES_APP.bordaSuave}`, gap: 10, flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <span style={{ color: CORES_APP.textoSuave, fontSize: 12, fontFamily: 'Outfit, sans-serif', fontWeight: 700, width: 16 }}>{indice + 1}</span>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: CORES_APP.texto }}>{item.titulo}</div>
+                        <div style={{ fontSize: 12, color: CORES_APP.textoFraco }}>Aberto em {formatarDataHora(new Date(item.dataAbertura))}</div>
+                      </div>
+                    </div>
+                    <span style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444', borderRadius: 999, padding: '3px 10px', fontSize: 12, fontFamily: 'Outfit, sans-serif', fontWeight: 700 }}>
+                      {formatarDuracaoMinutos(item.tempoEsperaMinutos)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </EstadoRequisicao>
+    </div>
+  )
+}
+
+function AtividadeTab() {
+  const [subaba, setSubaba] = useState('acesso')
+
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: 6, marginBottom: 18, flexWrap: 'wrap' }}>
+        {SUBABAS_ATIVIDADE.map(item => {
+          const ativa = subaba === item.id
+          return (
+            <button key={item.id} onClick={() => setSubaba(item.id)}
+              style={{
+                background: ativa ? 'rgba(0,73,192,0.08)' : CORES_APP.fundoCampo,
+                color: ativa ? '#0049C0' : CORES_APP.textoFraco,
+                border: `1px solid ${ativa ? 'rgba(0,73,192,0.22)' : CORES_APP.borda}`,
+                borderRadius: 8, padding: '7px 14px', fontSize: 13, fontFamily: 'Outfit, sans-serif',
+                fontWeight: ativa ? 600 : 400, cursor: 'pointer',
+              }}>
+              {item.label}
+            </button>
+          )
+        })}
+      </div>
+      {subaba === 'acesso' && <RelatorioAcessoSecao />}
+      {subaba === 'chamados' && <RelatorioAtividadeChamadosSecao />}
+      {subaba === 'tempo' && <RelatorioTempoAtendimentoSecao />}
+    </div>
+  )
+}
+
 function Administracao() {
   const [aba, setAba] = useState('setores')
 
@@ -671,7 +984,7 @@ function Administracao() {
     <div className="animate-fade-up" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <div style={{ marginBottom: 22, flexShrink: 0 }}>
         <h1 style={estilos.sectionTitle}>Administração</h1>
-        <p style={{ color: CORES_APP.textoFraco, fontSize: 14, margin: 0 }}>Categorias, setores, grupos e colaboradores — configuração central da Área Técnica.</p>
+        <p style={{ color: CORES_APP.textoFraco, fontSize: 14, margin: 0 }}>Categorias, setores, grupos, colaboradores e relatórios de atividade — configuração central da Área Técnica.</p>
       </div>
 
       <div style={{ display: 'flex', gap: 6, marginBottom: 20, flexShrink: 0, borderBottom: `1px solid ${CORES_APP.bordaSuave}` }}>
@@ -696,6 +1009,7 @@ function Administracao() {
         {aba === 'setores' && <SetoresTab />}
         {aba === 'grupos' && <GruposTab />}
         {aba === 'colaboradores' && <ColaboradoresTab />}
+        {aba === 'atividade' && <AtividadeTab />}
       </div>
     </div>
   )

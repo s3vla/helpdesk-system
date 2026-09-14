@@ -44,6 +44,7 @@ import {
   montarRespostaPaginada,
   RespostaPaginadaDto,
 } from '../common/dto/resposta-paginada.dto';
+import { resolverPeriodo } from '../common/utils/periodo.util';
 
 // Relações que toda consulta de Chamado precisa trazer junto — sem isso o
 // TypeORM devolveria só os ids (solicitanteId/tecnicoResponsavelId) e o
@@ -533,7 +534,7 @@ export class ChamadosService {
   async obterMetricas(
     filtros: MetricasChamadoDto,
   ): Promise<MetricaItemResponseDto[]> {
-    const { inicio, fim } = this.resolverPeriodo(filtros);
+    const { inicio, fim } = resolverPeriodo(filtros);
     const chamados = await this.buscarChamadosNoPeriodo(inicio, fim);
 
     if (
@@ -574,7 +575,7 @@ export class ChamadosService {
   // (ver estatisticas.util.ts). Continua um widget "fixo" no catálogo,
   // não removível — ver DashboardWidgetsService.
   async obterRepeticao(filtros: PeriodoChamadoDto): Promise<GrupoRepetido[]> {
-    const { inicio, fim } = this.resolverPeriodo(filtros);
+    const { inicio, fim } = resolverPeriodo(filtros);
     const chamados = await this.buscarChamadosNoPeriodo(inicio, fim);
 
     return agruparChamadosRepetidos(
@@ -672,38 +673,6 @@ export class ChamadosService {
   // ponta (início/fim) tem seu próprio default, resolvida de forma
   // independente — ausência de dataFim vira "hoje"; ausência de dataInicio
   // vira "dataFim - 29 dias" (janela de 30 dias incluindo o dia final).
-  // Datas explícitas chegam como "YYYY-MM-DD" (formato de <input
-  // type="date">) — construídas com horário local explícito
-  // (T00:00:00/T23:59:59) pra não cair na interpretação UTC-meia-noite que
-  // o JS dá a uma data "pelada", que poderia empurrar o dia errado
-  // dependendo do fuso de quem roda o servidor.
-  private resolverPeriodo(filtros: PeriodoChamadoDto): {
-    inicio: Date;
-    fim: Date;
-  } {
-    const DIAS_PADRAO_PERIODO = 30;
-    const MILISSEGUNDOS_POR_DIA = 24 * 60 * 60 * 1000;
-
-    const fim = filtros.dataFim
-      ? new Date(`${filtros.dataFim}T23:59:59.999`)
-      : new Date();
-    if (!filtros.dataFim) fim.setHours(23, 59, 59, 999);
-
-    const inicio = filtros.dataInicio
-      ? new Date(`${filtros.dataInicio}T00:00:00.000`)
-      : new Date(
-          fim.getTime() - (DIAS_PADRAO_PERIODO - 1) * MILISSEGUNDOS_POR_DIA,
-        );
-    if (!filtros.dataInicio) inicio.setHours(0, 0, 0, 0);
-
-    if (inicio > fim) {
-      throw new BadRequestException(
-        'Data de início não pode ser depois da data de fim',
-      );
-    }
-
-    return { inicio, fim };
-  }
 
   async buscarPorIdOuFalhar(id: number): Promise<Chamado> {
     const chamado = await this.chamadoRepository.findOne({

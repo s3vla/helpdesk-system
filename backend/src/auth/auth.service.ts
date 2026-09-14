@@ -3,6 +3,7 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
+  Logger,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
@@ -18,6 +19,7 @@ import { mapUsuarioParaResposta } from '../usuarios/dto/usuario-response.dto';
 import { Usuario } from '../usuarios/entities/usuario.entity';
 import { emailColaboradorAutorizado } from '../config/emails-autorizados';
 import { SetoresService } from '../setores/setores.service';
+import { LogAcessoService } from '../log-acesso/log-acesso.service';
 
 // Custo do bcrypt: 12 "salt rounds". Cada +1 dobra o tempo de hash — 12 é a
 // recomendação atual da OWASP para senha de login interativo (~250-300ms
@@ -35,6 +37,8 @@ const HASH_FALSO =
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly usuariosService: UsuariosService,
     // JwtService vem do @nestjs/jwt e já sabe assinar/verificar tokens com
@@ -43,9 +47,14 @@ export class AuthService {
     // Deriva o setor a partir do e-mail no SERVIDOR (ver comentário em
     // primeiroAcesso) — nunca mais um valor que o cliente possa mandar.
     private readonly setoresService: SetoresService,
+    // Registra LogAcesso a cada login bem-sucedido (ver final de login) —
+    // usado pelo relatório "Atividade → Acesso" em Administração.
+    private readonly logAcessoService: LogAcessoService,
   ) {}
 
-  async login(dto: LoginDto) {
+  // `ip`: vem de `request.ip` (ver AuthController.login), best-effort — só
+  // pra gravar no LogAcesso, nunca influencia se o login é aceito ou não.
+  async login(dto: LoginDto, ip: string | null) {
     const usuario = await this.usuariosService.buscarPorEmail(dto.email);
     const senhaConfere = await bcrypt.compare(
       dto.senha,
@@ -72,6 +81,15 @@ export class AuthService {
           : 'Esta conta é de colaborador. Utilize o login de Colaborador.',
       );
     }
+
+    // Fire-and-forget de propósito (mesmo padrão do e-mail de chamado novo
+    // em ChamadosService.criar): o login já foi validado e não pode travar
+    // ou falhar por causa de um registro de auditoria de acesso.
+    void this.logAcessoService
+      .registrar(usuario.id, ip)
+      .catch((erro: unknown) =>
+        this.logger.error('Falha ao registrar LogAcesso', erro),
+      );
 
     return this.gerarRespostaAutenticada(usuario);
   }
