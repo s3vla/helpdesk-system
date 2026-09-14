@@ -11,7 +11,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { TipoUsuario } from '../common/enums/tipo-usuario.enum';
-import { PaginacaoDto } from '../common/dto/paginacao.dto';
+import { FiltrosColaboradorDto } from './dto/filtros-colaborador.dto';
 import { UsuariosService } from './usuarios.service';
 import { ChamadosService } from '../chamados/chamados.service';
 import { mapUsuarioParaResposta } from './dto/usuario-response.dto';
@@ -39,10 +39,11 @@ export class UsuariosController {
   ) {}
 
   @Get()
-  async listar(@Query() filtros: PaginacaoDto) {
+  async listar(@Query() filtros: FiltrosColaboradorDto) {
     const resultado = await this.usuariosService.listarColaboradores(
       filtros.pagina,
       filtros.limite,
+      filtros.busca,
     );
     // Uma query agrupada só pra TODOS os colaboradores desta página, em
     // vez do frontend pedir GET /usuarios/:id/chamados uma vez por linha

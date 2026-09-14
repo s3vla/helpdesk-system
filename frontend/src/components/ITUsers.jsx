@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { estilos, CORES_APP } from '../styles/theme'
 import { obterIniciais } from '../utils/formatters'
 import { useAuth } from '../hooks/useAuth'
@@ -6,6 +6,7 @@ import { buscarColaboradores } from '../services/ticketService'
 import { traduzirErroApi } from '../utils/traduzirErroApi'
 import EstadoRequisicao from './EstadoRequisicao'
 import Paginacao from './Paginacao'
+import { IconSearch } from './icons'
 
 // Lista de colaboradores cadastrados, com contagem de chamados por pessoa.
 // A própria resposta de GET /usuarios já vem com essas contagens embutidas
@@ -27,12 +28,30 @@ function ITUsers({ onSelect }) {
   const [totalPaginas, setTotalPaginas] = useState(1)
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState('')
+  const [buscaInput, setBuscaInput] = useState('')
+  const [busca, setBusca] = useState('')
+  const debounceRef = useRef(null)
+
+  // Mesmo debounce de ~300-400ms já usado em ITSolutions.jsx pra busca —
+  // espera parar de digitar antes de disparar a requisição.
+  useEffect(() => {
+    clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => setBusca(buscaInput.trim()), 300)
+    return () => clearTimeout(debounceRef.current)
+  }, [buscaInput])
+
+  // Busca mudando volta pra página 1 — senão dá pra ficar "presa" numa
+  // página que não existe mais depois de um filtro que reduziu o total de
+  // resultados (mesmo raciocínio de ITSolutions.jsx).
+  useEffect(() => {
+    setPagina(1)
+  }, [busca])
 
   async function buscar() {
     setCarregando(true)
     setErro('')
     try {
-      const resposta = await buscarColaboradores(token, { pagina, porPagina: COLABORADORES_POR_PAGINA })
+      const resposta = await buscarColaboradores(token, { pagina, porPagina: COLABORADORES_POR_PAGINA, busca })
       setUsuarios(resposta.itens)
       setTotal(resposta.total)
       setTotalPaginas(resposta.totalPaginas)
@@ -46,7 +65,7 @@ function ITUsers({ onSelect }) {
   useEffect(() => {
     buscar()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pagina])
+  }, [pagina, busca])
 
   // height:'100%' + coluna flex: o wrapper assume TODO o espaço vertical
   // que o `main` do layout já reserva (ver EmployeeLayout.jsx/
@@ -57,30 +76,45 @@ function ITUsers({ onSelect }) {
   // ficam FORA dessa área, sempre visíveis, nunca soterrados pelo scroll.
   return (
     <div className="animate-fade-up" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ marginBottom: 26, flexShrink: 0 }}>
+      <div style={{ marginBottom: 20, flexShrink: 0 }}>
         <h1 style={estilos.sectionTitle}>Colaboradores</h1>
         <p style={{ color: CORES_APP.textoFraco, fontSize: 14, margin: 0 }}>
-          {carregando ? 'Carregando...' : `${total} colaboradores cadastrados`}
+          {carregando ? 'Carregando...' : `${total} colaborador${total !== 1 ? 'es' : ''} ${busca ? 'encontrado' + (total !== 1 ? 's' : '') : 'cadastrado' + (total !== 1 ? 's' : '')}`}
         </p>
+      </div>
+      <div style={{ position: 'relative', marginBottom: 18, flexShrink: 0 }}>
+        <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: CORES_APP.textoSuave, pointerEvents: 'none', display: 'flex' }}><IconSearch /></span>
+        <input
+          value={buscaInput} onChange={e => setBuscaInput(e.target.value)}
+          placeholder="Buscar por nome ou e-mail..."
+          style={{ ...estilos.input, paddingLeft: 40, fontSize: 14 }}
+        />
       </div>
       <div style={{ flex: '1 1 auto', minHeight: 0, overflowY: 'auto' }}>
       <EstadoRequisicao carregando={carregando} erro={erro} aoTentarNovamente={buscar}>
-        {/* auto-fit (não auto-fill): com poucos colaboradores na página,
-            auto-fill reservava colunas "fantasmas" vazias até o fim da
-            linha (cada uma ainda ocupando 1fr de largura, só que sem
-            conteúdo) — sobrava um vão em branco à direita mesmo a página
-            tendo espaço de sobra. auto-fit colapsa as colunas sem
-            conteúdo a 0, deixando os cards que existem esticarem pra
-            preencher a linha toda de verdade.
-            Teto de 380px (não 1fr) no minmax — com 1fr, a ÚNICA coluna
-            que sobra na última página (ex: resto de 1 item) vira 100% da
-            largura da linha inteira, um card enorme e desproporcional.
-            Com um teto fixo, o card ainda estica pra preencher espaço
-            vazio quando faz sentido, mas nunca passa de um tamanho de
-            card razoável, sozinho ou acompanhado. justifyContent:'start'
-            (não 'center') mantém os cards alinhados à esquerda — mesmo
-            com um item sobrando sozinho na última página, ele fica no
-            canto esquerdo como qualquer outro card, não centralizado. */}
+        {!carregando && usuarios.length === 0 ? (
+          <div style={{ padding: '60px 20px', textAlign: 'center' }}>
+            <div style={{ color: CORES_APP.textoSuave, marginBottom: 14, display: 'flex', justifyContent: 'center' }}><IconSearch width={36} height={36} /></div>
+            <div style={{ color: CORES_APP.textoFraco, fontFamily: 'Outfit, sans-serif', fontWeight: 600, fontSize: 16, marginBottom: 6 }}>Nenhum colaborador encontrado</div>
+            {busca && <div style={{ color: CORES_APP.textoSuave, fontSize: 14 }}>Nenhum resultado para &quot;{busca}&quot;</div>}
+          </div>
+        ) : (
+        // auto-fit (não auto-fill): com poucos colaboradores na página,
+        // auto-fill reservava colunas "fantasmas" vazias até o fim da
+        // linha (cada uma ainda ocupando 1fr de largura, só que sem
+        // conteúdo) — sobrava um vão em branco à direita mesmo a página
+        // tendo espaço de sobra. auto-fit colapsa as colunas sem
+        // conteúdo a 0, deixando os cards que existem esticarem pra
+        // preencher a linha toda de verdade.
+        // Teto de 380px (não 1fr) no minmax — com 1fr, a ÚNICA coluna
+        // que sobra na última página (ex: resto de 1 item) vira 100% da
+        // largura da linha inteira, um card enorme e desproporcional.
+        // Com um teto fixo, o card ainda estica pra preencher espaço
+        // vazio quando faz sentido, mas nunca passa de um tamanho de
+        // card razoável, sozinho ou acompanhado. justifyContent:'start'
+        // (não 'center') mantém os cards alinhados à esquerda — mesmo
+        // com um item sobrando sozinho na última página, ele fica no
+        // canto esquerdo como qualquer outro card, não centralizado.
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 380px))', gap: 18, justifyContent: 'start' }}>
           {usuarios.map(usuario => {
             const c = {
@@ -125,6 +159,7 @@ function ITUsers({ onSelect }) {
             )
           })}
         </div>
+        )}
       </EstadoRequisicao>
       </div>
       <Paginacao paginaAtual={pagina} totalPaginas={totalPaginas} aoMudarPagina={setPagina} />

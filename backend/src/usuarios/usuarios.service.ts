@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { FindOptionsWhere, ILike, Repository } from 'typeorm';
 import { Usuario } from './entities/usuario.entity';
 import { Setor } from '../setores/entities/setor.entity';
 import { TipoUsuario } from '../common/enums/tipo-usuario.enum';
@@ -85,13 +85,29 @@ export class UsuariosService {
   // em vez de um `find()` simples. Ordenado por email (nunca nulo,
   // diferente de `nome`, que fica null enquanto a conta está "aguardando
   // cadastro") — garante uma ordem estável entre páginas.
+  //
+  // `busca`: nome OU e-mail, parcial e case-insensitive (ILike — Postgres
+  // resolve o "case-insensitive" nativamente, sem precisar de LOWER() dos
+  // dois lados como solucoes-conhecidas.service.ts faz na QueryBuilder).
+  // Dois `where` (array = OR) porque `nome` pode ser null numa conta
+  // resetada — ILike contra null simplesmente não bate, nunca lança erro.
   async listarColaboradores(
     pagina?: number,
     limite?: number,
+    busca?: string,
   ): Promise<RespostaPaginadaDto<Usuario>> {
     const paginacao = calcularPaginacao(pagina, limite);
+    const termo = busca?.trim();
+    const base: FindOptionsWhere<Usuario> = { tipo: TipoUsuario.COLABORADOR };
+    const where: FindOptionsWhere<Usuario> | FindOptionsWhere<Usuario>[] = termo
+      ? [
+          { ...base, nome: ILike(`%${termo}%`) },
+          { ...base, email: ILike(`%${termo}%`) },
+        ]
+      : base;
+
     const [usuarios, total] = await this.usuarioRepository.findAndCount({
-      where: { tipo: TipoUsuario.COLABORADOR },
+      where,
       relations: { setor: true },
       order: { email: 'ASC' },
       skip: paginacao.skip,
