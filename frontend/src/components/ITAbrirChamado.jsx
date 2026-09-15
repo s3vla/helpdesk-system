@@ -151,9 +151,9 @@ function ITAbrirChamado({ onSubmit }) {
               {PRIORIDADES.map(p => (
                 <button key={p.valor} type="button" onClick={() => setPrio(p.valor)} disabled={carregando}
                   style={{
-                    background: prio === p.valor ? `${p.cor}1a` : CORES_APP.fundoCampo,
+                    background: prio === p.valor ? `color-mix(in srgb, ${p.cor} 10%, transparent)` : CORES_APP.fundoCampo,
                     color: prio === p.valor ? p.cor : CORES_APP.textoFraco,
-                    border: `1px solid ${prio === p.valor ? `${p.cor}4d` : CORES_APP.borda}`,
+                    border: `1px solid ${prio === p.valor ? `color-mix(in srgb, ${p.cor} 30%, transparent)` : CORES_APP.borda}`,
                     borderRadius: 7, padding: '11px 12px', fontSize: 13.5, fontFamily: 'Outfit, sans-serif',
                     fontWeight: prio === p.valor ? 600 : 400, cursor: 'pointer', flex: 1, transition: 'all 0.15s',
                   }}>
