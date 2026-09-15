@@ -103,7 +103,7 @@ function AcompanhandoTickets({ versaoDados, onSelect }) {
                           <span style={{ fontFamily: 'IBM Plex Mono, monospace', fontWeight: 500, fontSize: 12, color: CORES_APP.textoSuave, marginRight: 6 }}>{numeroChamado(chamado.id)}</span>
                           {chamado.summary}
                         </div>
-                        <div style={{ color: CORES_APP.textoFraco, fontSize: 12, marginBottom: 8 }}>Aberto por {chamado.solicitanteNome ?? '— (conta resetada)'}</div>
+                        <div style={{ color: CORES_APP.textoFraco, fontSize: 12, marginBottom: 8 }}>Aberto por {chamado.solicitanteNome ?? '(conta resetada)'}</div>
                         {chamado.status === 'andamento' && chamado.aguardandoRespostaDe && (
                           <div style={{ marginBottom: 8 }}>
                             <AguardandoRespostaBadge status={chamado.status} aguardandoRespostaDe={chamado.aguardandoRespostaDe} isIT={false} />

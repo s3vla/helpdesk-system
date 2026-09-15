@@ -65,7 +65,7 @@ export async function chamarApi(caminho, { token, metodo = 'GET', corpo, comoFor
   }
 
   if (dados === undefined) {
-    throw new ErroApi(resposta.status, 'Resposta inválida do servidor — tente novamente.')
+    throw new ErroApi(resposta.status, 'Resposta inválida do servidor. Tente novamente.')
   }
 
   return dados

@@ -10,7 +10,7 @@ import { IconMessageCircle, IconSend, IconX } from './icons'
 // pra já ter o "encaixe" visual pronto pra quando a lógica de verdade for
 // plugada (bastaria trocar `enviar()` por uma chamada de API que devolve
 // a resposta do assistente, no mesmo padrão de mensagem já usado aqui).
-const MENSAGEM_PLACEHOLDER = 'Assistente em construção — em breve vou te ajudar com dúvidas comuns.'
+const MENSAGEM_PLACEHOLDER = 'Assistente em construção. Em breve vou te ajudar com dúvidas comuns.'
 
 function ChatFlutuante() {
   const [aberto, setAberto] = useState(false)

@@ -157,7 +157,7 @@ function CriarDashboard() {
       <div style={{ marginBottom: 22, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
         <div>
           <h1 style={estilos.sectionTitle}>Criar Dashboard</h1>
-          <p style={{ color: CORES_APP.textoFraco, fontSize: 14, margin: 0 }}>Configure os widgets exibidos na tela Dashboard — compartilhado entre os técnicos</p>
+          <p style={{ color: CORES_APP.textoFraco, fontSize: 14, margin: 0 }}>Configure os widgets exibidos na tela Dashboard, compartilhado entre os técnicos</p>
         </div>
         {!mostrarFormulario && (
           <button onClick={iniciarCriacao} style={{ ...estilos.btnPrimary, width: 'auto', display: 'flex', alignItems: 'center', gap: 8, padding: '11px 20px' }}>
@@ -211,7 +211,7 @@ function CriarDashboard() {
                     <button
                       onClick={() => remover(widget.id)}
                       disabled={widget.fixo}
-                      title={widget.fixo ? 'Widget fixo — desative em vez de excluir' : (confirmandoRemoverId === widget.id ? 'Clique de novo para confirmar' : 'Excluir')}
+                      title={widget.fixo ? 'Widget fixo, desative em vez de excluir' : (confirmandoRemoverId === widget.id ? 'Clique de novo para confirmar' : 'Excluir')}
                       style={widget.fixo ? estiloBotaoIconeDesabilitado : {
                         ...estiloBotaoIcone,
                         ...(confirmandoRemoverId === widget.id ? { background: CORES_APP.erro, borderColor: CORES_APP.erro, color: '#fff' } : {}),
@@ -266,7 +266,7 @@ function FormularioWidget({ formulario, setFormulario, ehFixo, editando, erro, s
             ? <option value={formulario.agruparPor}>{LABEL_AGRUPAR_POR[formulario.agruparPor]}</option>
             : OPCOES_AGRUPAR_POR.map(op => <option key={op} value={op}>{LABEL_AGRUPAR_POR[op]}</option>)}
         </select>
-        {ehFixo && <p style={{ color: CORES_APP.textoSuave, fontSize: 12, margin: '4px 0 0' }}>Widget fixo — o agrupamento não pode ser alterado.</p>}
+        {ehFixo && <p style={{ color: CORES_APP.textoSuave, fontSize: 12, margin: '4px 0 0' }}>Widget fixo. O agrupamento não pode ser alterado.</p>}
       </div>
 
       <div>

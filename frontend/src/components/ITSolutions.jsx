@@ -101,7 +101,7 @@ function ITSolutions() {
       <div style={{ marginBottom: 26, flexShrink: 0 }}>
         <h1 style={estilos.sectionTitle}>Soluções Conhecidas</h1>
         <p style={{ color: CORES_APP.textoFraco, fontSize: 14, margin: 0 }}>
-          {carregando ? 'Carregando...' : `${total} solução${total !== 1 ? 'ões' : ''} catalogada${total !== 1 ? 's' : ''} — pesquise antes de começar a resolver um chamado novo`}
+          {carregando ? 'Carregando...' : `${total} solução${total !== 1 ? 'ões' : ''} catalogada${total !== 1 ? 's' : ''}, pesquise antes de começar a resolver um chamado novo`}
         </p>
       </div>
 
@@ -109,7 +109,7 @@ function ITSolutions() {
         <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: CORES_APP.textoSuave, pointerEvents: 'none', display: 'flex' }}><IconSearch /></span>
         <input
           value={buscaInput} onChange={e => setBuscaInput(e.target.value)} onKeyDown={aoPressionarEnterNaBusca}
-          placeholder="Pesquisar por palavra-chave — ex: impressora, VPN, acesso..."
+          placeholder="Pesquisar por palavra-chave, ex: impressora, VPN, acesso..."
           style={{ ...estilos.input, paddingLeft: 40, fontSize: 14 }}
         />
       </div>

@@ -31,7 +31,7 @@ export default class ErrorBoundary extends Component {
         <div style={{ ...estilos.card, padding: 32, maxWidth: 420, textAlign: 'center' }}>
           <h2 style={{ ...estilos.sectionTitle, fontSize: 20 }}>Algo deu errado</h2>
           <p style={{ color: CORES_APP.textoFraco, fontSize: 14, margin: '8px 0 20px' }}>
-            Essa tela encontrou um problema inesperado. Tente recarregar a página — se o erro continuar, avise a equipe de TI.
+            Essa tela encontrou um problema inesperado. Tente recarregar a página. Se o erro continuar, avise a equipe de TI.
           </p>
           <button style={estilos.btnPrimary} onClick={() => window.location.reload()}>
             Recarregar página

@@ -144,7 +144,7 @@ function mapearLogAuditoria(l) {
     // Usuário pode ter sido resetado desde então (ver `emAguardoDeCadastro`
     // em outros mapeamentos) — mesmo fallback já usado em MyTickets.jsx pro
     // solicitante nesse caso.
-    userName: l.usuario?.nome ?? '— (conta resetada)',
+    userName: l.usuario?.nome ?? '(conta resetada)',
   }
 }
 

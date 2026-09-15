@@ -117,7 +117,7 @@ function MinhasAnotacoes() {
         <div>
           <h1 style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: largura < 640 ? 24 : 28, color: CORES_APP.tinta, margin: '0 0 6px' }}>Minhas Anotações</h1>
           <p style={{ color: CORES_APP.textoFraco, fontSize: 14, margin: 0 }}>
-            {lista.carregando ? 'Carregando...' : `${lista.total} anotaç${lista.total !== 1 ? 'ões' : 'ão'}`} — clique numa para abrir.
+            {lista.carregando ? 'Carregando...' : `${lista.total} anotaç${lista.total !== 1 ? 'ões' : 'ão'}`}. Clique numa para abrir.
           </p>
         </div>
         <button onClick={() => setModalAberto(true)}

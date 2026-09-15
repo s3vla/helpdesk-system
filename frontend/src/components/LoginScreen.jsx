@@ -123,7 +123,7 @@ function LoginScreen({ onLoginColaborador, onSwitchIT }) {
                 </button>
               </span>
               <button type="button" onClick={onSwitchIT} style={{ ...estilosAuth.link, color: cores.textoFraco, display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span>Sou da equipe técnica — acessar painel de TI</span>
+                <span>Sou da equipe técnica: acessar painel de TI</span>
                 <IconChevronRight width={14} height={14} style={{ flexShrink: 0 }} />
               </button>
             </div>
