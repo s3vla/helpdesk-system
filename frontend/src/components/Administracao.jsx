@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { estilos, CORES_APP } from '../styles/theme'
+import { estilos, CORES_APP, CORES_TI, CORES_PRIORIDADE, CORES_STATUS } from '../styles/theme'
+import { cores } from '../styles/authTheme'
 import { useAuth } from '../hooks/useAuth'
 import { traduzirErroApi } from '../utils/traduzirErroApi'
 import {
@@ -139,7 +140,7 @@ function SetoresTab() {
           <div style={{ padding: '18px 22px', borderBottom: `1px solid ${CORES_APP.bordaSuave}` }}>
             <h2 style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: 16, color: CORES_APP.texto, margin: '0 0 3px' }}>Setores</h2>
             <p style={{ color: CORES_APP.textoFraco, fontSize: 13, margin: 0 }}>
-              {setores.length} setor{setores.length !== 1 ? 'es' : ''} cadastrado{setores.length !== 1 ? 's' : ''} — sem exclusão, só criação.
+              {setores.length} setor{setores.length !== 1 ? 'es' : ''} cadastrado{setores.length !== 1 ? 's' : ''}, sem exclusão, só criação.
             </p>
           </div>
           <div style={{ padding: '16px 22px', display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -147,7 +148,7 @@ function SetoresTab() {
               <input
                 value={nomeSetorNovo}
                 onChange={e => setNomeSetorNovo(e.target.value)}
-                placeholder="Nome do setor novo — ex: Compras"
+                placeholder="Nome do setor novo, ex: Compras"
                 disabled={criandoSetor}
                 style={{ ...estilos.input, flex: 1 }}
               />
@@ -160,7 +161,7 @@ function SetoresTab() {
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 4 }}>
               {setores.map(s => (
                 <span key={s.id} style={{
-                  background: 'rgba(0,73,192,0.08)', color: '#0049C0', borderRadius: 999,
+                  background: 'rgba(0,73,192,0.08)', color: CORES_TI.accent, borderRadius: 999,
                   padding: '5px 12px', fontSize: 13, fontFamily: 'Outfit, sans-serif', fontWeight: 600,
                 }}>
                   {s.nome}
@@ -174,7 +175,7 @@ function SetoresTab() {
           <div style={{ padding: '18px 22px', borderBottom: `1px solid ${CORES_APP.bordaSuave}` }}>
             <h2 style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: 16, color: CORES_APP.texto, margin: '0 0 3px' }}>Mapeamento prefixo de e-mail → setor</h2>
             <p style={{ color: CORES_APP.textoFraco, fontSize: 13, margin: 0 }}>
-              Usado no Primeiro Acesso e no cadastro de colaborador pra preencher o departamento automaticamente — ex: prefixo &quot;financeiro&quot; aponta pro setor Financeiro.
+              Usado no Primeiro Acesso e no cadastro de colaborador pra preencher o departamento automaticamente, ex: prefixo &quot;financeiro&quot; aponta pro setor Financeiro.
             </p>
           </div>
           <div style={{ padding: '16px 22px', display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -182,7 +183,7 @@ function SetoresTab() {
               <input
                 value={prefixoNovo}
                 onChange={e => setPrefixoNovo(e.target.value)}
-                placeholder="Prefixo do e-mail — ex: compras"
+                placeholder="Prefixo do e-mail, ex: compras"
                 disabled={criandoMapeamento}
                 style={{ ...estilos.input, flex: '1 1 200px' }}
               />
@@ -328,7 +329,7 @@ function CategoriasTab() {
           <div style={{ padding: '18px 22px', borderBottom: `1px solid ${CORES_APP.bordaSuave}` }}>
             <h2 style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: 16, color: CORES_APP.texto, margin: '0 0 3px' }}>Categorias</h2>
             <p style={{ color: CORES_APP.textoFraco, fontSize: 13, margin: 0 }}>
-              {categorias.length} categoria{categorias.length !== 1 ? 's' : ''} cadastrada{categorias.length !== 1 ? 's' : ''} — excluir só é permitido pra categoria nunca usada; caso contrário, desative. &quot;Considerada rede&quot; classifica automaticamente o chamado como nível N2.
+              {categorias.length} categoria{categorias.length !== 1 ? 's' : ''} cadastrada{categorias.length !== 1 ? 's' : ''}. Excluir só é permitido pra categoria nunca usada; caso contrário, desative. &quot;Considerada rede&quot; classifica automaticamente o chamado como nível N2.
             </p>
           </div>
           <div style={{ padding: '16px 22px', display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -336,7 +337,7 @@ function CategoriasTab() {
               <input
                 value={nomeNovo}
                 onChange={e => setNomeNovo(e.target.value)}
-                placeholder="Nome da categoria nova — ex: VPN"
+                placeholder="Nome da categoria nova, ex: VPN"
                 disabled={criando}
                 style={{ ...estilos.input, flex: 1 }}
               />
@@ -367,7 +368,7 @@ function CategoriasTab() {
                         <button type="button" onClick={() => aoAlternarCampo(c, 'ativo')}
                           style={{
                             background: c.ativo ? 'rgba(0,73,192,0.08)' : 'rgba(0,120,81,0.08)',
-                            color: c.ativo ? '#0049C0' : '#007851',
+                            color: c.ativo ? CORES_TI.accent : cores.verdeEscuro,
                             border: 'none', borderRadius: 999, padding: '5px 14px', fontSize: 12.5,
                             fontFamily: 'Outfit, sans-serif', fontWeight: 600, cursor: 'pointer',
                           }}>
@@ -376,7 +377,7 @@ function CategoriasTab() {
                         {!confirmando && (
                           <button type="button" onClick={() => aoPedirExclusao(c)}
                             style={{
-                              background: 'rgba(239,68,68,0.08)', color: '#ef4444',
+                              background: 'rgba(239,68,68,0.08)', color: CORES_PRIORIDADE.alta.dot,
                               border: 'none', borderRadius: 999, padding: '5px 14px', fontSize: 12.5,
                               fontFamily: 'Outfit, sans-serif', fontWeight: 600, cursor: 'pointer',
                             }}>
@@ -395,7 +396,7 @@ function CategoriasTab() {
                         <div style={{ display: 'flex', gap: 8 }}>
                           <button type="button" onClick={() => aoConfirmarExclusao(c)} disabled={excluindo}
                             style={{
-                              background: 'rgba(239,68,68,0.15)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.35)',
+                              background: 'rgba(239,68,68,0.15)', color: CORES_PRIORIDADE.alta.dot, border: '1px solid rgba(239,68,68,0.35)',
                               borderRadius: 8, padding: '9px 16px', fontSize: 13, fontFamily: 'Outfit, sans-serif', fontWeight: 700,
                               cursor: excluindo ? 'default' : 'pointer', opacity: excluindo ? 0.6 : 1,
                             }}>
@@ -407,7 +408,7 @@ function CategoriasTab() {
                           </button>
                           {erroExcluir && (
                             <button type="button" onClick={() => aoDesativarEmVezDeExcluir(c)}
-                              style={{ background: 'rgba(0,73,192,0.08)', color: '#0049C0', border: 'none', borderRadius: 8, padding: '9px 16px', fontSize: 13, fontFamily: 'Outfit, sans-serif', fontWeight: 600, cursor: 'pointer' }}>
+                              style={{ background: 'rgba(0,73,192,0.08)', color: CORES_TI.accent, border: 'none', borderRadius: 8, padding: '9px 16px', fontSize: 13, fontFamily: 'Outfit, sans-serif', fontWeight: 600, cursor: 'pointer' }}>
                               Desativar em vez disso
                             </button>
                           )}
@@ -510,7 +511,7 @@ function GruposTab() {
           <div style={{ padding: '18px 22px', borderBottom: `1px solid ${CORES_APP.bordaSuave}` }}>
             <h2 style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: 16, color: CORES_APP.texto, margin: '0 0 3px' }}>Grupos</h2>
             <p style={{ color: CORES_APP.textoFraco, fontSize: 13, margin: 0 }}>
-              {grupos.length} grupo{grupos.length !== 1 ? 's' : ''} cadastrado{grupos.length !== 1 ? 's' : ''} — só organizacional, sem efeito em roteamento de chamado ainda.
+              {grupos.length} grupo{grupos.length !== 1 ? 's' : ''} cadastrado{grupos.length !== 1 ? 's' : ''}, só organizacional, sem efeito em roteamento de chamado ainda.
             </p>
           </div>
           <div style={{ padding: '16px 22px' }}>
@@ -518,7 +519,7 @@ function GruposTab() {
               <input
                 value={nomeGrupoNovo}
                 onChange={e => setNomeGrupoNovo(e.target.value)}
-                placeholder="Nome do grupo novo — ex: N2 de Rede"
+                placeholder="Nome do grupo novo, ex: N2 de Rede"
                 disabled={criandoGrupo}
                 style={{ ...estilos.input, flex: 1 }}
               />
@@ -560,7 +561,7 @@ function GruposTab() {
                             padding: '8px 12px', borderRadius: 8, border: `1px solid ${CORES_APP.bordaSuave}`,
                           }}>
                             <div>
-                              <div style={{ fontSize: 13, fontWeight: 600, color: CORES_APP.texto }}>{membro.name ?? '— (aguardando cadastro)'}</div>
+                              <div style={{ fontSize: 13, fontWeight: 600, color: CORES_APP.texto }}>{membro.name ?? '(aguardando cadastro)'}</div>
                               <div style={{ fontSize: 12, color: CORES_APP.textoFraco }}>{membro.email}</div>
                             </div>
                             <button type="button" onClick={() => aoRemoverMembro(grupo, membro.id)} title="Remover do grupo"
@@ -680,7 +681,7 @@ function ColaboradoresTab() {
             <input
               value={busca}
               onChange={e => setBusca(e.target.value)}
-              placeholder="Buscar por nome ou e-mail — pra checar se já existe antes de cadastrar"
+              placeholder="Buscar por nome ou e-mail, pra checar se já existe antes de cadastrar"
               style={{ ...estilos.input, paddingLeft: 40 }}
             />
           </div>
@@ -696,7 +697,7 @@ function ColaboradoresTab() {
               <div>
                 <h2 style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: 16, color: CORES_APP.texto, margin: '0 0 3px' }}>Cadastrar colaborador</h2>
                 <p style={{ color: CORES_APP.textoFraco, fontSize: 13, margin: 0 }}>
-                  Defina uma senha inicial — o colaborador é obrigado a trocá-la no primeiro login.
+                  Defina uma senha inicial. O colaborador é obrigado a trocá-la no primeiro login.
                 </p>
               </div>
               <button type="button" onClick={fecharFormulario} style={{ background: 'none', border: 'none', color: CORES_APP.textoSuave, cursor: 'pointer', display: 'flex', padding: 4 }}>
@@ -735,7 +736,7 @@ function ColaboradoresTab() {
         <div style={estilos.card}>
           <div style={{ padding: '14px 22px', borderBottom: `1px solid ${CORES_APP.bordaSuave}` }}>
             <p style={{ color: CORES_APP.textoFraco, fontSize: 13, margin: 0 }}>
-              {filtrados.length} de {colaboradores.length} colaborador{colaboradores.length !== 1 ? 'es' : ''} — gestão completa (histórico, resetar conta) continua em "Colaboradores" no menu principal.
+              {filtrados.length} de {colaboradores.length} colaborador{colaboradores.length !== 1 ? 'es' : ''}. Gestão completa (histórico, resetar conta) continua em "Colaboradores" no menu principal.
             </p>
           </div>
           {filtrados.length === 0 ? (
@@ -745,7 +746,7 @@ function ColaboradoresTab() {
               {filtrados.map(c => (
                 <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 22px', borderTop: `1px solid ${CORES_APP.bordaSuave}` }}>
                   <div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: CORES_APP.texto }}>{c.name ?? '— (aguardando cadastro)'}</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: CORES_APP.texto }}>{c.name ?? '(aguardando cadastro)'}</div>
                     <div style={{ fontSize: 12, color: CORES_APP.textoFraco }}>{c.email}</div>
                   </div>
                   <span style={{ fontSize: 12, color: CORES_APP.textoFraco, alignSelf: 'center' }}>{c.dept}</span>
@@ -812,7 +813,7 @@ function RelatorioAcessoSecao() {
           <div>
             <h2 style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: 16, color: CORES_APP.texto, margin: '0 0 3px' }}>Último acesso por colaborador</h2>
             <p style={{ color: CORES_APP.textoFraco, fontSize: 13, margin: 0 }}>
-              {itens.length} colaborador{itens.length !== 1 ? 'es' : ''} — {totalInativos} inativo{totalInativos !== 1 ? 's' : ''} há mais de {diasInatividade} dias.
+              {itens.length} colaborador{itens.length !== 1 ? 'es' : ''}, {totalInativos} inativo{totalInativos !== 1 ? 's' : ''} há mais de {diasInatividade} dias.
             </p>
           </div>
           <div style={{ display: 'flex', gap: 14, alignItems: 'flex-end' }}>
@@ -834,7 +835,7 @@ function RelatorioAcessoSecao() {
           ) : itensExibidos.map(item => (
             <div key={item.usuarioId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 22px', borderTop: `1px solid ${CORES_APP.bordaSuave}`, gap: 10, flexWrap: 'wrap' }}>
               <div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: CORES_APP.texto }}>{item.nome ?? '— (aguardando cadastro)'}</div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: CORES_APP.texto }}>{item.nome ?? '(aguardando cadastro)'}</div>
                 <div style={{ fontSize: 12, color: CORES_APP.textoFraco }}>{item.email}</div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -842,7 +843,7 @@ function RelatorioAcessoSecao() {
                   {item.ultimoAcesso ? `${formatarDataHora(new Date(item.ultimoAcesso))} (${tempoDecorrido(new Date(item.ultimoAcesso))})` : 'Nunca acessou'}
                 </span>
                 {item.inativo && (
-                  <span style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444', borderRadius: 999, padding: '3px 10px', fontSize: 11, fontFamily: 'Outfit, sans-serif', fontWeight: 700 }}>
+                  <span style={{ background: 'rgba(239,68,68,0.1)', color: CORES_PRIORIDADE.alta.dot, borderRadius: 999, padding: '3px 10px', fontSize: 11, fontFamily: 'Outfit, sans-serif', fontWeight: 700 }}>
                     Inativo
                   </span>
                 )}
@@ -921,12 +922,12 @@ function RelatorioAtividadeChamadosSecao() {
               ) : comChamados.map(item => (
                 <div key={item.usuarioId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 22px', borderTop: `1px solid ${CORES_APP.bordaSuave}`, gap: 10, flexWrap: 'wrap' }}>
                   <div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: CORES_APP.texto }}>{item.nome ?? '— (aguardando cadastro)'}</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: CORES_APP.texto }}>{item.nome ?? '(aguardando cadastro)'}</div>
                     <div style={{ fontSize: 12, color: CORES_APP.textoFraco }}>{item.email}</div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <span style={{ fontSize: 12, color: CORES_APP.textoFraco }}>Último: {formatarDataHora(new Date(item.ultimoChamadoEm))}</span>
-                    <span style={{ background: 'rgba(0,73,192,0.08)', color: '#0049C0', borderRadius: 999, padding: '3px 10px', fontSize: 12, fontFamily: 'Outfit, sans-serif', fontWeight: 700 }}>
+                    <span style={{ background: 'rgba(0,73,192,0.08)', color: CORES_TI.accent, borderRadius: 999, padding: '3px 10px', fontSize: 12, fontFamily: 'Outfit, sans-serif', fontWeight: 700 }}>
                       {item.totalChamados}
                     </span>
                   </div>
@@ -945,7 +946,7 @@ function RelatorioAtividadeChamadosSecao() {
             ) : (
               <div style={{ padding: '12px 22px', display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                 {semChamados.map(item => (
-                  <span key={item.usuarioId} style={{ background: 'rgba(245,158,11,0.1)', color: '#f59e0b', borderRadius: 999, padding: '5px 12px', fontSize: 12.5, fontFamily: 'Outfit, sans-serif', fontWeight: 600 }}>
+                  <span key={item.usuarioId} style={{ background: 'rgba(245,158,11,0.1)', color: CORES_STATUS.andamento.fg, borderRadius: 999, padding: '5px 12px', fontSize: 12.5, fontFamily: 'Outfit, sans-serif', fontWeight: 600 }}>
                     {item.nome ?? item.email}
                   </span>
                 ))}
@@ -1023,7 +1024,7 @@ function RelatorioTempoAtendimentoSecao() {
                         <div style={{ fontSize: 12, color: CORES_APP.textoFraco }}>Aberto em {formatarDataHora(new Date(item.dataAbertura))}</div>
                       </div>
                     </div>
-                    <span style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444', borderRadius: 999, padding: '3px 10px', fontSize: 12, fontFamily: 'Outfit, sans-serif', fontWeight: 700 }}>
+                    <span style={{ background: 'rgba(239,68,68,0.1)', color: CORES_PRIORIDADE.alta.dot, borderRadius: 999, padding: '3px 10px', fontSize: 12, fontFamily: 'Outfit, sans-serif', fontWeight: 700 }}>
                       {formatarDuracaoMinutos(item.tempoEsperaMinutos)}
                     </span>
                   </div>
@@ -1084,9 +1085,9 @@ function RelatorioCargaTecnicosSecao() {
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                   <span style={{ fontSize: 12, color: CORES_APP.textoFraco }}>
-                    {item.totalFinalizados} finalizado{item.totalFinalizados !== 1 ? 's' : ''} — média {item.tempoMedioResolucaoMinutos !== null ? formatarDuracaoMinutos(item.tempoMedioResolucaoMinutos) : '—'}
+                    {item.totalFinalizados} finalizado{item.totalFinalizados !== 1 ? 's' : ''}, média {item.tempoMedioResolucaoMinutos !== null ? formatarDuracaoMinutos(item.tempoMedioResolucaoMinutos) : '—'}
                   </span>
-                  <span style={{ background: 'rgba(0,73,192,0.08)', color: '#0049C0', borderRadius: 999, padding: '3px 10px', fontSize: 12, fontFamily: 'Outfit, sans-serif', fontWeight: 700 }}>
+                  <span style={{ background: 'rgba(0,73,192,0.08)', color: CORES_TI.accent, borderRadius: 999, padding: '3px 10px', fontSize: 12, fontFamily: 'Outfit, sans-serif', fontWeight: 700 }}>
                     {item.totalChamados}
                   </span>
                 </div>
@@ -1134,7 +1135,7 @@ function RelatorioReaberturasSecao() {
               <div style={{ ...estilos.card, border: '1px solid rgba(239,68,68,0.25)' }}>
                 <div style={{ padding: '16px 22px', borderBottom: `1px solid ${CORES_APP.bordaSuave}` }}>
                   <h2 style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: 16, color: CORES_APP.texto, margin: '0 0 3px' }}>Reabertos 2+ vezes</h2>
-                  <p style={{ color: CORES_APP.textoFraco, fontSize: 13, margin: 0 }}>{relatorio.destaque.length} chamado{relatorio.destaque.length !== 1 ? 's' : ''} reaberto{relatorio.destaque.length !== 1 ? 's' : ''} mais de uma vez — pode indicar resolução recorrentemente malfeita.</p>
+                  <p style={{ color: CORES_APP.textoFraco, fontSize: 13, margin: 0 }}>{relatorio.destaque.length} chamado{relatorio.destaque.length !== 1 ? 's' : ''} reaberto{relatorio.destaque.length !== 1 ? 's' : ''} mais de uma vez, pode indicar resolução recorrentemente malfeita.</p>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                   {relatorio.destaque.map(item => (
@@ -1143,7 +1144,7 @@ function RelatorioReaberturasSecao() {
                         <div style={{ fontSize: 13, fontWeight: 600, color: CORES_APP.texto }}>{item.titulo}</div>
                         <div style={{ fontSize: 12, color: CORES_APP.textoFraco }}>{item.tecnicoResponsavelNome ?? 'Sem técnico responsável'}</div>
                       </div>
-                      <span style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444', borderRadius: 999, padding: '3px 10px', fontSize: 12, fontFamily: 'Outfit, sans-serif', fontWeight: 700 }}>
+                      <span style={{ background: 'rgba(239,68,68,0.1)', color: CORES_PRIORIDADE.alta.dot, borderRadius: 999, padding: '3px 10px', fontSize: 12, fontFamily: 'Outfit, sans-serif', fontWeight: 700 }}>
                         {item.totalReaberturas}x
                       </span>
                     </div>
@@ -1177,7 +1178,7 @@ function RelatorioReaberturasSecao() {
             <div style={estilos.card}>
               <div style={{ padding: '16px 22px', borderBottom: `1px solid ${CORES_APP.bordaSuave}` }}>
                 <h2 style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: 16, color: CORES_APP.texto, margin: '0 0 3px' }}>Por técnico responsável</h2>
-                <p style={{ color: CORES_APP.textoFraco, fontSize: 13, margin: 0 }}>Reaberturas somadas por quem resolveu originalmente — sem julgamento, só pra identificar padrão.</p>
+                <p style={{ color: CORES_APP.textoFraco, fontSize: 13, margin: 0 }}>Reaberturas somadas por quem resolveu originalmente, sem julgamento, só pra identificar padrão.</p>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column' }}>
                 {relatorio.porTecnico.length === 0 ? (
@@ -1188,7 +1189,7 @@ function RelatorioReaberturasSecao() {
                       <div style={{ fontSize: 13, fontWeight: 600, color: CORES_APP.texto }}>{item.nome ?? item.email}</div>
                       <div style={{ fontSize: 12, color: CORES_APP.textoFraco }}>{item.email}</div>
                     </div>
-                    <span style={{ background: 'rgba(0,73,192,0.08)', color: '#0049C0', borderRadius: 999, padding: '3px 10px', fontSize: 12, fontFamily: 'Outfit, sans-serif', fontWeight: 700 }}>
+                    <span style={{ background: 'rgba(0,73,192,0.08)', color: CORES_TI.accent, borderRadius: 999, padding: '3px 10px', fontSize: 12, fontFamily: 'Outfit, sans-serif', fontWeight: 700 }}>
                       {item.totalReaberturas}x
                     </span>
                   </div>
@@ -1214,7 +1215,7 @@ function AtividadeTab() {
             <button key={item.id} onClick={() => setSubaba(item.id)}
               style={{
                 background: ativa ? 'rgba(0,73,192,0.08)' : CORES_APP.fundoCampo,
-                color: ativa ? '#0049C0' : CORES_APP.textoFraco,
+                color: ativa ? CORES_TI.accent : CORES_APP.textoFraco,
                 border: `1px solid ${ativa ? 'rgba(0,73,192,0.22)' : CORES_APP.borda}`,
                 borderRadius: 8, padding: '7px 14px', fontSize: 13, fontFamily: 'Outfit, sans-serif',
                 fontWeight: ativa ? 600 : 400, cursor: 'pointer',
@@ -1240,7 +1241,7 @@ function Administracao() {
     <div className="animate-fade-up" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <div style={{ marginBottom: 22, flexShrink: 0 }}>
         <h1 style={estilos.sectionTitle}>Administração</h1>
-        <p style={{ color: CORES_APP.textoFraco, fontSize: 14, margin: 0 }}>Categorias, setores, grupos, colaboradores e relatórios de atividade — configuração central da Área Técnica.</p>
+        <p style={{ color: CORES_APP.textoFraco, fontSize: 14, margin: 0 }}>Categorias, setores, grupos, colaboradores e relatórios de atividade: configuração central da Área Técnica.</p>
       </div>
 
       <div style={{ display: 'flex', gap: 6, marginBottom: 20, flexShrink: 0, borderBottom: `1px solid ${CORES_APP.bordaSuave}` }}>
@@ -1251,8 +1252,8 @@ function Administracao() {
               style={{
                 background: 'transparent', border: 'none', cursor: 'pointer',
                 padding: '10px 16px', fontFamily: 'Outfit, sans-serif', fontSize: 14,
-                fontWeight: ativa ? 700 : 500, color: ativa ? '#0049C0' : CORES_APP.textoFraco,
-                borderBottom: ativa ? '2px solid #0049C0' : '2px solid transparent', marginBottom: -1,
+                fontWeight: ativa ? 700 : 500, color: ativa ? CORES_TI.accent : CORES_APP.textoFraco,
+                borderBottom: ativa ? `2px solid ${CORES_TI.accent}` : '2px solid transparent', marginBottom: -1,
               }}>
               {item.label}
             </button>

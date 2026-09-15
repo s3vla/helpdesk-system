@@ -173,7 +173,7 @@ function MuralAvisos({ podePublicar, onAlterou }) {
                         </span>
                       )}
                       {!aviso.lido && (
-                        <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#00b351', display: 'inline-block', flexShrink: 0 }} title="Não lido" />
+                        <span style={{ width: 7, height: 7, borderRadius: '50%', background: CORES_APP.verde, display: 'inline-block', flexShrink: 0 }} title="Não lido" />
                       )}
                     </div>
                     {podePublicar && (

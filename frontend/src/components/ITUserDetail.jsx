@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { estilos, CORES_PRIORIDADE, CORES_APP } from '../styles/theme'
+import { estilos, CORES_PRIORIDADE, CORES_APP, CORES_STATUS } from '../styles/theme'
+import { cores } from '../styles/authTheme'
 import { obterIniciais, formatarData } from '../utils/formatters'
 import { useAuth } from '../hooks/useAuth'
 import { buscarChamadosDoColaborador, resetarConta } from '../services/ticketService'
@@ -63,14 +64,14 @@ function ITUserDetail({ usuario, versaoDados, onVoltar, onSelect }) {
         ← Colaboradores
       </button>
       <div style={{ ...estilos.card, border: '1px solid rgba(0,120,81,0.14)', borderRadius: 16, padding: '20px 24px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 18, flexWrap: 'wrap' }}>
-        <div style={{ width: 58, height: 58, borderRadius: '50%', background: usuarioAtual.emAguardoDeCadastro ? CORES_APP.fundoCampo : '#007851', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: 22, color: '#fff', flexShrink: 0 }}>
+        <div style={{ width: 58, height: 58, borderRadius: '50%', background: usuarioAtual.emAguardoDeCadastro ? CORES_APP.fundoCampo : cores.verdeEscuro, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: 22, color: '#fff', flexShrink: 0 }}>
           {usuarioAtual.emAguardoDeCadastro ? '?' : obterIniciais(usuarioAtual.name)}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           {usuarioAtual.emAguardoDeCadastro ? (
             <>
               <h1 style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: 20, color: CORES_APP.tinta, margin: '0 0 6px' }}>Conta resetada</h1>
-              <span style={{ background: 'rgba(245,158,11,0.12)', color: '#f59e0b', padding: '3px 10px', borderRadius: 99, fontSize: 12, fontFamily: 'Outfit, sans-serif', fontWeight: 600 }}>Aguardando novo cadastro</span>
+              <span style={{ background: CORES_STATUS.andamento.bg, color: CORES_STATUS.andamento.fg, padding: '3px 10px', borderRadius: 99, fontSize: 12, fontFamily: 'Outfit, sans-serif', fontWeight: 600 }}>Aguardando novo cadastro</span>
             </>
           ) : (
             <>
@@ -81,7 +82,7 @@ function ITUserDetail({ usuario, versaoDados, onVoltar, onSelect }) {
           <p style={{ color: CORES_APP.textoSuave, fontSize: 12, margin: 0 }}>{usuarioAtual.email}</p>
         </div>
         <div style={{ textAlign: 'right', flexShrink: 0 }}>
-          <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: 28, color: '#00b351', lineHeight: 1 }}>{chamados.length}</div>
+          <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: 28, color: CORES_APP.verde, lineHeight: 1 }}>{chamados.length}</div>
           <div style={{ color: CORES_APP.textoFraco, fontSize: 12, marginTop: 2 }}>chamados</div>
         </div>
       </div>
@@ -96,10 +97,10 @@ function ITUserDetail({ usuario, versaoDados, onVoltar, onSelect }) {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
               <div>
                 <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 600, fontSize: 13, color: CORES_APP.tinta }}>Este e-mail mudou de responsável?</div>
-                <div style={{ color: CORES_APP.textoFraco, fontSize: 12, marginTop: 2 }}>Resetar apaga nome, cargo e senha atuais — a próxima pessoa completa o Primeiro Acesso do zero.</div>
+                <div style={{ color: CORES_APP.textoFraco, fontSize: 12, marginTop: 2 }}>Resetar apaga nome, cargo e senha atuais. A próxima pessoa completa o Primeiro Acesso do zero.</div>
               </div>
               <button onClick={() => setConfirmandoReset(true)}
-                style={{ background: 'rgba(245,158,11,0.1)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 8, padding: '9px 16px', fontSize: 13, fontFamily: 'Outfit, sans-serif', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                style={{ background: 'rgba(245,158,11,0.1)', color: CORES_STATUS.andamento.fg, border: '1px solid rgba(245,158,11,0.3)', borderRadius: 8, padding: '9px 16px', fontSize: 13, fontFamily: 'Outfit, sans-serif', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>
                 Resetar conta
               </button>
             </div>
@@ -111,7 +112,7 @@ function ITUserDetail({ usuario, versaoDados, onVoltar, onSelect }) {
               {erroReset && <p style={{ color: CORES_APP.erro, fontSize: 13, margin: 0 }}>{erroReset}</p>}
               <div style={{ display: 'flex', gap: 8 }}>
                 <button onClick={confirmarReset} disabled={resetando}
-                  style={{ background: 'rgba(245,158,11,0.15)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.35)', borderRadius: 8, padding: '9px 16px', fontSize: 13, fontFamily: 'Outfit, sans-serif', fontWeight: 700, cursor: resetando ? 'default' : 'pointer', opacity: resetando ? 0.6 : 1 }}>
+                  style={{ background: 'rgba(245,158,11,0.15)', color: CORES_STATUS.andamento.fg, border: '1px solid rgba(245,158,11,0.35)', borderRadius: 8, padding: '9px 16px', fontSize: 13, fontFamily: 'Outfit, sans-serif', fontWeight: 700, cursor: resetando ? 'default' : 'pointer', opacity: resetando ? 0.6 : 1 }}>
                   {resetando ? 'Resetando...' : 'Sim, resetar agora'}
                 </button>
                 <button onClick={() => { setConfirmandoReset(false); setErroReset('') }} disabled={resetando}

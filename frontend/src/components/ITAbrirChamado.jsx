@@ -118,12 +118,12 @@ function ITAbrirChamado({ onSubmit }) {
     <div className="animate-fade-up" style={{ maxWidth: LARGURA_MAXIMA, margin: '0 auto' }}>
       <div style={{ marginBottom: 18 }}>
         <h1 style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: largura < 640 ? 20 : 22, color: CORES_APP.tinta, margin: '0 0 4px' }}>Abrir chamado</h1>
-        <p style={{ color: CORES_APP.textoFraco, fontSize: 14, margin: 0, lineHeight: 1.5 }}>Abra um chamado em nome de um colaborador — para quando ele liga ou pede pessoalmente, sem passar pelo formulário.</p>
+        <p style={{ color: CORES_APP.textoFraco, fontSize: 14, margin: 0, lineHeight: 1.5 }}>Abra um chamado em nome de um colaborador, para quando ele liga ou pede pessoalmente, sem passar pelo formulário.</p>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: duasColunas ? 'minmax(0, 2fr) minmax(280px, 1fr)' : '1fr', gap: 24, alignItems: 'start' }}>
       <div style={{ ...estilos.card, border: '1px solid rgba(0,120,81,0.14)', padding: largura < 640 ? 16 : 22, display: 'flex', flexDirection: 'column', gap: 10 }}>
         <div>
-          <label style={rotuloCompacto}>Solicitante <span style={{ color: '#ef4444' }}>*</span></label>
+          <label style={rotuloCompacto}>Solicitante <span style={{ color: CORES_PRIORIDADE.alta.dot }}>*</span></label>
           <SolicitanteSelect
             opcoes={colaboradores}
             valor={solicitanteId}
@@ -132,7 +132,7 @@ function ITAbrirChamado({ onSubmit }) {
           />
         </div>
         <div>
-          <label style={rotuloCompacto}>O que o colaborador precisa? <span style={{ color: '#ef4444' }}>*</span></label>
+          <label style={rotuloCompacto}>O que o colaborador precisa? <span style={{ color: CORES_PRIORIDADE.alta.dot }}>*</span></label>
           <textarea value={desc} onChange={e => setDesc(e.target.value)} onKeyDown={aoTeclarEnter} placeholder="Ex: impressora do setor não imprime, aparece 'sem papel' mas tem papel na bandeja"
             style={{ ...campoCompacto, minHeight: 96, maxHeight: 200, overflow: 'auto', resize: 'vertical', lineHeight: 1.5 }} disabled={carregando} />
         </div>
@@ -167,11 +167,11 @@ function ITAbrirChamado({ onSubmit }) {
           <label style={rotuloCompacto}>Prints do erro</label>
           <div onClick={() => !carregando && fileRef.current?.click()}
             style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, border: `2px dashed ${arquivos.length ? 'rgba(0,120,81,0.4)' : CORES_APP.borda}`, borderRadius: 10, padding: '22px 14px', textAlign: 'center', cursor: carregando ? 'default' : 'pointer', background: arquivos.length ? 'rgba(0,179,81,0.05)' : 'transparent', transition: 'all 0.2s' }}>
-            <span style={{ color: arquivos.length ? '#00b351' : CORES_APP.textoFraco, display: 'flex', flexShrink: 0 }}>
+            <span style={{ color: arquivos.length ? CORES_APP.verde : CORES_APP.textoFraco, display: 'flex', flexShrink: 0 }}>
               <IconPaperclip width={16} height={16} />
             </span>
-            <span style={{ color: arquivos.length ? '#00b351' : CORES_APP.textoFraco, fontSize: 13 }}>
-              {arquivos.length ? `${arquivos.length} ${arquivos.length > 1 ? 'imagens' : 'imagem'} selecionada${arquivos.length > 1 ? 's' : ''} — clique para adicionar mais` : 'Clique para anexar imagens'}
+            <span style={{ color: arquivos.length ? CORES_APP.verde : CORES_APP.textoFraco, fontSize: 13 }}>
+              {arquivos.length ? `${arquivos.length} ${arquivos.length > 1 ? 'imagens' : 'imagem'} selecionada${arquivos.length > 1 ? 's' : ''}, clique para adicionar mais` : 'Clique para anexar imagens'}
             </span>
             <input ref={fileRef} type="file" accept="image/png, image/jpeg, image/webp" multiple style={{ display: 'none' }}
               onChange={e => {

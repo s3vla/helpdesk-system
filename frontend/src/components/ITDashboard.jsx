@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { estilos, CORES_STATUS, CORES_PRIORIDADE, CORES_TI, CORES_APP } from '../styles/theme'
+import { cores } from '../styles/authTheme'
 import { useWindowWidth } from '../hooks/useWindowWidth'
 import { useAuth } from '../hooks/useAuth'
 import { useAgora } from '../hooks/useAgora'
@@ -121,7 +122,7 @@ function ITDashboard({ versaoDados, onSelect, onAbrirChamado }) {
           <p style={{ color: CORES_APP.textoFraco, fontSize: 14, margin: 0 }}>Todos os chamados abertos no sistema</p>
         </div>
         <button type="button" onClick={onAbrirChamado}
-          style={{ height: 42, padding: '0 18px', fontFamily: 'Outfit, sans-serif', fontSize: 14, fontWeight: 600, color: '#fff', background: '#007851', border: 0, borderRadius: 9, cursor: 'pointer', flexShrink: 0 }}>
+          style={{ height: 42, padding: '0 18px', fontFamily: 'Outfit, sans-serif', fontSize: 14, fontWeight: 600, color: '#fff', background: cores.verdeEscuro, border: 0, borderRadius: 9, cursor: 'pointer', flexShrink: 0 }}>
           Criar novo chamado
         </button>
       </div>
@@ -161,7 +162,7 @@ function ITDashboard({ versaoDados, onSelect, onAbrirChamado }) {
             </button>
           ))}
           <button onClick={() => setFiltroSla(v => !v)}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: filtroSla ? '#FBEDEA' : CORES_APP.fundoCampo, color: filtroSla ? '#B3402F' : CORES_APP.textoFraco, border: `1px solid ${filtroSla ? '#F2D8D2' : CORES_APP.borda}`, borderRadius: 999, padding: '6px 13px', fontSize: 12, fontFamily: 'Outfit, sans-serif', fontWeight: filtroSla ? 600 : 400, cursor: 'pointer', marginLeft: 6 }}>
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: filtroSla ? CORES_PRIORIDADE.alta.bg : CORES_APP.fundoCampo, color: filtroSla ? CORES_PRIORIDADE.alta.fg : CORES_APP.textoFraco, border: `1px solid ${filtroSla ? CORES_PRIORIDADE.alta.borda : CORES_APP.borda}`, borderRadius: 999, padding: '6px 13px', fontSize: 12, fontFamily: 'Outfit, sans-serif', fontWeight: filtroSla ? 600 : 400, cursor: 'pointer', marginLeft: 6 }}>
             <IconClock width={12} height={12} /> Prazo estourado
           </button>
           <SlaLegenda />
@@ -197,7 +198,7 @@ function ITDashboard({ versaoDados, onSelect, onAbrirChamado }) {
             // A borda de prioridade continua o padrão — SLA em risco/estourado
             // só assume a borda quando há algo a avisar, pra não perder a cor
             // de prioridade nos chamados tranquilos.
-            const corBorda = situacaoSla === 'estourado' ? '#B3402F' : situacaoSla === 'atencao' ? '#f59e0b' : corPrioridade
+            const corBorda = situacaoSla === 'estourado' ? CORES_PRIORIDADE.alta.fg : situacaoSla === 'atencao' ? CORES_STATUS.andamento.fg : corPrioridade
             return (
               <div key={chamado.id} onClick={() => onSelect(chamado)}
                 style={{ ...estilos.card, display: largura >= 900 ? 'grid' : 'flex', flexDirection: 'column', gridTemplateColumns: largura >= 900 ? COLUNAS_TABELA : undefined, gap: 10, padding: '14px 16px', cursor: 'pointer', alignItems: 'center', borderLeft: `3px solid ${corBorda}` }}>
@@ -214,7 +215,7 @@ function ITDashboard({ versaoDados, onSelect, onAbrirChamado }) {
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                     <span style={{ color: CORES_APP.textoSuave, fontSize: 12 }}>aberto {tempoDecorrido(chamado.created)}</span>
-                    {semResposta && <span style={{ color: '#f59e0b', fontSize: 12 }}>· sem resposta {tempoDecorrido(chamado.updated)}</span>}
+                    {semResposta && <span style={{ color: CORES_STATUS.andamento.fg, fontSize: 12 }}>· sem resposta {tempoDecorrido(chamado.updated)}</span>}
                     <AguardandoRespostaBadge status={chamado.status} aguardandoRespostaDe={chamado.aguardandoRespostaDe} isIT />
                   </div>
                 </div>

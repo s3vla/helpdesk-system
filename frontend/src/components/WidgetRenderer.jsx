@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { ResponsiveContainer, BarChart, Bar, PieChart, Pie, XAxis, YAxis, CartesianGrid, Tooltip, Cell } from 'recharts'
-import { estilos, CORES_APP, CORES_PRIORIDADE, CORES_STATUS } from '../styles/theme'
+import { estilos, CORES_APP, CORES_PRIORIDADE, CORES_STATUS, CORES_TI } from '../styles/theme'
+import { cores } from '../styles/authTheme'
 import { useAuth } from '../hooks/useAuth'
 import { buscarMetricas, buscarRepeticao } from '../services/dashboardService'
 import { LABEL_CATEGORIA } from '../utils/categorias'
@@ -10,13 +11,17 @@ import EstadoRequisicao from './EstadoRequisicao'
 // N1→N3 é uma escala de severidade crescente, mesma ideia conceitual de
 // baixa→alta prioridade — reaproveita as cores já aprovadas em
 // CORES_PRIORIDADE em vez de inventar uma paleta nova só pra este gráfico.
-const CORES_NIVEL = { N1: CORES_PRIORIDADE.baixa.dot, N2: CORES_PRIORIDADE.media.dot, N3: CORES_PRIORIDADE.alta.fg }
+// Renomeado de CORES_NIVEL pra CORES_POR_NIVEL_GRAFICO (era um nome local
+// deste arquivo, coincidência com o CORES_NIVEL agora exportado por
+// theme.js pra outra coisa — a paleta índigo de TicketPanel.jsx). Sem
+// relação nenhuma entre os dois; só evitando confundir os dois nomes.
+const CORES_POR_NIVEL_GRAFICO = { N1: CORES_PRIORIDADE.baixa.dot, N2: CORES_PRIORIDADE.media.dot, N3: CORES_PRIORIDADE.alta.fg }
 
 // Paleta cíclica pra qualquer agrupamento que não seja nível — um widget
 // genérico (categoria, status, prioridade, solicitante, técnico) pode ter
 // qualquer quantidade de grupos, não dá pra mapear uma cor fixa por valor
 // como dá pra fazer com nível.
-const PALETA_CICLICA = ['#007851', '#0049C0', '#f59e0b', '#00B351', '#0082C0', '#B3402F']
+const PALETA_CICLICA = [cores.verdeEscuro, CORES_TI.accent, CORES_STATUS.andamento.fg, CORES_APP.verde, cores.azulMedio, CORES_PRIORIDADE.alta.fg]
 
 const estiloCard = { ...estilos.card, padding: 20 }
 const estiloTitulo = { fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: 15, color: CORES_APP.tinta, margin: '0 0 14px' }
@@ -39,7 +44,7 @@ function traduzirRotulo(agruparPor, item) {
 }
 
 function corDoItem(agruparPor, chave, indice) {
-  if (agruparPor === 'nivel') return CORES_NIVEL[chave] ?? PALETA_CICLICA[0]
+  if (agruparPor === 'nivel') return CORES_POR_NIVEL_GRAFICO[chave] ?? PALETA_CICLICA[0]
   return PALETA_CICLICA[indice % PALETA_CICLICA.length]
 }
 

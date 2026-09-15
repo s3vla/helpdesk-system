@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { estilos, CORES_APP } from '../styles/theme'
+import { estilos, CORES_APP, CORES_PRIORIDADE } from '../styles/theme'
 import { useAuth } from '../hooks/useAuth'
 import { enviarImagem } from '../services/ticketService'
 import { traduzirErroApi } from '../utils/traduzirErroApi'
@@ -69,10 +69,10 @@ function ResolutionModal({ carregando: carregandoExterno, onConfirm, onCancel })
         </div>
 
         <div>
-          <label style={estilos.label}>Como foi resolvido? <span style={{ color: '#ef4444' }}>*</span></label>
+          <label style={estilos.label}>Como foi resolvido? <span style={{ color: CORES_PRIORIDADE.alta.dot }}>*</span></label>
           <textarea
             value={texto} onChange={e => setTexto(e.target.value)} onKeyDown={aoTeclarEnter} autoFocus disabled={carregando}
-            placeholder="Causa e passos da solução — ajuda a resolver mais rápido da próxima vez"
+            placeholder="Causa e passos da solução, ajuda a resolver mais rápido da próxima vez"
             style={{ ...estilos.input, minHeight: 110, resize: 'vertical', lineHeight: 1.7, fontSize: 14 }}
           />
         </div>
@@ -81,11 +81,11 @@ function ResolutionModal({ carregando: carregandoExterno, onConfirm, onCancel })
           <label style={estilos.label}>Prints da solução</label>
           <div onClick={() => !carregando && fileRef.current?.click()}
             style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, border: `2px dashed ${arquivos.length ? 'rgba(0,120,81,0.4)' : CORES_APP.borda}`, borderRadius: 10, padding: '22px 14px', textAlign: 'center', cursor: carregando ? 'default' : 'pointer', background: arquivos.length ? 'rgba(0,179,81,0.05)' : 'transparent', transition: 'all 0.2s' }}>
-            <span style={{ color: arquivos.length ? '#00b351' : CORES_APP.textoFraco, display: 'flex', flexShrink: 0 }}>
+            <span style={{ color: arquivos.length ? CORES_APP.verde : CORES_APP.textoFraco, display: 'flex', flexShrink: 0 }}>
               <IconPaperclip width={16} height={16} />
             </span>
-            <span style={{ color: arquivos.length ? '#00b351' : CORES_APP.textoFraco, fontSize: 13 }}>
-              {arquivos.length ? `${arquivos.length} ${arquivos.length > 1 ? 'imagens' : 'imagem'} selecionada${arquivos.length > 1 ? 's' : ''} — clique para adicionar mais` : 'Clique para anexar imagens'}
+            <span style={{ color: arquivos.length ? CORES_APP.verde : CORES_APP.textoFraco, fontSize: 13 }}>
+              {arquivos.length ? `${arquivos.length} ${arquivos.length > 1 ? 'imagens' : 'imagem'} selecionada${arquivos.length > 1 ? 's' : ''}, clique para adicionar mais` : 'Clique para anexar imagens'}
             </span>
             <input ref={fileRef} type="file" accept="image/png, image/jpeg, image/webp" multiple style={{ display: 'none' }}
               onChange={e => {
@@ -121,9 +121,9 @@ function ResolutionModal({ carregando: carregandoExterno, onConfirm, onCancel })
 
         <label style={{ display: 'flex', alignItems: 'flex-start', gap: 11, cursor: 'pointer', background: solucaoConhecida ? 'rgba(0,179,81,0.07)' : CORES_APP.fundoCampo, border: `1px solid ${solucaoConhecida ? 'rgba(0,120,81,0.25)' : CORES_APP.borda}`, borderRadius: 10, padding: '13px 14px' }}>
           <input type="checkbox" checked={solucaoConhecida} onChange={e => setSolucaoConhecida(e.target.checked)} disabled={carregando}
-            style={{ accentColor: '#00b351', marginTop: 2, flexShrink: 0, width: 15, height: 15 }} />
+            style={{ accentColor: CORES_APP.verde, marginTop: 2, flexShrink: 0, width: 15, height: 15 }} />
           <div>
-            <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 600, fontSize: 13, color: solucaoConhecida ? '#00b351' : CORES_APP.tinta, marginBottom: 2 }}>Marcar como solução conhecida</div>
+            <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 600, fontSize: 13, color: solucaoConhecida ? CORES_APP.verde : CORES_APP.tinta, marginBottom: 2 }}>Marcar como solução conhecida</div>
             <div style={{ fontSize: 12, color: CORES_APP.textoFraco, lineHeight: 1.5 }}>Este tipo de problema pode se repetir. A solução ficará disponível na base de Soluções Conhecidas para referência futura.</div>
           </div>
         </label>
@@ -132,7 +132,7 @@ function ResolutionModal({ carregando: carregandoExterno, onConfirm, onCancel })
 
         <div style={{ display: 'flex', gap: 10 }}>
           <button onClick={confirmar} disabled={!pronto || carregando}
-            style={{ ...estilos.btnPrimary, background: pronto ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)' : 'rgba(34,197,94,0.2)', color: pronto ? '#fff' : CORES_APP.textoSuave, cursor: pronto && !carregando ? 'pointer' : 'not-allowed', flex: 1, opacity: carregando ? 0.7 : 1 }}>
+            style={{ ...estilos.btnPrimary, background: pronto ? `linear-gradient(135deg, ${CORES_PRIORIDADE.baixa.dot} 0%, #16a34a 100%)` : 'rgba(34,197,94,0.2)', color: pronto ? '#fff' : CORES_APP.textoSuave, cursor: pronto && !carregando ? 'pointer' : 'not-allowed', flex: 1, opacity: carregando ? 0.7 : 1 }}>
             {textoBotao}
           </button>
           <button onClick={onCancel} disabled={carregando}

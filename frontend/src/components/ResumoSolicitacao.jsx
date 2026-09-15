@@ -34,7 +34,7 @@ function ResumoSolicitacao({ categoria, prioridade, arquivos = [] }) {
         </div>
         <div style={estiloLinha}>
           <div style={estilos.label}>{arquivos.length > 1 ? 'Anexos' : 'Anexo'}</div>
-          <div style={{ ...estiloValor, color: arquivos.length ? '#00b351' : CORES_APP.textoFraco }}>{textoAnexo}</div>
+          <div style={{ ...estiloValor, color: arquivos.length ? CORES_APP.verde : CORES_APP.textoFraco }}>{textoAnexo}</div>
         </div>
       </div>
     </div>

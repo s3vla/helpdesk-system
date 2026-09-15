@@ -19,7 +19,7 @@
 // pra não ter duas telas chamando o mesmo status de nomes diferentes.
 export const CORES_STATUS = {
   parado:     { bg: 'rgba(138,150,163,0.15)', fg: '#8A96A3', label: 'Na fila',       dot: '#8A96A3' },
-  andamento:  { bg: 'rgba(245,158,11,0.12)',  fg: '#f59e0b', label: 'Em atendimento', dot: '#f59e0b' },
+  andamento:  { bg: 'rgba(245,158,11,0.12)',  fg: 'var(--app-status-ambar)', label: 'Em atendimento', dot: 'var(--app-status-ambar)' },
   finalizado: { bg: 'rgba(0,120,81,0.14)',    fg: '#007851', label: 'Resolvido',      dot: '#007851' },
 }
 
@@ -28,8 +28,8 @@ export const CORES_STATUS = {
 // baixa/media continuam só com o ponto colorido, sem mudança de cor.
 export const CORES_PRIORIDADE = {
   baixa: { dot: '#22c55e', label: 'Baixa' },
-  media: { dot: '#f59e0b', label: 'Média' },
-  alta:  { dot: '#ef4444', label: 'Alta', fg: '#B3402F', bg: '#FBEDEA', borda: '#F2D8D2' },
+  media: { dot: 'var(--app-status-ambar)', label: 'Média' },
+  alta:  { dot: 'var(--app-prioridade-alta)', label: 'Alta', fg: 'var(--app-prioridade-alta)', bg: '#FBEDEA', borda: '#F2D8D2' },
 }
 
 // Accent de navegação/filtro exclusivo da área de TI (azul = TI, verde =
@@ -40,6 +40,35 @@ export const CORES_TI = {
   accent: '#0049C0',
   accentBg: '#EEF3FC',
   accentBorda: '#CFDDF7',
+}
+
+// Paleta índigo "técnico/interno" de TicketPanel.jsx — consolidada aqui
+// depois do levantamento de cores soltas (antes eram os hex #6366f1/
+// #818cf8 escritos à mão em ~15 lugares diferentes do mesmo arquivo).
+// Batizada CORES_NIVEL porque o uso mais visível é o badge de nível do
+// chamado (N1/N2/N3), mas o mesmo tom é reaproveitado pra qualquer outro
+// sinal de "isso é informação/ação interna da Área Técnica" no painel de
+// atendimento: comentário interno, log de auditoria, aviso de "soluções
+// parecidas já resolvidas", avatar de observador. Os campos abaixo têm
+// nomes específicos (não um `bg` genérico) porque cada um preserva um
+// alpha ligeiramente diferente do original — consolidar todos num único
+// valor teria mudado a aparência, o que não era o objetivo desta
+// refatoração.
+export const CORES_NIVEL = {
+  fg: 'var(--app-nivel-fg)',
+  fgClaro: 'var(--app-nivel-fg-claro)',
+  bg: 'rgba(112,120,194,0.12)',
+  bgCc: 'rgba(112,120,194,0.15)',
+  bgLog: 'rgba(89,90,192,0.12)',
+  bgAviso: 'rgba(89,90,192,0.1)',
+  bordaAviso: 'rgba(89,90,192,0.25)',
+  // Caixa "Chamados parecidos já foram resolvidos" (sugestões de solução).
+  bgCaixaSugestao: 'rgba(112,120,194,0.06)',
+  bordaCaixaSugestao: 'rgba(112,120,194,0.2)',
+  bordaItemSugestao: 'rgba(112,120,194,0.14)',
+  // Card de comentário marcado como interno (só a Área Técnica vê).
+  bgComentarioInterno: 'rgba(89,90,192,0.08)',
+  bordaComentarioInterno: 'rgba(89,90,192,0.18)',
 }
 
 // Fonte ÚNICA da cor/rótulo de cada tipo de aviso do Mural — usada tanto
@@ -93,6 +122,17 @@ export const TEMA_CLARO = {
   'borda-suave': '#E3E8E6',
   overlay: 'rgba(16,35,31,0.45)',
   erro: '#C0392B',
+  // Cores semânticas de status/prioridade/nível (abaixo) — mesmo mecanismo
+  // de `erro` acima: cada uma vira `--app-<chave>` e é referenciada de
+  // CORES_APP/CORES_STATUS/CORES_PRIORIDADE/CORES_NIVEL via var(), nunca
+  // hex direto, pra responder ao toggle de tema sem duplicar token.
+  // Valores AINDA PROVISÓRIOS no TEMA_ESCURO (idênticos ao claro) até o
+  // comparativo de dessaturação específico pro fundo escuro ser aprovado.
+  verde: '#17824D',
+  'prioridade-alta': '#B3402F',
+  'status-ambar': '#A36E1F',
+  'nivel-fg': '#595AC0',
+  'nivel-fg-claro': '#7078C2',
 }
 
 export const TEMA_ESCURO = {
@@ -112,6 +152,18 @@ export const TEMA_ESCURO = {
   // modo, que agora é clara) em opacidade mais alta que no claro.
   overlay: 'rgba(4,10,8,0.6)',
   erro: '#E5584A',
+  // Mesmo matiz da versão do TEMA_CLARO, saturação mais baixa e
+  // luminosidade mais alta — sem esse ajuste, a versão clara "vibra"
+  // contra o fundo quase-preto (efeito de contraste simultâneo).
+  verde: '#3DAE75',
+  // Mais claro que os outros 3 (H8 S45 L60, não S48 L54): é o único desses
+  // tokens usado como cor de texto corrido pequeno em algum lugar (mensagem
+  // de erro do chamado, TicketPanel.jsx), não só em dot/badge — precisa de
+  // 4.5:1 de contraste, não só 3:1.
+  'prioridade-alta': '#C7776B',
+  'status-ambar': '#C29147',
+  'nivel-fg': '#7879BA',
+  'nivel-fg-claro': '#9095C1',
 }
 
 // CORES_APP nunca muda de valor em si — cada campo é uma referência a uma
@@ -140,6 +192,14 @@ export const CORES_APP = {
   bordaSuave: 'var(--app-borda-suave)',
   overlay: 'var(--app-overlay)',
   erro: 'var(--app-erro)',
+  // "Verde de ação" — migrado de `cores.verde` (authTheme.js) pra cá:
+  // authTheme.js é o tema fixo-claro das telas de auth (login), mas esse
+  // token acabou sendo consumido também fora delas (TicketPanel,
+  // CreateTicket, ResolutionModal etc.), telas que respondem ao toggle de
+  // tema — por isso precisa do mecanismo de variável CSS, que authTheme.js
+  // não tem. `cores.verde` continua existindo em authTheme.js só pras
+  // telas de auth de fato.
+  verde: 'var(--app-verde)',
 }
 
 // Objetos de estilo inline reutilizáveis (sem CSS-in-JS externo, só objetos JS

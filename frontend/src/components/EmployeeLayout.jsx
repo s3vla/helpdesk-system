@@ -3,7 +3,8 @@ import Logo from './Logo'
 import { useWindowWidth } from '../hooks/useWindowWidth'
 import { obterIniciais } from '../utils/formatters'
 import { IconEye, IconMenu, IconLock, IconLogOut, IconSun, IconMoon, IconMegaphone, IconListChecks, IconNote, IconLightbulb } from './icons'
-import { CORES_APP } from '../styles/theme'
+import { CORES_APP, CORES_PRIORIDADE } from '../styles/theme'
+import { cores } from '../styles/authTheme'
 import { useTheme } from '../hooks/useTheme'
 import ChatFlutuante from './ChatFlutuante'
 
@@ -78,7 +79,7 @@ function EmployeeLayout({ user, telaAtiva, onNav, onLogout, onTrocarSenha, largu
               style={{
                 position: 'relative',
                 background: telaAtiva === item.tela ? 'rgba(0,120,81,0.1)' : 'transparent',
-                color: telaAtiva === item.tela ? '#007851' : CORES_APP.textoFraco,
+                color: telaAtiva === item.tela ? cores.verdeEscuro : CORES_APP.textoFraco,
                 border: `1px solid ${telaAtiva === item.tela ? 'rgba(0,120,81,0.25)' : 'transparent'}`,
                 borderRadius: 8, padding: mobile ? '7px 14px' : compacto ? '7px 10px' : '7px 16px',
                 fontSize: mobile ? 16 : compacto ? 12 : 13,
@@ -90,7 +91,7 @@ function EmployeeLayout({ user, telaAtiva, onNav, onLogout, onTrocarSenha, largu
                 <span style={{
                   position: 'absolute', top: mobile ? 2 : -4, right: mobile ? 2 : -4,
                   minWidth: 16, height: 16, padding: '0 4px', borderRadius: 99,
-                  background: '#ef4444', color: '#fff', fontSize: 10, fontWeight: 700,
+                  background: CORES_PRIORIDADE.alta.dot, color: '#fff', fontSize: 10, fontWeight: 700,
                   fontFamily: 'Outfit, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center',
                   lineHeight: 1, boxShadow: `0 0 0 2px ${CORES_APP.card}`,
                 }}>
@@ -108,7 +109,7 @@ function EmployeeLayout({ user, telaAtiva, onNav, onLogout, onTrocarSenha, largu
             </div>
           )}
           <div onClick={() => setMenuAberto(v => !v)} title="Minha conta"
-            style={{ width: 34, height: 34, borderRadius: '50%', background: '#007851', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: 12, color: '#fff', cursor: 'pointer', flexShrink: 0 }}>
+            style={{ width: 34, height: 34, borderRadius: '50%', background: cores.verdeEscuro, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: 12, color: '#fff', cursor: 'pointer', flexShrink: 0 }}>
             {obterIniciais(user.name)}
           </div>
           {menuAberto && (

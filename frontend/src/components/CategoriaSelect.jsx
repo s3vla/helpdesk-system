@@ -22,7 +22,7 @@ function CategoriaSelect({ opcoes, valor, onChange, disabled }) {
       <button type="button" onClick={() => setAberto(v => !v)} disabled={disabled}
         style={{
           width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
-          background: CORES_APP.fundoCampo, color: '#00b351',
+          background: CORES_APP.fundoCampo, color: CORES_APP.verde,
           border: `1px solid ${aberto ? 'rgba(0,120,81,0.4)' : CORES_APP.borda}`,
           borderRadius: 8, padding: '12px 14px', fontSize: 15, fontFamily: 'Outfit, sans-serif', fontWeight: 600,
           cursor: disabled ? 'default' : 'pointer', transition: 'all 0.15s',
@@ -40,7 +40,7 @@ function CategoriaSelect({ opcoes, valor, onChange, disabled }) {
                 style={{
                   display: 'block', width: '100%', textAlign: 'left',
                   background: c === valor ? 'rgba(0,179,81,0.1)' : 'transparent',
-                  color: c === valor ? '#00b351' : CORES_APP.texto,
+                  color: c === valor ? CORES_APP.verde : CORES_APP.texto,
                   border: 'none', borderRadius: 6, padding: '9px 11px', fontSize: 13, fontFamily: 'Outfit, sans-serif',
                   fontWeight: c === valor ? 600 : 400, cursor: 'pointer',
                 }}>

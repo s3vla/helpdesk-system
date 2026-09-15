@@ -36,7 +36,7 @@ function SolicitanteSelect({ opcoes, valor, onChange, disabled }) {
           borderRadius: 10, padding: '13px 14px', fontSize: 15, fontFamily: 'Inter, sans-serif', textAlign: 'left',
           cursor: disabled ? 'default' : 'pointer', transition: 'all 0.15s',
         }}>
-        {selecionado ? `${selecionado.name ?? '— (aguardando cadastro)'} · ${selecionado.email}` : 'Selecione o colaborador...'}
+        {selecionado ? `${selecionado.name ?? '(aguardando cadastro)'} · ${selecionado.email}` : 'Selecione o colaborador...'}
         <IconChevronDown width={15} height={15} style={{ color: CORES_APP.textoFraco, transform: aberto ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s', flexShrink: 0 }} />
       </button>
 
@@ -59,7 +59,7 @@ function SolicitanteSelect({ opcoes, valor, onChange, disabled }) {
                   style={{ display: 'block', width: '100%', textAlign: 'left', background: u.id === valor ? 'rgba(0,179,81,0.1)' : 'transparent', border: 'none', borderRadius: 6, padding: '8px 9px', cursor: 'pointer' }}
                   onMouseEnter={e => { if (u.id !== valor) e.currentTarget.style.background = CORES_APP.fundoCampo }}
                   onMouseLeave={e => { if (u.id !== valor) e.currentTarget.style.background = 'transparent' }}>
-                  <div style={{ color: u.id === valor ? '#00b351' : CORES_APP.tinta, fontSize: 13, fontFamily: 'Outfit, sans-serif', fontWeight: 500 }}>{u.name ?? '— (aguardando cadastro)'}</div>
+                  <div style={{ color: u.id === valor ? CORES_APP.verde : CORES_APP.tinta, fontSize: 13, fontFamily: 'Outfit, sans-serif', fontWeight: 500 }}>{u.name ?? '(aguardando cadastro)'}</div>
                   <div style={{ color: CORES_APP.textoFraco, fontSize: 11 }}>{u.email}</div>
                 </button>
               ))}

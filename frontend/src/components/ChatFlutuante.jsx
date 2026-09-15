@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { CORES_APP } from '../styles/theme'
+import { cores } from '../styles/authTheme'
 import { IconMessageCircle, IconSend, IconX } from './icons'
 
 // Casca visual do futuro assistente virtual — SEM lógica nenhuma de
@@ -38,7 +39,7 @@ function ChatFlutuante() {
         }} className="animate-fade-up">
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', borderBottom: `1px solid ${CORES_APP.bordaSuave}`, flexShrink: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{ width: 30, height: 30, borderRadius: '50%', background: '#007851', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', flexShrink: 0 }}>
+              <div style={{ width: 30, height: 30, borderRadius: '50%', background: cores.verdeEscuro, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', flexShrink: 0 }}>
                 <IconMessageCircle width={15} height={15} />
               </div>
               <span style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: 14, color: CORES_APP.tinta }}>Assistente Novatech</span>
@@ -55,7 +56,7 @@ function ChatFlutuante() {
                 alignSelf: m.autor === 'usuario' ? 'flex-end' : 'flex-start',
                 maxWidth: '85%', padding: '9px 12px', borderRadius: 12,
                 fontSize: 13.5, lineHeight: 1.5,
-                background: m.autor === 'usuario' ? '#007851' : CORES_APP.fundoCampo,
+                background: m.autor === 'usuario' ? cores.verdeEscuro : CORES_APP.fundoCampo,
                 color: m.autor === 'usuario' ? '#fff' : CORES_APP.texto,
                 borderBottomRightRadius: m.autor === 'usuario' ? 3 : 12,
                 borderBottomLeftRadius: m.autor === 'usuario' ? 12 : 3,
@@ -76,7 +77,7 @@ function ChatFlutuante() {
             <button type="button" onClick={enviar} disabled={!texto.trim()} title="Enviar"
               style={{
                 width: 36, height: 36, borderRadius: 9, border: 'none', flexShrink: 0,
-                background: texto.trim() ? '#007851' : CORES_APP.fundoCampo,
+                background: texto.trim() ? cores.verdeEscuro : CORES_APP.fundoCampo,
                 color: texto.trim() ? '#fff' : CORES_APP.textoSuave,
                 cursor: texto.trim() ? 'pointer' : 'default',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s',
@@ -91,7 +92,7 @@ function ChatFlutuante() {
         style={{
           position: 'fixed', bottom: 24, right: 24, zIndex: 70,
           width: 56, height: 56, borderRadius: '50%', border: 'none',
-          background: '#007851', color: '#fff', cursor: 'pointer',
+          background: cores.verdeEscuro, color: '#fff', cursor: 'pointer',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           boxShadow: '0 6px 18px rgba(0,120,81,0.4)', transition: 'transform 0.15s',
         }}>

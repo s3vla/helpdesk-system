@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { estilos, CORES_APP } from '../styles/theme'
+import { estilos, CORES_APP, CORES_STATUS, CORES_PRIORIDADE } from '../styles/theme'
+import { cores } from '../styles/authTheme'
 import { obterIniciais } from '../utils/formatters'
 import { useAuth } from '../hooks/useAuth'
 import { buscarColaboradores } from '../services/ticketService'
@@ -126,7 +127,7 @@ function ITUsers({ onSelect }) {
               <div key={usuario.id} onClick={() => onSelect(usuario)}
                 style={{ ...estilos.card, padding: '20px', cursor: 'pointer', opacity: usuario.emAguardoDeCadastro ? 0.7 : 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
-                  <div style={{ width: 46, height: 46, borderRadius: '50%', background: usuario.emAguardoDeCadastro ? CORES_APP.fundoCampo : '#007851', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: 16, color: '#fff', flexShrink: 0 }}>
+                  <div style={{ width: 46, height: 46, borderRadius: '50%', background: usuario.emAguardoDeCadastro ? CORES_APP.fundoCampo : cores.verdeEscuro, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: 16, color: '#fff', flexShrink: 0 }}>
                     {usuario.emAguardoDeCadastro ? '?' : obterIniciais(usuario.name)}
                   </div>
                   <div>
@@ -134,7 +135,7 @@ function ITUsers({ onSelect }) {
                       {usuario.emAguardoDeCadastro ? usuario.email : usuario.name}
                     </div>
                     {usuario.emAguardoDeCadastro ? (
-                      <span style={{ background: 'rgba(245,158,11,0.12)', color: '#f59e0b', padding: '2px 8px', borderRadius: 99, fontSize: 11, fontFamily: 'Outfit, sans-serif', fontWeight: 600, display: 'inline-block', marginTop: 3 }}>
+                      <span style={{ background: CORES_STATUS.andamento.bg, color: CORES_STATUS.andamento.fg, padding: '2px 8px', borderRadius: 99, fontSize: 11, fontFamily: 'Outfit, sans-serif', fontWeight: 600, display: 'inline-block', marginTop: 3 }}>
                         Aguardando novo cadastro
                       </span>
                     ) : (
@@ -145,8 +146,8 @@ function ITUsers({ onSelect }) {
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: `1px solid ${CORES_APP.bordaSuave}`, paddingTop: 14, gap: 4 }}>
                   {[
                     ['Total', c.total, CORES_APP.tinta],
-                    ['Abertos', c.abertos, c.abertos > 0 ? '#f59e0b' : CORES_APP.textoSuave],
-                    ['Finalizados', c.finalizados, '#22c55e'],
+                    ['Abertos', c.abertos, c.abertos > 0 ? CORES_STATUS.andamento.fg : CORES_APP.textoSuave],
+                    ['Finalizados', c.finalizados, CORES_PRIORIDADE.baixa.dot],
                   ].map(([label, valor, cor]) => (
                     <div key={label} style={{ textAlign: 'center', flex: 1 }}>
                       <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: 22, color: cor, lineHeight: 1 }}>{valor}</div>

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { estilos, CORES_APP } from '../styles/theme'
+import { estilos, CORES_APP, CORES_STATUS, CORES_PRIORIDADE } from '../styles/theme'
+import { cores } from '../styles/authTheme'
 import { formatarData } from '../utils/formatters'
 import { useAuth } from '../hooks/useAuth'
 import { buscarSolucoesConhecidas } from '../services/ticketService'
@@ -121,9 +122,9 @@ function ITSolutions() {
           const ativo = filtroCategoria === c
           return (
             <button key={c} onClick={() => setFiltroCategoria(c)}
-              style={{ background: ativo ? 'rgba(34,197,94,0.12)' : CORES_APP.fundoCampo, color: ativo ? '#007851' : CORES_APP.textoFraco, border: `1px solid ${ativo ? 'rgba(34,197,94,0.3)' : CORES_APP.borda}`, borderRadius: 8, padding: '7px 14px', fontSize: 13, fontFamily: 'Outfit, sans-serif', fontWeight: ativo ? 600 : 400, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+              style={{ background: ativo ? 'rgba(34,197,94,0.12)' : CORES_APP.fundoCampo, color: ativo ? cores.verdeEscuro : CORES_APP.textoFraco, border: `1px solid ${ativo ? 'rgba(34,197,94,0.3)' : CORES_APP.borda}`, borderRadius: 8, padding: '7px 14px', fontSize: 13, fontFamily: 'Outfit, sans-serif', fontWeight: ativo ? 600 : 400, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
               {LABEL_CATEGORIA[c] ?? c}
-              <span style={{ background: ativo ? 'rgba(34,197,94,0.2)' : CORES_APP.fundoCampo, color: ativo ? '#007851' : CORES_APP.textoSuave, borderRadius: 99, padding: '1px 7px', fontSize: 11, fontFamily: 'Outfit, sans-serif', fontWeight: 700 }}>{contagem}</span>
+              <span style={{ background: ativo ? 'rgba(34,197,94,0.2)' : CORES_APP.fundoCampo, color: ativo ? cores.verdeEscuro : CORES_APP.textoSuave, borderRadius: 99, padding: '1px 7px', fontSize: 11, fontFamily: 'Outfit, sans-serif', fontWeight: 700 }}>{contagem}</span>
             </button>
           )
         })}
@@ -143,7 +144,7 @@ function ITSolutions() {
               const ocorrencias = chamado.ocorrenciasCategoria ?? 1
               const expandida = expandidaId === chamado.id
               return (
-                <div key={chamado.id} style={{ ...estilos.card, border: '1px solid rgba(34,197,94,0.14)', borderLeft: '3px solid #22c55e', overflow: 'hidden' }}>
+                <div key={chamado.id} style={{ ...estilos.card, border: '1px solid rgba(34,197,94,0.14)', borderLeft: `3px solid ${CORES_PRIORIDADE.baixa.dot}`, overflow: 'hidden' }}>
                   {/* Card compacto por padrão (título + resumo de 1 linha) —
                       clique em qualquer parte do cabeçalho expande/recolhe.
                       Accordion: abrir um fecha qualquer outro já aberto
@@ -153,7 +154,7 @@ function ITSolutions() {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', gap: 6, marginBottom: 4, flexWrap: 'wrap', alignItems: 'center' }}>
                         <span style={{ background: CORES_APP.fundoCampo, color: CORES_APP.textoFraco, padding: '2px 9px', borderRadius: 99, fontSize: 10.5, fontFamily: 'Outfit, sans-serif' }}>{LABEL_CATEGORIA[chamado.category] ?? chamado.category}</span>
-                        <span style={{ background: 'rgba(34,197,94,0.12)', color: '#007851', padding: '2px 9px', borderRadius: 99, fontSize: 10.5, fontFamily: 'Outfit, sans-serif', fontWeight: 600 }}>Solução conhecida</span>
+                        <span style={{ background: 'rgba(34,197,94,0.12)', color: CORES_STATUS.finalizado.fg, padding: '2px 9px', borderRadius: 99, fontSize: 10.5, fontFamily: 'Outfit, sans-serif', fontWeight: 600 }}>Solução conhecida</span>
                       </div>
                       <h3 style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: 15, color: CORES_APP.tinta, margin: 0, lineHeight: 1.4 }}>{chamado.summary}</h3>
                       {!expandida && (
@@ -168,7 +169,7 @@ function ITSolutions() {
                   {expandida && (
                     <div style={{ padding: '0 18px 18px', display: 'flex', flexDirection: 'column', gap: 14 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
-                        <span style={{ color: '#f59e0b', fontSize: 12, fontFamily: 'Outfit, sans-serif', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <span style={{ color: CORES_STATUS.andamento.fg, fontSize: 12, fontFamily: 'Outfit, sans-serif', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
                           <IconBarChart width={13} height={13} /> {ocorrencias} ocorrência{ocorrencias !== 1 ? 's' : ''} em {LABEL_CATEGORIA[chamado.category] ?? chamado.category}
                         </span>
                         <div style={{ textAlign: 'right', flexShrink: 0 }}>
@@ -185,7 +186,7 @@ function ITSolutions() {
                       <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
                           <span style={{ width: 20, height: 20, borderRadius: 6, background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, flexShrink: 0 }}>✓</span>
-                          <span style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 600, fontSize: 12, color: '#007851', letterSpacing: '0.07em', textTransform: 'uppercase' }}>Como foi resolvido</span>
+                          <span style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 600, fontSize: 12, color: CORES_STATUS.finalizado.fg, letterSpacing: '0.07em', textTransform: 'uppercase' }}>Como foi resolvido</span>
                         </div>
                         <p style={{ color: CORES_APP.texto, fontSize: 14, margin: 0, lineHeight: 1.75, background: 'rgba(34,197,94,0.04)', borderRadius: 8, padding: '12px 14px', border: '1px solid rgba(34,197,94,0.1)', whiteSpace: 'pre-wrap' }}>
                           {chamado.resolution.text}

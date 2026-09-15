@@ -1,10 +1,10 @@
-import { estilos, CORES_APP } from '../styles/theme'
+import { estilos, CORES_APP, CORES_PRIORIDADE } from '../styles/theme'
 
 // Tela de confirmação exibida logo após o envio de um chamado.
 function TicketSent({ onNew, onView }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '62vh', textAlign: 'center', padding: 20 }}>
-      <div className="animate-check-pop" style={{ width: 90, height: 90, borderRadius: '50%', background: 'rgba(34,197,94,0.12)', border: '2px solid rgba(34,197,94,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 28, fontSize: 40, color: '#22c55e' }}>
+      <div className="animate-check-pop" style={{ width: 90, height: 90, borderRadius: '50%', background: 'rgba(34,197,94,0.12)', border: '2px solid rgba(34,197,94,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 28, fontSize: 40, color: CORES_PRIORIDADE.baixa.dot }}>
         ✓
       </div>
       <h2 className="animate-fade-up" style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: 26, color: CORES_APP.tinta, margin: '0 0 10px' }}>Chamado enviado!</h2>

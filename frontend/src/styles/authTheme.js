@@ -11,9 +11,8 @@
 export const cores = {
   azul: '#0049C0',
   azulMedio: '#0082C0',
-  ciano: '#00CCC0',
   verdeLima: '#72C620',
-  verde: '#00B351',
+  verde: '#17824D',
   verdeEscuro: '#007851',
   azulProfundo: '#003B8F',
   tinta: '#10231F',
@@ -23,6 +22,13 @@ export const cores = {
   placeholder: '#9AA5A2',
   borda: '#D2DAD7',
   bordaSuave: '#E3E8E6',
+  // Banner "sua sessão expirou" (ver AuthContext.mensagemSessao) —
+  // consolidado aqui depois do levantamento de cores soltas: o mesmo trio
+  // estava copiado e colado, hex a hex, entre LoginScreen.jsx e
+  // ITLoginScreen.jsx.
+  avisoBg: '#FDF3E7',
+  avisoBorda: '#F0D9B5',
+  avisoTexto: '#8A5A1E',
   // Levemente puxado pro azul (não é mais um cinza neutro) — o lado claro
   // das 4 telas de auth estava "seco" demais com um cinza chapado; esse
   // tingimento é quase imperceptível sozinho, mas some a sensação de vazio

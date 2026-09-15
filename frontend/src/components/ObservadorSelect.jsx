@@ -27,7 +27,7 @@ function ObservadorSelect({ opcoes, onAdicionar, disabled }) {
   return (
     <div style={{ position: 'relative' }}>
       <button type="button" onClick={() => setAberto(v => !v)} disabled={disabled}
-        style={{ background: 'rgba(0,179,81,0.1)', color: '#00b351', border: '1px solid rgba(0,120,81,0.3)', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontFamily: 'Outfit, sans-serif', fontWeight: 600, cursor: disabled ? 'default' : 'pointer' }}>
+        style={{ background: 'rgba(0,179,81,0.1)', color: CORES_APP.verde, border: '1px solid rgba(0,120,81,0.3)', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontFamily: 'Outfit, sans-serif', fontWeight: 600, cursor: disabled ? 'default' : 'pointer' }}>
         + Adicionar
       </button>
 
@@ -58,7 +58,7 @@ function ObservadorSelect({ opcoes, onAdicionar, disabled }) {
                   style={{ display: 'block', width: '100%', textAlign: 'left', background: 'transparent', border: 'none', borderRadius: 6, padding: '8px 9px', cursor: 'pointer' }}
                   onMouseEnter={e => { e.currentTarget.style.background = CORES_APP.fundoCampo }}
                   onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}>
-                  <div style={{ color: CORES_APP.tinta, fontSize: 13, fontFamily: 'Outfit, sans-serif', fontWeight: 500 }}>{u.name ?? '— (aguardando cadastro)'}</div>
+                  <div style={{ color: CORES_APP.tinta, fontSize: 13, fontFamily: 'Outfit, sans-serif', fontWeight: 500 }}>{u.name ?? '(aguardando cadastro)'}</div>
                   <div style={{ color: CORES_APP.textoFraco, fontSize: 11 }}>{u.email}</div>
                 </button>
               ))}

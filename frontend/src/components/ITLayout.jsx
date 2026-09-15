@@ -3,6 +3,7 @@ import Logo from './Logo'
 import { useWindowWidth } from '../hooks/useWindowWidth'
 import { IconMenu, IconLock, IconLogOut, IconSun, IconMoon, IconBarChart, IconSettings, IconMegaphone, IconListChecks, IconLightbulb, IconShield } from './icons'
 import { CORES_TI, CORES_APP } from '../styles/theme'
+import { cores } from '../styles/authTheme'
 import { obterIniciais } from '../utils/formatters'
 import { useTheme } from '../hooks/useTheme'
 
@@ -116,7 +117,7 @@ function ITLayout({ tela, usuario, onNav, onLogout, onTrocarSenha, children }) {
             pessoa, não faz sentido rotular o técnico com um "Técnico N2". */}
         {usuario?.name && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '0 2px 2px' }}>
-            <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#007851', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: 11, color: '#fff', flexShrink: 0 }}>
+            <div style={{ width: 28, height: 28, borderRadius: '50%', background: cores.verdeEscuro, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: 11, color: '#fff', flexShrink: 0 }}>
               {obterIniciais(usuario.name)}
             </div>
             <span style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 600, fontSize: 13, color: CORES_APP.tinta, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{usuario.name}</span>

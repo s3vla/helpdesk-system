@@ -1,4 +1,5 @@
 import { CORES_APP } from '../styles/theme'
+import { cores } from '../styles/authTheme'
 import { IconChevronRight } from './icons'
 
 // Até quantos números de página mostrar de cada lado da página atual —
@@ -70,7 +71,7 @@ function Paginacao({ paginaAtual, totalPaginas, aoMudarPagina }) {
           style={{
             ...estiloBotaoBase,
             background: item.valor === paginaAtual ? 'rgba(0,120,81,0.1)' : 'transparent',
-            color: item.valor === paginaAtual ? '#007851' : CORES_APP.textoFraco,
+            color: item.valor === paginaAtual ? cores.verdeEscuro : CORES_APP.textoFraco,
             border: `1px solid ${item.valor === paginaAtual ? 'rgba(0,120,81,0.3)' : 'transparent'}`,
             fontWeight: item.valor === paginaAtual ? 700 : 400,
           }}>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { estilos, CORES_APP } from '../styles/theme'
+import { cores } from '../styles/authTheme'
 import { useAuth } from '../hooks/useAuth'
 import { useWindowWidth } from '../hooks/useWindowWidth'
 import { buscarWidgets, criarWidget, atualizarWidget, moverWidget, removerWidget } from '../services/dashboardService'
@@ -188,7 +189,7 @@ function CriarDashboard() {
                       style={{
                         padding: '6px 12px', borderRadius: 7, fontSize: 12, fontFamily: 'Outfit, sans-serif', fontWeight: 600, cursor: 'pointer',
                         background: widget.ativo ? 'rgba(0,120,81,0.1)' : CORES_APP.card,
-                        color: widget.ativo ? '#007851' : CORES_APP.textoSuave,
+                        color: widget.ativo ? cores.verdeEscuro : CORES_APP.textoSuave,
                         border: `1px solid ${widget.ativo ? 'rgba(0,120,81,0.3)' : CORES_APP.borda}`,
                       }}>
                       {widget.ativo ? 'Ativo' : 'Inativo'}
@@ -213,7 +214,7 @@ function CriarDashboard() {
                       title={widget.fixo ? 'Widget fixo — desative em vez de excluir' : (confirmandoRemoverId === widget.id ? 'Clique de novo para confirmar' : 'Excluir')}
                       style={widget.fixo ? estiloBotaoIconeDesabilitado : {
                         ...estiloBotaoIcone,
-                        ...(confirmandoRemoverId === widget.id ? { background: '#C0392B', borderColor: '#C0392B', color: '#fff' } : {}),
+                        ...(confirmandoRemoverId === widget.id ? { background: CORES_APP.erro, borderColor: CORES_APP.erro, color: '#fff' } : {}),
                       }}>
                       <IconTrash width={14} height={14} />
                     </button>

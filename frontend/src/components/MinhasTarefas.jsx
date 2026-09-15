@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { estilos, CORES_APP } from '../styles/theme'
+import { estilos, CORES_APP, CORES_STATUS } from '../styles/theme'
 import { useWindowWidth } from '../hooks/useWindowWidth'
 import { useAuth } from '../hooks/useAuth'
 import { useListaCarregarMais } from '../hooks/useListaCarregarMais'
@@ -11,8 +11,8 @@ import TarefaModal from './TarefaModal'
 
 const COLUNAS = [
   { status: 'A_FAZER', label: 'A fazer', cor: CORES_APP.textoSuave },
-  { status: 'FAZENDO', label: 'Fazendo', cor: '#f59e0b' },
-  { status: 'CONCLUIDO', label: 'Concluído', cor: '#00b351' },
+  { status: 'FAZENDO', label: 'Fazendo', cor: CORES_STATUS.andamento.fg },
+  { status: 'CONCLUIDO', label: 'Concluído', cor: CORES_APP.verde },
 ]
 
 const LIMIAR_ARRASTE_PX = 6
@@ -159,7 +159,7 @@ function MinhasTarefas() {
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', marginBottom: 24 }}>
         <div>
           <h1 style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: largura < 640 ? 24 : 28, color: CORES_APP.tinta, margin: '0 0 6px' }}>Minhas Tarefas</h1>
-          <p style={{ color: CORES_APP.textoFraco, fontSize: 14, margin: 0 }}>Sua lista pessoal — só você vê e edita. Arraste um card para mudar o status.</p>
+          <p style={{ color: CORES_APP.textoFraco, fontSize: 14, margin: 0 }}>Sua lista pessoal. Só você vê e edita. Arraste um card para mudar o status.</p>
         </div>
         <button onClick={() => { setEditando(null); setModalAberto(true) }}
           style={{ ...estilos.btnPrimary, width: 'auto', display: 'flex', alignItems: 'center', gap: 8, padding: '11px 20px' }}>

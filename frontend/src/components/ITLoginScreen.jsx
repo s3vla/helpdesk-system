@@ -72,7 +72,7 @@ function ITLoginScreen({ onLoginTecnico, onBack }) {
             </div>
 
             {mensagemSessao && (
-              <div style={{ background: '#FDF3E7', border: '1px solid #F0D9B5', borderRadius: 10, padding: '10px 14px', color: '#8A5A1E', fontSize: 13 }}>
+              <div style={{ background: cores.avisoBg, border: `1px solid ${cores.avisoBorda}`, borderRadius: 10, padding: '10px 14px', color: cores.avisoTexto, fontSize: 13 }}>
                 {mensagemSessao}
               </div>
             )}

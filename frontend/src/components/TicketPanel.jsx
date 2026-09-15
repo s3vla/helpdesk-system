@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { estilos, CORES_STATUS, CORES_APP } from '../styles/theme'
+import { estilos, CORES_STATUS, CORES_APP, CORES_NIVEL, CORES_PRIORIDADE } from '../styles/theme'
 import { useWindowWidth } from '../hooks/useWindowWidth'
 import { useAuth } from '../hooks/useAuth'
 import { useAvisoSairSemSalvar } from '../hooks/useAvisoSairSemSalvar'
@@ -34,7 +34,7 @@ function ObservadoresCabecalho({ observers, isIT, opcoesParaAdicionar, onAdicion
         <button type="button" onClick={() => setMostrarPopover(v => !v)} title={`${observers.length} em Cc`}
           style={{ display: 'flex', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
           {observers.slice(0, 3).map((o, i) => (
-            <div key={o.id} style={{ width: 24, height: 24, borderRadius: '50%', background: 'linear-gradient(135deg,#818cf8,#6366f1)', border: `2px solid ${CORES_APP.card}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, color: '#fff', fontFamily: 'Outfit, sans-serif', marginLeft: i === 0 ? 0 : -8 }}>
+            <div key={o.id} style={{ width: 24, height: 24, borderRadius: '50%', background: `linear-gradient(135deg,${CORES_NIVEL.fgClaro},${CORES_NIVEL.fg})`, border: `2px solid ${CORES_APP.card}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, color: '#fff', fontFamily: 'Outfit, sans-serif', marginLeft: i === 0 ? 0 : -8 }}>
               {obterIniciais(o.name ?? o.email)}
             </div>
           ))}
@@ -455,7 +455,7 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
                   <div style={{ position: 'relative' }}>
                     <button type="button" onClick={() => setMostrarMenuNivel(v => !v)} disabled={salvandoNivel}
                       title="Reclassificar nível"
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: 3, background: 'rgba(129,140,248,0.12)', color: '#818cf8', border: 'none', borderRadius: 99, padding: '3px 7px 3px 10px', fontSize: 12, fontWeight: 600, fontFamily: 'Outfit, sans-serif', cursor: salvandoNivel ? 'default' : 'pointer' }}>
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 3, background: CORES_NIVEL.bg, color: CORES_NIVEL.fgClaro, border: 'none', borderRadius: 99, padding: '3px 7px 3px 10px', fontSize: 12, fontWeight: 600, fontFamily: 'Outfit, sans-serif', cursor: salvandoNivel ? 'default' : 'pointer' }}>
                       {chamado.level}
                       <IconChevronDown width={11} height={11} style={{ transform: mostrarMenuNivel ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
                     </button>
@@ -465,7 +465,7 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
                         <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, zIndex: 7, background: CORES_APP.popover, border: `1px solid ${CORES_APP.borda}`, borderRadius: 8, padding: 4, boxShadow: '0 8px 24px rgba(16,35,31,0.18)', minWidth: 64 }}>
                           {['N1', 'N2', 'N3'].map(n => (
                             <button key={n} type="button" onClick={() => reclassificarNivel(n)}
-                              style={{ display: 'block', width: '100%', textAlign: 'left', background: n === chamado.level ? 'rgba(129,140,248,0.12)' : 'transparent', color: n === chamado.level ? '#818cf8' : CORES_APP.texto, border: 'none', borderRadius: 6, padding: '6px 9px', fontSize: 12, fontFamily: 'Outfit, sans-serif', fontWeight: n === chamado.level ? 600 : 400, cursor: 'pointer' }}>
+                              style={{ display: 'block', width: '100%', textAlign: 'left', background: n === chamado.level ? CORES_NIVEL.bg : 'transparent', color: n === chamado.level ? CORES_NIVEL.fgClaro : CORES_APP.texto, border: 'none', borderRadius: 6, padding: '6px 9px', fontSize: 12, fontFamily: 'Outfit, sans-serif', fontWeight: n === chamado.level ? 600 : 400, cursor: 'pointer' }}>
                               {n}
                             </button>
                           ))}
@@ -474,7 +474,7 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
                     )}
                   </div>
                 ) : (
-                  <span style={{ background: 'rgba(129,140,248,0.12)', color: '#818cf8', padding: '3px 10px', borderRadius: 99, fontSize: 12, fontWeight: 600, fontFamily: 'Outfit, sans-serif' }}>{chamado.level}</span>
+                  <span style={{ background: CORES_NIVEL.bg, color: CORES_NIVEL.fgClaro, padding: '3px 10px', borderRadius: 99, fontSize: 12, fontWeight: 600, fontFamily: 'Outfit, sans-serif' }}>{chamado.level}</span>
                 )}
                 <span style={{ background: CORES_APP.fundoCampo, color: CORES_APP.textoFraco, padding: '3px 10px', borderRadius: 99, fontSize: 12, fontFamily: 'Outfit, sans-serif' }}>{LABEL_CATEGORIA[chamado.category] ?? chamado.category}</span>
                 <ObservadoresCabecalho
@@ -509,7 +509,7 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
                   botão "de dentro" morar nos dois casos. */}
               <button type="button" onClick={alternarSidebar}
                 title={sidebarExpandida ? 'Recolher detalhes do chamado' : 'Expandir detalhes do chamado'}
-                style={{ background: sidebarExpandida ? 'rgba(0,179,81,0.12)' : CORES_APP.fundoCampo, border: 'none', cursor: 'pointer', color: sidebarExpandida ? '#00b351' : CORES_APP.textoFraco, width: 32, height: 32, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                style={{ background: sidebarExpandida ? 'rgba(0,179,81,0.12)' : CORES_APP.fundoCampo, border: 'none', cursor: 'pointer', color: sidebarExpandida ? CORES_APP.verde : CORES_APP.textoFraco, width: 32, height: 32, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <IconChevronDown width={15} height={15} style={{ transform: sidebarExpandida ? 'rotate(180deg)' : 'none', transition: 'transform 0.18s ease' }} />
               </button>
               <button onClick={onClose} style={{ background: CORES_APP.fundoCampo, border: 'none', cursor: 'pointer', color: CORES_APP.textoFraco, fontSize: 18, width: 32, height: 32, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>×</button>
@@ -558,24 +558,24 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
               } : {}),
             }}>
               {isIT && sugestoes.length > 0 && (
-                <div style={{ background: 'rgba(129,140,248,0.06)', border: '1px solid rgba(129,140,248,0.2)', borderRadius: 12, padding: '14px 15px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{ background: CORES_NIVEL.bgCaixaSugestao, border: `1px solid ${CORES_NIVEL.bordaCaixaSugestao}`, borderRadius: 12, padding: '14px 15px', display: 'flex', flexDirection: 'column', gap: 10 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ color: '#6366f1', display: 'flex' }}><IconLightbulb width={14} height={14} /></span>
-                    <span style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: 13, color: '#6366f1' }}>Chamados parecidos já foram resolvidos</span>
+                    <span style={{ color: CORES_NIVEL.fg, display: 'flex' }}><IconLightbulb width={14} height={14} /></span>
+                    <span style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: 13, color: CORES_NIVEL.fg }}>Chamados parecidos já foram resolvidos</span>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                     {sugestoes.map(s => {
                       const aberta = sugestaoExpandida === s.chamadoId
                       return (
-                        <div key={s.chamadoId} style={{ background: CORES_APP.fundoCampo, border: '1px solid rgba(129,140,248,0.14)', borderRadius: 8, overflow: 'hidden' }}>
+                        <div key={s.chamadoId} style={{ background: CORES_APP.fundoCampo, border: `1px solid ${CORES_NIVEL.bordaItemSugestao}`, borderRadius: 8, overflow: 'hidden' }}>
                           <button onClick={() => setSugestaoExpandida(aberta ? null : s.chamadoId)}
                             style={{ width: '100%', textAlign: 'left', background: 'transparent', border: 'none', cursor: 'pointer', padding: '9px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                             <span style={{ color: CORES_APP.texto, fontSize: 13 }}>{s.summary}</span>
-                            <span style={{ color: '#818cf8', fontSize: 12, fontFamily: 'Outfit, sans-serif', flexShrink: 0 }}>{aberta ? 'Ocultar ▲' : 'Como foi resolvido ▾'}</span>
+                            <span style={{ color: CORES_NIVEL.fgClaro, fontSize: 12, fontFamily: 'Outfit, sans-serif', flexShrink: 0 }}>{aberta ? 'Ocultar ▲' : 'Como foi resolvido ▾'}</span>
                           </button>
                           {aberta && (
                             <div style={{ padding: '0 12px 12px' }}>
-                              <p style={{ color: '#6366f1', fontSize: 13, margin: 0, lineHeight: 1.65, whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }}>{s.resolutionText}</p>
+                              <p style={{ color: CORES_NIVEL.fg, fontSize: 13, margin: 0, lineHeight: 1.65, whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }}>{s.resolutionText}</p>
                               <p style={{ color: CORES_APP.textoSuave, fontSize: 11, margin: '6px 0 0' }}>Categoria já apareceu {s.ocorrenciasCategoria}x</p>
                             </div>
                           )}
@@ -589,13 +589,13 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                 <div style={{ background: CORES_APP.fundoCampo, borderRadius: 10, padding: '11px 13px' }}>
                   <div style={estilos.label}>Solicitante</div>
-                  <div style={{ color: CORES_APP.tinta, fontWeight: 500, fontSize: 14 }}>{chamado.solicitanteNome ?? '— (conta resetada)'}</div>
+                  <div style={{ color: CORES_APP.tinta, fontWeight: 500, fontSize: 14 }}>{chamado.solicitanteNome ?? '(conta resetada)'}</div>
                   {chamado.solicitanteDept && <div style={{ color: CORES_APP.textoFraco, fontSize: 12, marginTop: 1 }}>{chamado.solicitanteDept}</div>}
                   {/* Auditoria de quem abriu em nome do solicitante — só
                       pro lado TI. O colaborador só precisa saber que o
                       chamado é dele; quem criou o registro não muda isso. */}
                   {isIT && chamado.abertoPorTecnicoNome && (
-                    <div style={{ color: '#6366f1', fontSize: 11, marginTop: 4 }}>Aberto por {chamado.abertoPorTecnicoNome} em nome do solicitante</div>
+                    <div style={{ color: CORES_NIVEL.fg, fontSize: 11, marginTop: 4 }}>Aberto por {chamado.abertoPorTecnicoNome} em nome do solicitante</div>
                   )}
                 </div>
                 <div style={{ background: CORES_APP.fundoCampo, borderRadius: 10, padding: '11px 13px' }}>
@@ -612,18 +612,18 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
                     <div style={estilos.label}>Atribuído a</div>
                     <select value={chamado.assignedToId ?? ''} disabled={salvandoAtribuicao || tecnicos.length === 0}
                       onChange={e => atribuirTecnicoAoChamado(e.target.value)}
-                      style={{ width: '100%', background: 'transparent', color: chamado.assignedTo ? '#00b351' : CORES_APP.textoFraco, fontWeight: 500, fontSize: 14, fontFamily: 'Inter, sans-serif', border: 'none', outline: 'none', padding: 0, cursor: salvandoAtribuicao ? 'default' : 'pointer' }}>
+                      style={{ width: '100%', background: 'transparent', color: chamado.assignedTo ? CORES_APP.verde : CORES_APP.textoFraco, fontWeight: 500, fontSize: 14, fontFamily: 'Inter, sans-serif', border: 'none', outline: 'none', padding: 0, cursor: salvandoAtribuicao ? 'default' : 'pointer' }}>
                       <option value="">Não atribuído</option>
                       {tecnicos.map(t => (
                         <option key={t.id} value={t.id}>{t.name}</option>
                       ))}
                     </select>
-                    {mensagemAtribuicao && <div style={{ color: '#00b351', fontSize: 11, marginTop: 4 }}>{mensagemAtribuicao}</div>}
+                    {mensagemAtribuicao && <div style={{ color: CORES_APP.verde, fontSize: 11, marginTop: 4 }}>{mensagemAtribuicao}</div>}
                   </div>
                 ) : chamado.assignedTo && (
                   <div style={{ background: CORES_APP.fundoCampo, borderRadius: 10, padding: '11px 13px' }}>
                     <div style={estilos.label}>Responsável TI</div>
-                    <div style={{ color: '#00b351', fontWeight: 500, fontSize: 14 }}>{chamado.assignedTo}</div>
+                    <div style={{ color: CORES_APP.verde, fontWeight: 500, fontSize: 14 }}>{chamado.assignedTo}</div>
                   </div>
                 )}
                 <div style={{ background: CORES_APP.fundoCampo, borderRadius: 10, padding: '11px 13px' }}>
@@ -649,7 +649,7 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
                   o que aparece escrito acima. */}
               {isIT && chamado.anydeskId && (
                 <a href={`anydesk:${chamado.anydeskId.replace(/\D/g, '')}`}
-                  style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: 'rgba(0,179,81,0.12)', color: '#00b351', border: '1px solid rgba(0,120,81,0.3)', borderRadius: 8, padding: '10px 16px', fontSize: 13, fontFamily: 'Outfit, sans-serif', fontWeight: 700, textDecoration: 'none', cursor: 'pointer' }}>
+                  style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: 'rgba(0,179,81,0.12)', color: CORES_APP.verde, border: '1px solid rgba(0,120,81,0.3)', borderRadius: 8, padding: '10px 16px', fontSize: 13, fontFamily: 'Outfit, sans-serif', fontWeight: 700, textDecoration: 'none', cursor: 'pointer' }}>
                   <IconMonitor width={15} height={15} /> Conectar via AnyDesk
                 </a>
               )}
@@ -670,7 +670,7 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
               {chamado.errorMsg && (
                 <div style={{ background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.18)', borderRadius: 10, padding: '12px 14px' }}>
                   <div style={{ ...estilos.label, color: CORES_APP.erro, marginBottom: 6 }}>Mensagem de erro</div>
-                  <code style={{ color: '#B3402F', fontFamily: 'monospace', fontSize: 13, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', wordBreak: 'break-word', display: 'block', maxHeight: 160, overflowY: 'auto', paddingRight: 4 }}>{chamado.errorMsg}</code>
+                  <code style={{ color: CORES_PRIORIDADE.alta.fg, fontFamily: 'monospace', fontSize: 13, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', wordBreak: 'break-word', display: 'block', maxHeight: 160, overflowY: 'auto', paddingRight: 4 }}>{chamado.errorMsg}</code>
                 </div>
               )}
 
@@ -699,11 +699,11 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'space-between', flexWrap: 'wrap' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <div style={{ width: 26, height: 26, borderRadius: 7, background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, flexShrink: 0 }}>✓</div>
-                      <span style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: 14, color: '#007851' }}>Como foi resolvido</span>
+                      <span style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: 14, color: CORES_STATUS.finalizado.fg }}>Como foi resolvido</span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       {chamado.resolution.isKnownSolution && (
-                        <span style={{ background: 'rgba(0,179,81,0.12)', color: '#00b351', padding: '2px 9px', borderRadius: 99, fontSize: 11, fontFamily: 'Outfit, sans-serif', fontWeight: 600 }}>Solução conhecida</span>
+                        <span style={{ background: 'rgba(0,179,81,0.12)', color: CORES_APP.verde, padding: '2px 9px', borderRadius: 99, fontSize: 11, fontFamily: 'Outfit, sans-serif', fontWeight: 600 }}>Solução conhecida</span>
                       )}
                       <span style={{ color: CORES_APP.textoSuave, fontSize: 11 }}>por {chamado.resolution.resolvedBy}</span>
                     </div>
@@ -717,7 +717,7 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
                       quando o técnico usar de novo. */}
                   {isIT && chamado.status !== 'finalizado' && (
                     <p style={{ color: CORES_APP.textoSuave, fontSize: 12, margin: 0 }}>
-                      Chamado reaberto — esta solução já registrada fica mantida. Finalizar de novo não vai pedir uma nova.
+                      Chamado reaberto. Esta solução já registrada fica mantida. Finalizar de novo não vai pedir uma nova.
                     </p>
                   )}
                 </div>
@@ -735,7 +735,7 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
                     {historicoNivel.map(h => (
                       <div key={h.id} style={{ fontSize: 12, lineHeight: 1.5 }}>
-                        <span style={{ color: '#6366f1' }}>{h.text}</span>
+                        <span style={{ color: CORES_NIVEL.fg }}>{h.text}</span>
                         <span style={{ color: CORES_APP.textoSuave }}> · {h.author} · {formatarData(h.date)} {formatarHora(h.date)}</span>
                       </div>
                     ))}
@@ -751,14 +751,14 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     {chamado.status === 'parado' && (
                       <button onClick={() => mudarStatus('andamento')} disabled={carregandoAcao}
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: '#007851', color: '#fff', border: 'none', borderRadius: 8, padding: '9px 18px', fontSize: 13, fontFamily: 'Outfit, sans-serif', fontWeight: 700, cursor: carregandoAcao ? 'default' : 'pointer', letterSpacing: '0.04em', opacity: carregandoAcao ? 0.6 : 1 }}>
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: CORES_STATUS.finalizado.fg, color: '#fff', border: 'none', borderRadius: 8, padding: '9px 18px', fontSize: 13, fontFamily: 'Outfit, sans-serif', fontWeight: 700, cursor: carregandoAcao ? 'default' : 'pointer', letterSpacing: '0.04em', opacity: carregandoAcao ? 0.6 : 1 }}>
                         <IconPlay width={13} height={13} /> Iniciar Atendimento
                       </button>
                     )}
                     {chamado.status === 'andamento' && (
                       <>
                         <button onClick={() => chamado.resolution ? mudarStatus('finalizado') : setMostrarModalResolucao(true)} disabled={carregandoAcao}
-                          title={chamado.resolution ? 'Chamado já tem uma solução registrada — finaliza sem pedir uma nova' : undefined}
+                          title={chamado.resolution ? 'Chamado já tem uma solução registrada, finaliza sem pedir uma nova' : undefined}
                           style={{ background: CORES_STATUS.finalizado.bg, color: CORES_STATUS.finalizado.fg, border: `1px solid rgba(0,120,81,0.28)`, borderRadius: 8, padding: '9px 18px', fontSize: 13, fontFamily: 'Outfit, sans-serif', fontWeight: 700, cursor: carregandoAcao ? 'default' : 'pointer', opacity: carregandoAcao ? 0.6 : 1 }}>
                           ✓ Finalizar
                         </button>
@@ -866,9 +866,9 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
                         {logs.map(log => (
                           <div key={log.id} style={{ background: CORES_APP.fundoCampo, border: `1px solid ${CORES_APP.borda}`, borderRadius: 10, padding: '11px 13px' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, flexWrap: 'wrap', gap: 4 }}>
-                              <span style={{ color: '#6366f1', fontFamily: 'Outfit, sans-serif', fontWeight: 600, fontSize: 13 }}>
+                              <span style={{ color: CORES_NIVEL.fg, fontFamily: 'Outfit, sans-serif', fontWeight: 600, fontSize: 13 }}>
                                 {log.userName}
-                                <span style={{ marginLeft: 6, background: 'rgba(99,102,241,0.12)', color: '#6366f1', padding: '1px 8px', borderRadius: 99, fontSize: 10, fontWeight: 700, verticalAlign: 'middle' }}>{log.acaoLabel}</span>
+                                <span style={{ marginLeft: 6, background: CORES_NIVEL.bgLog, color: CORES_NIVEL.fg, padding: '1px 8px', borderRadius: 99, fontSize: 10, fontWeight: 700, verticalAlign: 'middle' }}>{log.acaoLabel}</span>
                               </span>
                               <span style={{ color: CORES_APP.textoSuave, fontSize: 12 }}>{formatarData(log.date)} {formatarHora(log.date)}</span>
                             </div>
@@ -890,15 +890,15 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                         {comentariosReais.map(c => (
-                          <div key={c.id} style={{ background: c.internal ? 'rgba(99,102,241,0.08)' : CORES_APP.fundoCampo, border: `1px solid ${c.internal ? 'rgba(99,102,241,0.18)' : CORES_APP.borda}`, borderRadius: 10, padding: '11px 13px' }}>
+                          <div key={c.id} style={{ background: c.internal ? CORES_NIVEL.bgComentarioInterno : CORES_APP.fundoCampo, border: `1px solid ${c.internal ? CORES_NIVEL.bordaComentarioInterno : CORES_APP.borda}`, borderRadius: 10, padding: '11px 13px' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, flexWrap: 'wrap', gap: 4 }}>
-                              <span style={{ color: c.internal ? '#818cf8' : '#00b351', fontFamily: 'Outfit, sans-serif', fontWeight: 600, fontSize: 13 }}>
+                              <span style={{ color: c.internal ? CORES_NIVEL.fgClaro : CORES_APP.verde, fontFamily: 'Outfit, sans-serif', fontWeight: 600, fontSize: 13 }}>
                                 {c.author}
                                 {/* "Cc" identifica quem comentou como observador,
                                     não o solicitante original — evita confusão
                                     sobre quem é o dono do chamado. */}
                                 {c.isObserver && (
-                                  <span style={{ marginLeft: 6, background: 'rgba(129,140,248,0.15)', color: '#6366f1', padding: '1px 6px', borderRadius: 99, fontSize: 10, fontWeight: 700, verticalAlign: 'middle' }}>Cc</span>
+                                  <span style={{ marginLeft: 6, background: CORES_NIVEL.bgCc, color: CORES_NIVEL.fg, padding: '1px 6px', borderRadius: 99, fontSize: 10, fontWeight: 700, verticalAlign: 'middle' }}>Cc</span>
                                 )}
                                 {c.internal && <span style={{ fontSize: 10, opacity: 0.75, marginLeft: 6 }}>(interno)</span>}
                               </span>
@@ -927,7 +927,7 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
               <div style={{ flexShrink: 0 }}>
               {chamadoFinalizado ? (
                 <div style={{ background: CORES_APP.fundoCampo, border: `1px dashed ${CORES_APP.borda}`, borderRadius: 10, padding: '14px 16px', textAlign: 'center' }}>
-                  <p style={{ color: CORES_APP.textoFraco, fontSize: 13, margin: 0 }}>Chamado finalizado — reabra para comentar</p>
+                  <p style={{ color: CORES_APP.textoFraco, fontSize: 13, margin: 0 }}>Chamado finalizado, reabra para comentar</p>
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -942,7 +942,7 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
                     style={{ ...estilos.input, minHeight: 88, resize: 'vertical', lineHeight: 1.65 }} />
                   <div>
                     <button type="button" onClick={() => !enviandoComentario && fileRefComentario.current?.click()} disabled={enviandoComentario}
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: arquivoComentario ? 'rgba(0,179,81,0.1)' : CORES_APP.fundoCampo, color: arquivoComentario ? '#00b351' : CORES_APP.textoFraco, border: `1px solid ${arquivoComentario ? 'rgba(0,120,81,0.3)' : CORES_APP.borda}`, borderRadius: 8, padding: '6px 12px', fontSize: 12, fontFamily: 'Outfit, sans-serif', cursor: enviandoComentario ? 'default' : 'pointer' }}>
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: arquivoComentario ? 'rgba(0,179,81,0.1)' : CORES_APP.fundoCampo, color: arquivoComentario ? CORES_APP.verde : CORES_APP.textoFraco, border: `1px solid ${arquivoComentario ? 'rgba(0,120,81,0.3)' : CORES_APP.borda}`, borderRadius: 8, padding: '6px 12px', fontSize: 12, fontFamily: 'Outfit, sans-serif', cursor: enviandoComentario ? 'default' : 'pointer' }}>
                       <IconPaperclip width={13} height={13} />
                       {arquivoComentario ? arquivoComentario.name : 'Anexar imagem'}
                     </button>
@@ -956,14 +956,14 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
                       onChange={e => setArquivoComentario(e.target.files?.[0] ?? null)} disabled={enviandoComentario} />
                   </div>
                   {isIT && comentarioInterno && (
-                    <p style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.25)', borderRadius: 8, padding: '8px 12px', color: '#6366f1', fontSize: 12, margin: 0, lineHeight: 1.5 }}>
-                      Este comentário será visível só para o time de TI — o colaborador não vai vê-lo.
+                    <p style={{ background: CORES_NIVEL.bgAviso, border: `1px solid ${CORES_NIVEL.bordaAviso}`, borderRadius: 8, padding: '8px 12px', color: CORES_NIVEL.fg, fontSize: 12, margin: 0, lineHeight: 1.5 }}>
+                      Este comentário será visível só para o time de TI. O colaborador não vai vê-lo.
                     </p>
                   )}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
                     {isIT ? (
-                      <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', color: comentarioInterno ? '#6366f1' : CORES_APP.textoFraco, fontSize: 13, fontWeight: comentarioInterno ? 600 : 400 }}>
-                        <input type="checkbox" checked={comentarioInterno} onChange={e => setComentarioInterno(e.target.checked)} style={{ accentColor: '#818cf8' }} />
+                      <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', color: comentarioInterno ? CORES_NIVEL.fg : CORES_APP.textoFraco, fontSize: 13, fontWeight: comentarioInterno ? 600 : 400 }}>
+                        <input type="checkbox" checked={comentarioInterno} onChange={e => setComentarioInterno(e.target.checked)} style={{ accentColor: CORES_NIVEL.fgClaro }} />
                         Comentário interno
                       </label>
                     ) : <span />}

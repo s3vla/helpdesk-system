@@ -1,4 +1,5 @@
 import { IconClock } from './icons'
+import { CORES_PRIORIDADE } from '../styles/theme'
 
 // Indicador de SLA de resposta — some sozinho quando `situacao === 'ok'`
 // (ver calcularSituacaoSla em utils/slaConfig.js). Mesmo padrão visual de
@@ -9,9 +10,9 @@ function SlaBadge({ situacao }) {
   if (situacao === 'ok') return null
 
   const estourado = situacao === 'estourado'
-  const cor = estourado ? '#B3402F' : '#B45309'
-  const bg = estourado ? '#FBEDEA' : 'rgba(245,158,11,0.12)'
-  const border = estourado ? '#F2D8D2' : 'rgba(245,158,11,0.3)'
+  const cor = estourado ? CORES_PRIORIDADE.alta.fg : '#B45309'
+  const bg = estourado ? CORES_PRIORIDADE.alta.bg : 'rgba(245,158,11,0.12)'
+  const border = estourado ? CORES_PRIORIDADE.alta.borda : 'rgba(245,158,11,0.3)'
   const texto = estourado ? 'Prazo estourado' : 'Prazo em risco'
 
   return (
