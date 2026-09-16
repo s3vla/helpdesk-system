@@ -8,7 +8,7 @@ import {
 import { TipoUsuario } from '../common/enums/tipo-usuario.enum';
 import { TipoComentario } from '../common/enums/tipo-comentario.enum';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Between, FindOptionsWhere, In, Like, Not, Repository } from 'typeorm';
+import { Between, FindOptionsWhere, ILike, In, Not, Repository } from 'typeorm';
 import { Chamado } from './entities/chamado.entity';
 import { Usuario } from '../usuarios/entities/usuario.entity';
 import { Comentario } from '../comentarios/entities/comentario.entity';
@@ -281,11 +281,14 @@ export class ChamadosService {
     // Array de `where` = OR entre os elementos (cada um já herda os
     // filtros de `base` via spread, então eles continuam valendo como AND
     // de cada ramo do OR) — é assim que o TypeORM expressa "(base) AND
-    // (titulo LIKE ... OR descricao LIKE ... OR id = ...)" sem precisar de
-    // QueryBuilder pra este caso simples.
+    // (titulo ILIKE ... OR descricao ILIKE ... OR id = ...)" sem precisar
+    // de QueryBuilder pra este caso simples. ILike (não Like) — Postgres
+    // resolve o "case-insensitive" nativamente, mesmo padrão já usado em
+    // UsuariosService.listarColaboradores; Like aqui fazia "testando" não
+    // encontrar nenhum chamado "Testando", só o "T" maiúsculo exato.
     const where: FindOptionsWhere<Chamado>[] = [
-      { ...base, titulo: Like(`%${termo}%`) },
-      { ...base, descricao: Like(`%${termo}%`) },
+      { ...base, titulo: ILike(`%${termo}%`) },
+      { ...base, descricao: ILike(`%${termo}%`) },
     ];
     const idDoNumero = extrairIdDoNumeroChamado(termo);
     if (idDoNumero !== null) where.push({ ...base, id: idDoNumero });
