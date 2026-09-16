@@ -10,6 +10,12 @@ import type { Request } from 'express';
 import { JwtPayload } from '../../common/interfaces/jwt-payload.interface';
 import { UsuariosService } from '../../usuarios/usuarios.service';
 
+// Throttle de escrita de `ultimaAtividade` — ver comentário no campo, em
+// Usuario. 1 minuto: frequente o bastante pra "online agora" (janela de 5
+// minutos, ver RelatoriosService) nunca ficar defasado por mais que isso,
+// sem gerar um UPDATE a cada requisição de um usuário navegando rápido.
+const THROTTLE_ATIVIDADE_MS = 60_000;
+
 // PassportStrategy(Strategy) conecta esta classe à biblioteca Passport (que
 // o NestJS usa por baixo dos panos para estratégias de autenticação). O
 // @Injectable() de sempre: permite o Nest instanciar e injetar esta classe
@@ -70,6 +76,17 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new ForbiddenException(
         'Troque sua senha antes de continuar usando o sistema',
       );
+    }
+
+    // Fire-and-forget: NUNCA aguardado, e o catch garante que uma falha
+    // aqui (ex: banco momentaneamente fora) não derruba a requisição real
+    // que o usuário está esperando — "online agora" é conveniência, não
+    // pode virar motivo de erro 500 em rota nenhuma.
+    const precisaAtualizarAtividade =
+      !usuario.ultimaAtividade ||
+      Date.now() - usuario.ultimaAtividade.getTime() > THROTTLE_ATIVIDADE_MS;
+    if (precisaAtualizarAtividade) {
+      this.usuariosService.registrarAtividade(usuario.id).catch(() => {});
     }
 
     return payload;

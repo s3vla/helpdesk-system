@@ -53,6 +53,16 @@ export class Usuario {
   @Column({ type: 'timestamp', nullable: true })
   resetadoEm: Date | null;
 
+  // Atualizada a cada requisição autenticada (ver JwtStrategy.validate),
+  // não só no login — diferente de LogAcesso, que só registra o momento do
+  // login em si. É o que permite calcular "online agora" (ver
+  // RelatoriosService.relatorioAcesso) sem depender de um mecanismo de
+  // sessão em tempo real (WebSocket, etc.). Throttled na escrita (só grava
+  // se já passou mais de 1 minuto desde o valor atual) pra não gerar um
+  // UPDATE a cada clique — só a "última" atividade importa, não cada uma.
+  @Column({ type: 'timestamp', nullable: true })
+  ultimaAtividade: Date | null;
+
   // true pros técnicos criados por seed (ver seed.service.ts) E pros
   // colaboradores cadastrados direto pelo técnico (ver
   // AuthService.cadastrarColaborador) — nos dois casos, a senha foi

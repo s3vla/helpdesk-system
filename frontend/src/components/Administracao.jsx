@@ -835,7 +835,12 @@ function RelatorioAcessoSecao() {
           ) : itensExibidos.map(item => (
             <div key={item.usuarioId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 22px', borderTop: `1px solid ${CORES_APP.bordaSuave}`, gap: 10, flexWrap: 'wrap' }}>
               <div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: CORES_APP.texto }}>{item.nome ?? '(aguardando cadastro)'}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  {item.onlineAgora && (
+                    <span title="Online agora" style={{ width: 7, height: 7, borderRadius: '50%', background: CORES_APP.verde, flexShrink: 0 }} />
+                  )}
+                  <span style={{ fontSize: 13, fontWeight: 600, color: CORES_APP.texto }}>{item.nome ?? '(aguardando cadastro)'}</span>
+                </div>
                 <div style={{ fontSize: 12, color: CORES_APP.textoFraco }}>{item.email}</div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>

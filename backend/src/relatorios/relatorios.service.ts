@@ -24,6 +24,11 @@ import { FiltroPeriodo, resolverPeriodo } from '../common/utils/periodo.util';
 
 const DIAS_INATIVIDADE_PADRAO = 30;
 const MILISSEGUNDOS_POR_DIA = 24 * 60 * 60 * 1000;
+// Janela de "online agora" — independente de `diasInatividade` (que mede
+// dias sem LOGIN); esta mede minutos desde a última requisição qualquer
+// (ver Usuario.ultimaAtividade / JwtStrategy.validate).
+const MINUTOS_ONLINE_AGORA = 5;
+const MILISSEGUNDOS_POR_MINUTO = 60 * 1000;
 const MAXIMO_MAIS_DEMORADOS = 5;
 const MINIMO_REABERTURAS_DESTAQUE = 2;
 
@@ -128,12 +133,17 @@ export class RelatoriosService {
       const inativo =
         ultimoAcesso === null ||
         agora - new Date(ultimoAcesso).getTime() > limiteMs;
+      const onlineAgora =
+        colaborador.ultimaAtividade !== null &&
+        agora - new Date(colaborador.ultimaAtividade).getTime() <
+          MINUTOS_ONLINE_AGORA * MILISSEGUNDOS_POR_MINUTO;
       return {
         usuarioId: colaborador.id,
         nome: colaborador.nome,
         email: colaborador.email,
         ultimoAcesso,
         inativo,
+        onlineAgora,
       };
     });
   }

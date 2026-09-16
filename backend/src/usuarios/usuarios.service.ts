@@ -178,4 +178,13 @@ export class UsuariosService {
     });
     return this.buscarPorId(id) as Promise<Usuario>;
   }
+
+  // Chamado fire-and-forget por JwtStrategy.validate a cada requisição
+  // autenticada (já com o throttle de 1 minuto decidido lá, antes de
+  // chamar). `.update()` puro (sem buscarPorId depois) de propósito — quem
+  // chama não espera nem usa o retorno, então não vale o round-trip extra
+  // só pra devolver um Usuario que ninguém lê.
+  async registrarAtividade(id: number): Promise<void> {
+    await this.usuarioRepository.update(id, { ultimaAtividade: new Date() });
+  }
 }
