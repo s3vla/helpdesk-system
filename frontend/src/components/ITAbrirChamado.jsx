@@ -7,6 +7,7 @@ import { useEnterParaEnviar } from '../hooks/useEnterParaEnviar'
 import { abrirChamadoComoTecnico, buscarColaboradores, enviarImagem } from '../services/ticketService'
 import { buscarCategoriasAtivas } from '../services/categoriasService'
 import { traduzirErroApi } from '../utils/traduzirErroApi'
+import { extrairImagemColada } from '../utils/colarImagem'
 import CategoriaSelect from './CategoriaSelect'
 import SolicitanteSelect from './SolicitanteSelect'
 import ResumoSolicitacao from './ResumoSolicitacao'
@@ -75,6 +76,13 @@ function ITAbrirChamado({ onSubmit }) {
     }).catch(() => {})
   }, [token])
 
+  // Mesmo raciocínio de CreateTicket.jsx — capturado no card inteiro, não
+  // só numa textarea específica.
+  function aoColar(e) {
+    const arquivo = extrairImagemColada(e)
+    if (arquivo) setArquivos(prev => [...prev, arquivo])
+  }
+
   async function enviar() {
     if (!solicitanteId || !desc.trim() || !cat) return
     setErro('')
@@ -121,7 +129,7 @@ function ITAbrirChamado({ onSubmit }) {
         <p style={{ color: CORES_APP.textoFraco, fontSize: 14, margin: 0, lineHeight: 1.5 }}>Abra um chamado em nome de um colaborador, para quando ele liga ou pede pessoalmente, sem passar pelo formulário.</p>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: duasColunas ? 'minmax(0, 2fr) minmax(280px, 1fr)' : '1fr', gap: 24, alignItems: 'start' }}>
-      <div style={{ ...estilos.card, border: '1px solid rgba(0,120,81,0.14)', padding: largura < 640 ? 16 : 22, display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div onPaste={aoColar} style={{ ...estilos.card, border: '1px solid rgba(0,120,81,0.14)', padding: largura < 640 ? 16 : 22, display: 'flex', flexDirection: 'column', gap: 10 }}>
         <div>
           <label style={rotuloCompacto}>Solicitante <span style={{ color: CORES_PRIORIDADE.alta.dot }}>*</span></label>
           <SolicitanteSelect

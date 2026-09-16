@@ -7,6 +7,7 @@ import { useEnterParaEnviar } from '../hooks/useEnterParaEnviar'
 import { criarChamado, enviarImagem, buscarChamadosSemelhantes, buscarChamado } from '../services/ticketService'
 import { buscarCategoriasAtivas } from '../services/categoriasService'
 import { traduzirErroApi } from '../utils/traduzirErroApi'
+import { extrairImagemColada } from '../utils/colarImagem'
 import CategoriaSelect from './CategoriaSelect'
 import ResumoSolicitacao from './ResumoSolicitacao'
 import { IconPaperclip, IconInfo } from './icons'
@@ -112,6 +113,16 @@ function CreateTicket({ onSubmit, onSelect }) {
     }
   }
 
+  // Ctrl+V em qualquer campo do card (descrição, mensagem de erro etc.) —
+  // capturado no container inteiro, não só na textarea, já que o evento
+  // de paste borbulha normalmente até aqui e cobre qualquer campo focado
+  // sem precisar duplicar o handler. Reaproveita o MESMO estado/fluxo de
+  // upload do clique em "Anexar imagem" (ver extrairImagemColada).
+  function aoColar(e) {
+    const arquivo = extrairImagemColada(e)
+    if (arquivo) setArquivos(prev => [...prev, arquivo])
+  }
+
   async function enviar() {
     if (!desc.trim() || !cat) return
     setErro('')
@@ -159,7 +170,7 @@ function CreateTicket({ onSubmit, onSelect }) {
         <p style={{ color: CORES_APP.textoFraco, fontSize: 14, margin: 0, lineHeight: 1.5 }}>Descreva o problema que você está enfrentando. O Time de TI entrará em contato.</p>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: duasColunas ? 'minmax(0, 2fr) minmax(280px, 1fr)' : '1fr', gap: 24, alignItems: 'start' }}>
-      <div style={{ ...estilos.card, border: '1px solid rgba(0,120,81,0.14)', padding: largura < 640 ? 16 : 22, display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div onPaste={aoColar} style={{ ...estilos.card, border: '1px solid rgba(0,120,81,0.14)', padding: largura < 640 ? 16 : 22, display: 'flex', flexDirection: 'column', gap: 10 }}>
         <div>
           <label style={rotuloCompacto}>O que você precisa? <span style={{ color: CORES_PRIORIDADE.alta.dot }}>*</span></label>
           <textarea value={desc} onChange={e => setDesc(e.target.value)} onKeyDown={aoTeclarEnter} placeholder="Ex: impressora do setor não imprime, aparece 'sem papel' mas tem papel na bandeja"

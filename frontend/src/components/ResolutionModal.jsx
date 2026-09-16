@@ -3,6 +3,7 @@ import { estilos, CORES_APP, CORES_PRIORIDADE } from '../styles/theme'
 import { useAuth } from '../hooks/useAuth'
 import { enviarImagem } from '../services/ticketService'
 import { traduzirErroApi } from '../utils/traduzirErroApi'
+import { extrairImagemColada } from '../utils/colarImagem'
 import { IconPaperclip } from './icons'
 import { useEnterParaEnviar } from '../hooks/useEnterParaEnviar'
 
@@ -27,6 +28,13 @@ function ResolutionModal({ carregando: carregandoExterno, onConfirm, onCancel })
   const pronto = texto.trim().length > 0
   const carregando = carregandoExterno || etapa !== null
   const aoTeclarEnter = useEnterParaEnviar(confirmar)
+
+  // Mesmo raciocínio de CreateTicket.jsx — capturado no card do modal
+  // inteiro, não só na textarea "Como foi resolvido?".
+  function aoColar(e) {
+    const arquivo = extrairImagemColada(e)
+    if (arquivo) setArquivos(prev => [...prev, arquivo])
+  }
 
   async function confirmar() {
     if (!pronto || carregando) return
@@ -58,7 +66,7 @@ function ResolutionModal({ carregando: carregandoExterno, onConfirm, onCancel })
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 55, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, background: CORES_APP.overlay, backdropFilter: 'blur(6px)' }} onClick={onCancel}>
-      <div style={{ background: CORES_APP.card, border: '1px solid rgba(34,197,94,0.25)', borderRadius: 16, padding: '28px 26px', width: '100%', maxWidth: 460, maxHeight: '90vh', overflowY: 'auto', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 18 }}
+      <div onPaste={aoColar} style={{ background: CORES_APP.card, border: '1px solid rgba(34,197,94,0.25)', borderRadius: 16, padding: '28px 26px', width: '100%', maxWidth: 460, maxHeight: '90vh', overflowY: 'auto', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 18 }}
         onClick={e => e.stopPropagation()} className="animate-fade-up">
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>✓</div>

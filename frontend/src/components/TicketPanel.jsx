@@ -6,6 +6,7 @@ import { useAvisoSairSemSalvar } from '../hooks/useAvisoSairSemSalvar'
 import { formatarData, formatarHora, obterIniciais, tempoDecorrido } from '../utils/formatters'
 import { adicionarObservador, atribuirChamado, atualizarNivelChamado, atualizarPrioridadeChamado, atualizarStatusChamado, buscarChamado, buscarColaboradores, buscarComentarios, buscarLogsAuditoria, buscarSolucoesSugeridas, buscarTecnicos, criarComentario, enviarImagem, removerObservador } from '../services/ticketService'
 import { traduzirErroApi } from '../utils/traduzirErroApi'
+import { extrairImagemColada } from '../utils/colarImagem'
 import { URL_BASE } from '../services/apiClient'
 import { LABEL_CATEGORIA } from '../utils/categorias'
 import { numeroChamado } from '../utils/numeroChamado'
@@ -408,6 +409,17 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
     } finally {
       setCarregandoAcao(false)
     }
+  }
+
+  // Ctrl+V na textarea do comentário — diferente dos formulários de abrir
+  // chamado/finalizar (onPaste no card inteiro), aqui é só a textarea
+  // mesmo: o resto do painel (tabs, seletor de nível etc.) não tem nenhum
+  // campo de texto que faça sentido interceptar paste. Substitui
+  // (não acumula) porque o anexo de comentário é um só, mesma regra do
+  // clique em "Anexar imagem".
+  function aoColarNoComentario(e) {
+    const arquivo = extrairImagemColada(e)
+    if (arquivo) setArquivoComentario(arquivo)
   }
 
   async function adicionarComentarioNoChamado() {
@@ -989,6 +1001,7 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
                         adicionarComentarioNoChamado()
                       }
                     }}
+                    onPaste={aoColarNoComentario}
                     placeholder="Escreva um comentário..." disabled={enviandoComentario}
                     style={{ ...estilos.input, minHeight: 88, resize: 'vertical', lineHeight: 1.65 }} />
                   <div>
