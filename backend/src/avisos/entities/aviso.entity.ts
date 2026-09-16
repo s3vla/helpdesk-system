@@ -7,7 +7,9 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { TipoAviso } from '../../common/enums/tipo-aviso.enum';
+import { DestinatarioAvisoTipo } from '../../common/enums/destinatario-aviso.enum';
 import { Usuario } from '../../usuarios/entities/usuario.entity';
+import { Grupo } from '../../grupos/entities/grupo.entity';
 
 // Comunicado do Mural de Avisos — só técnico publica (ver AvisosController),
 // mas qualquer usuário autenticado lê (GET /avisos). Sem inverse side em
@@ -49,4 +51,29 @@ export class Aviso {
   @ManyToOne(() => Usuario, { nullable: false })
   @JoinColumn({ name: 'autorId' })
   autor: Usuario;
+
+  // Escopo de visibilidade — TODOS (padrão, comportamento de sempre) vê
+  // qualquer colaborador; GRUPO/USUARIO restringem a quem pertence ao
+  // grupo ou é exatamente aquele usuário (ver AvisosService.listar,
+  // .contarNaoLidos e .marcarLido, os 3 lugares que aplicam esse filtro).
+  // Técnico nunca é filtrado por isso — sempre vê todo aviso, de qualquer
+  // escopo, pra poder gerenciar.
+  @Column({
+    type: 'enum',
+    enum: DestinatarioAvisoTipo,
+    default: DestinatarioAvisoTipo.TODOS,
+  })
+  destinatarioTipo: DestinatarioAvisoTipo;
+
+  // Só preenchido quando destinatarioTipo = GRUPO — validado em
+  // AvisosService.criar/atualizar, nunca só pela nulabilidade da coluna.
+  @ManyToOne(() => Grupo, { nullable: true })
+  @JoinColumn({ name: 'grupoId' })
+  grupo: Grupo | null;
+
+  // Só preenchido quando destinatarioTipo = USUARIO — mesmo raciocínio de
+  // `grupo` acima.
+  @ManyToOne(() => Usuario, { nullable: true })
+  @JoinColumn({ name: 'usuarioId' })
+  usuarioDestinatario: Usuario | null;
 }

@@ -43,7 +43,7 @@ export class AvisosController {
   // em ChamadosController pra /meus, /observando etc.).
   @Get('nao-lidos/contagem')
   async contarNaoLidos(@UsuarioAtual() usuarioAtual: JwtPayload) {
-    const total = await this.avisosService.contarNaoLidos(usuarioAtual.sub);
+    const total = await this.avisosService.contarNaoLidos(usuarioAtual);
     return { total };
   }
 
@@ -85,6 +85,6 @@ export class AvisosController {
     @Param('id', ParseIntPipe) id: number,
     @UsuarioAtual() usuarioAtual: JwtPayload,
   ) {
-    await this.avisosService.marcarLido(id, usuarioAtual.sub);
+    await this.avisosService.marcarLido(id, usuarioAtual);
   }
 }

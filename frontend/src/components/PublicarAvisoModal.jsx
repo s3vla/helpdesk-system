@@ -1,12 +1,28 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { estilos, CORES_APP, CORES_TIPO_AVISO } from '../styles/theme'
 import { useAuth } from '../hooks/useAuth'
 import { criarAviso, atualizarAviso } from '../services/avisosService'
+import { buscarGrupos } from '../services/gruposService'
+import { buscarColaboradores } from '../services/ticketService'
 import { traduzirErroApi } from '../utils/traduzirErroApi'
 import { paraDatetimeLocal } from '../utils/formatters'
 import { useEnterParaEnviar } from '../hooks/useEnterParaEnviar'
+import SolicitanteSelect from './SolicitanteSelect'
 
 const TIPOS = ['INFORMATIVO', 'ALERTA', 'MANUTENCAO']
+
+// Limite alto o bastante pra trazer "todos" os colaboradores numa página só
+// (o padrão da API é 10, ver LIMITE_PADRAO no backend) — mesmo raciocínio
+// de ITUsers.jsx mandar um valor próprio, mas aqui não tem UI de paginação
+// nenhuma: o SolicitanteSelect filtra por texto client-side, então precisa
+// já ter a lista inteira em mãos.
+const LIMITE_COLABORADORES = 1000
+
+const OPCOES_ENVIAR_PARA = [
+  { valor: 'TODOS', label: 'Todos' },
+  { valor: 'GRUPO', label: 'Grupo' },
+  { valor: 'USUARIO', label: 'Colaborador' },
+]
 
 // Modal de publicar/editar aviso — mesmo padrão visual de overlay de
 // TrocarSenhaModal.jsx (modo voluntário), com cabeçalho + "×" de fechar no
@@ -23,10 +39,32 @@ function PublicarAvisoModal({ avisoEmEdicao, onFechar, onSalvou }) {
   // com o horário de parede correto, sem o desvio de fuso que
   // toISOString().slice(...) causaria (ver comentário na própria função).
   const [expiraEm, setExpiraEm] = useState(avisoEmEdicao?.expiraEm ? paraDatetimeLocal(avisoEmEdicao.expiraEm) : '')
+  const [enviarPara, setEnviarPara] = useState(avisoEmEdicao?.destinatarioTipo ?? 'TODOS')
+  const [grupoId, setGrupoId] = useState(avisoEmEdicao?.grupoDestinatario?.id ?? null)
+  // String(...): SolicitanteSelect compara `valor` contra `opcoes[].id` com
+  // `===`, e essa lista sempre vem com id STRING (ver mapearUsuario em
+  // ticketService.js) — precisa nascer string aqui também, senão o
+  // colaborador pré-selecionado some ao abrir o modal em modo edição.
+  const [usuarioId, setUsuarioId] = useState(avisoEmEdicao?.usuarioDestinatario?.id != null ? String(avisoEmEdicao.usuarioDestinatario.id) : null)
+  const [grupos, setGrupos] = useState([])
+  const [colaboradores, setColaboradores] = useState([])
   const [erro, setErro] = useState('')
   const [salvando, setSalvando] = useState(false)
 
-  const podeSalvar = titulo.trim() && mensagem.trim()
+  // Carrega as duas listas de uma vez, sempre — o modal é pequeno e
+  // pouco usado (só técnico, só ao publicar/editar aviso), não compensa
+  // adiar pro momento em que a pessoa escolhe "Grupo"/"Colaborador" só
+  // pra evitar duas requisições que quase sempre vão acontecer de qualquer
+  // jeito.
+  useEffect(() => {
+    buscarGrupos(token).then(setGrupos).catch(() => setGrupos([]))
+    buscarColaboradores(token, { porPagina: LIMITE_COLABORADORES })
+      .then(resultado => setColaboradores(resultado.itens.filter(u => !u.emAguardoDeCadastro)))
+      .catch(() => setColaboradores([]))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const podeSalvar = titulo.trim() && mensagem.trim() && (enviarPara !== 'GRUPO' || grupoId) && (enviarPara !== 'USUARIO' || usuarioId)
   const aoTeclarEnter = useEnterParaEnviar(salvar)
 
   function fechar() {
@@ -38,7 +76,17 @@ function PublicarAvisoModal({ avisoEmEdicao, onFechar, onSalvou }) {
     setErro('')
     setSalvando(true)
     try {
-      const dados = { titulo: titulo.trim(), mensagem: mensagem.trim(), tipo, fixado, expiraEm: expiraEm || null }
+      const dados = {
+        titulo: titulo.trim(), mensagem: mensagem.trim(), tipo, fixado, expiraEm: expiraEm || null,
+        destinatarioTipo: enviarPara,
+        grupoId: enviarPara === 'GRUPO' ? grupoId : undefined,
+        // Number(...): SolicitanteSelect devolve `u.id` como STRING (mesmo
+        // formato de mapearUsuario em ticketService.js) — mesma conversão
+        // que abrirChamadoComoTecnico já faz em ticketService.js antes de
+        // mandar solicitanteId pro backend, já que @IsInt() não aceita
+        // string mesmo sendo puramente dígitos.
+        usuarioId: enviarPara === 'USUARIO' ? Number(usuarioId) : undefined,
+      }
       if (avisoEmEdicao) {
         await atualizarAviso(token, avisoEmEdicao.id, dados)
       } else {
@@ -98,6 +146,47 @@ function PublicarAvisoModal({ avisoEmEdicao, onFechar, onSalvou }) {
                 )
               })}
             </div>
+          </div>
+          <div>
+            <label style={estilos.label}>Enviar para</label>
+            <div style={{ display: 'flex', gap: 6 }}>
+              {OPCOES_ENVIAR_PARA.map(opcao => {
+                const selecionado = enviarPara === opcao.valor
+                return (
+                  <button key={opcao.valor} type="button" disabled={salvando}
+                    onClick={() => {
+                      setEnviarPara(opcao.valor)
+                      // Trocar de destino limpa a escolha anterior — evita
+                      // mandar um grupoId "fantasma" se a pessoa selecionou
+                      // Grupo, escolheu um grupo, depois mudou pra Todos e
+                      // voltou pra Grupo sem querer manter o mesmo.
+                      if (opcao.valor !== 'GRUPO') setGrupoId(null)
+                      if (opcao.valor !== 'USUARIO') setUsuarioId(null)
+                    }}
+                    style={{
+                      background: selecionado ? 'rgba(0,120,81,0.1)' : CORES_APP.fundoCampo,
+                      color: selecionado ? CORES_APP.verde : CORES_APP.textoFraco,
+                      border: `1px solid ${selecionado ? 'rgba(0,120,81,0.3)' : CORES_APP.borda}`,
+                      borderRadius: 7, padding: '9px 10px', fontSize: 13, fontFamily: 'Outfit, sans-serif',
+                      fontWeight: selecionado ? 700 : 400, cursor: 'pointer', flex: 1, transition: 'all 0.15s',
+                    }}>
+                    {opcao.label}
+                  </button>
+                )
+              })}
+            </div>
+            {enviarPara === 'GRUPO' && (
+              <select value={grupoId ?? ''} onChange={e => setGrupoId(e.target.value ? Number(e.target.value) : null)}
+                disabled={salvando} style={{ ...estilos.input, marginTop: 8 }}>
+                <option value="">Selecione o grupo...</option>
+                {grupos.map(g => <option key={g.id} value={g.id}>{g.nome}</option>)}
+              </select>
+            )}
+            {enviarPara === 'USUARIO' && (
+              <div style={{ marginTop: 8 }}>
+                <SolicitanteSelect opcoes={colaboradores} valor={usuarioId} onChange={setUsuarioId} disabled={salvando} />
+              </div>
+            )}
           </div>
           <div>
             <label style={estilos.label}>Expira em</label>

@@ -1,10 +1,24 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Not, IsNull, QueryFailedError, Repository } from 'typeorm';
+import {
+  Brackets,
+  Not,
+  IsNull,
+  QueryFailedError,
+  Repository,
+  SelectQueryBuilder,
+} from 'typeorm';
 import { Aviso } from './entities/aviso.entity';
 import { AvisoLeitura } from './entities/aviso-leitura.entity';
 import { Usuario } from '../usuarios/entities/usuario.entity';
+import { Grupo } from '../grupos/entities/grupo.entity';
 import { TipoUsuario } from '../common/enums/tipo-usuario.enum';
+import { DestinatarioAvisoTipo } from '../common/enums/destinatario-aviso.enum';
 import { EmailService } from '../email/email.service';
 import { CriarAvisoDto } from './dto/criar-aviso.dto';
 import { AtualizarAvisoDto } from './dto/atualizar-aviso.dto';
@@ -36,6 +50,13 @@ export class AvisosService {
     // save() (mesmo raciocínio de ObservadoresService injetar UsuarioRepository).
     @InjectRepository(Usuario)
     private readonly usuarioRepository: Repository<Usuario>,
+    // Só leitura, pra validar `grupoId` (existe? ver validarEscopo) e
+    // resolver os membros na hora de montar a lista de e-mail de um aviso
+    // GRUPO — injetado direto aqui em vez de importar GruposService, mesmo
+    // raciocínio de `usuarioRepository` acima (evita acoplar módulos só
+    // por uma consulta simples).
+    @InjectRepository(Grupo)
+    private readonly grupoRepository: Repository<Grupo>,
     // Notificação por e-mail ao publicar (ver `criar` abaixo) — o próprio
     // EmailService garante que uma falha de envio nunca propaga pra cá.
     private readonly emailService: EmailService,
@@ -69,6 +90,7 @@ export class AvisosService {
           agora: new Date(),
         });
       }
+      this.aplicarFiltroEscopo(query, usuarioAtual);
       return query;
     };
 
@@ -76,6 +98,8 @@ export class AvisosService {
 
     const query = construirBase()
       .leftJoinAndSelect('aviso.autor', 'autor')
+      .leftJoinAndSelect('aviso.grupo', 'grupo')
+      .leftJoinAndSelect('aviso.usuarioDestinatario', 'usuarioDestinatario')
       .leftJoin(
         AvisoLeitura,
         'leitura',
@@ -155,21 +179,25 @@ export class AvisosService {
 
   // GET /avisos/nao-lidos/contagem — mesmo filtro de "ativo" de listar(),
   // só que sem carregar `autor`/montar a resposta inteira, pro badge da
-  // sidebar poder ser leve.
-  async contarNaoLidos(usuarioId: number): Promise<number> {
-    return this.avisoRepository
+  // sidebar poder ser leve. Mesmo filtro de escopo de listar() também —
+  // sem ele, o badge contaria aviso que o colaborador nem consegue ver no
+  // Mural (número maior que a quantidade de itens realmente exibidos).
+  async contarNaoLidos(usuarioAtual: JwtPayload): Promise<number> {
+    const query = this.avisoRepository
       .createQueryBuilder('aviso')
       .leftJoin(
         AvisoLeitura,
         'leitura',
         'leitura.avisoId = aviso.id AND leitura.usuarioId = :usuarioId',
-        { usuarioId },
+        { usuarioId: usuarioAtual.sub },
       )
       .where('(aviso.expiraEm IS NULL OR aviso.expiraEm > :agora)', {
         agora: new Date(),
       })
-      .andWhere('leitura.id IS NULL')
-      .getCount();
+      .andWhere('leitura.id IS NULL');
+
+    this.aplicarFiltroEscopo(query, usuarioAtual);
+    return query.getCount();
   }
 
   async criar(dto: CriarAvisoDto, autorId: number): Promise<AvisoResponseDto> {
@@ -182,6 +210,12 @@ export class AvisosService {
     });
     if (!autor) throw new NotFoundException('Autor não encontrado');
 
+    const { grupo, usuarioDestinatario } = await this.validarEscopo(
+      dto.destinatarioTipo,
+      dto.grupoId,
+      dto.usuarioId,
+    );
+
     const aviso = this.avisoRepository.create({
       titulo: dto.titulo,
       mensagem: dto.mensagem,
@@ -192,26 +226,23 @@ export class AvisosService {
       // ChamadosService.resolverPeriodo (ver comentário em Aviso.expiraEm).
       expiraEm: dto.expiraEm ? new Date(dto.expiraEm) : null,
       autor,
+      destinatarioTipo: dto.destinatarioTipo,
+      grupo,
+      usuarioDestinatario,
     });
     const salvo = await this.avisoRepository.save(aviso);
 
-    // Fire-and-forget (o próprio EmailService nunca propaga falha) — TODOS
-    // os colaboradores ATIVOS, não só técnicos: tipo COLABORADOR e
-    // `senhaHash` preenchido (null = conta resetada, aguardando um novo
-    // Primeiro Acesso — mesmo critério de "ativo" usado em
-    // ChamadosService.criarComoTecnico). Consulta só os 2 campos que
-    // interessam (`select`), não a entidade inteira.
-    void this.usuarioRepository
-      .find({
-        where: { tipo: TipoUsuario.COLABORADOR, senhaHash: Not(IsNull()) },
-        select: { email: true },
-      })
-      .then((colaboradores) =>
-        this.emailService.enviarNotificacaoAvisoNovo(
-          salvo,
-          colaboradores.map((colaborador) => colaborador.email),
-        ),
-      );
+    // Fire-and-forget (o próprio EmailService nunca propaga falha) — lista
+    // de destinatários respeita o mesmo escopo do aviso, não mais sempre
+    // "todo colaborador": TODOS mantém o comportamento de sempre; GRUPO
+    // notifica só os membros do grupo que são COLABORADOR (mesmo que o
+    // grupo também tenha técnico — Grupo aceita os dois tipos, mas esta
+    // notificação sempre foi dirigida a colaborador); USUARIO notifica só
+    // aquele colaborador. Em todo caso, só quem está ATIVO (`senhaHash`
+    // preenchido — null é conta resetada, mesmo critério de sempre).
+    void this.resolverDestinatariosEmail(salvo).then((emails) =>
+      this.emailService.enviarNotificacaoAvisoNovo(salvo, emails),
+    );
 
     // Aviso recém-criado: impossível existir AvisoLeitura pra ele ainda —
     // 0 é sempre o valor correto aqui, não uma query desnecessária.
@@ -234,6 +265,20 @@ export class AvisosService {
     if (dto.expiraEm !== undefined) {
       aviso.expiraEm = dto.expiraEm ? new Date(dto.expiraEm) : null;
     }
+    // Escopo só muda se `destinatarioTipo` vier no corpo — mesmo raciocínio
+    // de `expiraEm` acima (undefined = não mexe). grupoId/usuarioId só
+    // fazem sentido JUNTO de um destinatarioTipo novo nesta requisição
+    // (não dá pra só trocar o grupo sem reafirmar o tipo).
+    if (dto.destinatarioTipo !== undefined) {
+      const { grupo, usuarioDestinatario } = await this.validarEscopo(
+        dto.destinatarioTipo,
+        dto.grupoId,
+        dto.usuarioId,
+      );
+      aviso.destinatarioTipo = dto.destinatarioTipo;
+      aviso.grupo = grupo;
+      aviso.usuarioDestinatario = usuarioDestinatario;
+    }
 
     const salvo = await this.avisoRepository.save(aviso);
     // `lido` não faz sentido nesta resposta (é por usuário, PATCH é sempre
@@ -254,11 +299,22 @@ export class AvisosService {
   // deve virar erro na segunda chamada (diferente de
   // ObservadoresService.adicionar, que lança ConflictException; aqui não há
   // "ação duplicada" pra recusar, só um estado que já é verdade).
-  async marcarLido(avisoId: number, usuarioId: number): Promise<void> {
+  async marcarLido(avisoId: number, usuarioAtual: JwtPayload): Promise<void> {
+    const usuarioId = usuarioAtual.sub;
     const aviso = await this.avisoRepository.findOne({
       where: { id: avisoId },
+      relations: { grupo: true, usuarioDestinatario: true },
     });
     if (!aviso) throw new NotFoundException('Aviso não encontrado');
+
+    // Mesma regra de escopo de listar()/contarNaoLidos() — um colaborador
+    // fora do público-alvo do aviso não pode marcá-lo como lido, mesmo
+    // sabendo o id (esse aviso nunca chega a aparecer pra ele no Mural).
+    if (!(await this.usuarioPodeVerAviso(aviso, usuarioAtual))) {
+      throw new ForbiddenException(
+        'Você não tem permissão para ver este aviso',
+      );
+    }
 
     const jaLido = await this.leituraRepository.findOne({
       where: { aviso: { id: avisoId }, usuario: { id: usuarioId } },
@@ -299,12 +355,153 @@ export class AvisosService {
     }
   }
 
+  // Só chamado por criar() (fire-and-forget) — resolve os e-mails de quem
+  // deve ser notificado, respeitando o escopo do aviso recém-publicado.
+  private async resolverDestinatariosEmail(aviso: Aviso): Promise<string[]> {
+    if (aviso.destinatarioTipo === DestinatarioAvisoTipo.USUARIO) {
+      const usuario = await this.usuarioRepository.findOne({
+        where: {
+          id: aviso.usuarioDestinatario!.id,
+          tipo: TipoUsuario.COLABORADOR,
+          senhaHash: Not(IsNull()),
+        },
+        select: { email: true },
+      });
+      return usuario ? [usuario.email] : [];
+    }
+
+    if (aviso.destinatarioTipo === DestinatarioAvisoTipo.GRUPO) {
+      const linhas: { email: string }[] = await this.avisoRepository.manager
+        .createQueryBuilder(Usuario, 'usuario')
+        .select('usuario.email', 'email')
+        .innerJoin('grupo_membros', 'membro', 'membro."usuarioId" = usuario.id')
+        .where('membro."grupoId" = :grupoId', { grupoId: aviso.grupo!.id })
+        .andWhere('usuario.tipo = :tipo', { tipo: TipoUsuario.COLABORADOR })
+        .andWhere('usuario.senhaHash IS NOT NULL')
+        .getRawMany();
+      return linhas.map((l) => l.email);
+    }
+
+    // TODOS — mesmo critério de sempre.
+    const colaboradores = await this.usuarioRepository.find({
+      where: { tipo: TipoUsuario.COLABORADOR, senhaHash: Not(IsNull()) },
+      select: { email: true },
+    });
+    return colaboradores.map((c) => c.email);
+  }
+
   private async buscarPorIdOuFalhar(id: number): Promise<Aviso> {
     const aviso = await this.avisoRepository.findOne({
       where: { id },
-      relations: { autor: true },
+      relations: { autor: true, grupo: true, usuarioDestinatario: true },
     });
     if (!aviso) throw new NotFoundException('Aviso não encontrado');
     return aviso;
+  }
+
+  // Compartilhado por listar() e contarNaoLidos() — as duas listagens que
+  // um COLABORADOR pode disparar precisam concordar sobre "quais avisos
+  // este usuário pode ver", senão o badge de não-lidos (contarNaoLidos) e
+  // a lista que ele abre ao clicar (listar) mostram números diferentes.
+  // TECNICO nunca é filtrado (ver comentário em Aviso.destinatarioTipo).
+  private aplicarFiltroEscopo(
+    query: SelectQueryBuilder<Aviso>,
+    usuarioAtual: JwtPayload,
+  ): void {
+    if (usuarioAtual.tipo !== TipoUsuario.COLABORADOR) return;
+    query.andWhere(
+      new Brackets((qb) => {
+        qb.where('aviso.destinatarioTipo = :todos', {
+          todos: DestinatarioAvisoTipo.TODOS,
+        })
+          .orWhere(
+            '(aviso.destinatarioTipo = :porUsuario AND aviso.usuarioId = :usuarioId)',
+            {
+              porUsuario: DestinatarioAvisoTipo.USUARIO,
+              usuarioId: usuarioAtual.sub,
+            },
+          )
+          .orWhere(
+            `(aviso.destinatarioTipo = :porGrupo AND aviso.grupoId IN (
+              SELECT "grupoId" FROM grupo_membros WHERE "usuarioId" = :usuarioIdGrupo
+            ))`,
+            {
+              porGrupo: DestinatarioAvisoTipo.GRUPO,
+              usuarioIdGrupo: usuarioAtual.sub,
+            },
+          );
+      }),
+    );
+  }
+
+  // Mesma regra de aplicarFiltroEscopo(), mas avaliada em memória contra UM
+  // aviso já carregado (marcarLido não passa por QueryBuilder) — os dois
+  // precisam concordar entre si pelo mesmo motivo do comentário acima.
+  // TECNICO sempre pode (não é filtrado em lugar nenhum deste feature).
+  private async usuarioPodeVerAviso(
+    aviso: Aviso,
+    usuarioAtual: JwtPayload,
+  ): Promise<boolean> {
+    if (usuarioAtual.tipo !== TipoUsuario.COLABORADOR) return true;
+    if (aviso.destinatarioTipo === DestinatarioAvisoTipo.TODOS) return true;
+    if (aviso.destinatarioTipo === DestinatarioAvisoTipo.USUARIO) {
+      return aviso.usuarioDestinatario?.id === usuarioAtual.sub;
+    }
+    // GRUPO
+    if (!aviso.grupo) return false;
+    const linhas: { existe: boolean }[] =
+      await this.avisoRepository.manager.query(
+        'SELECT EXISTS(SELECT 1 FROM grupo_membros WHERE "grupoId" = $1 AND "usuarioId" = $2) AS existe',
+        [aviso.grupo.id, usuarioAtual.sub],
+      );
+    return linhas[0]?.existe === true;
+  }
+
+  // Validação da exclusividade "só um de grupoId/usuarioId, dependendo de
+  // destinatarioTipo" — não dá pra expressar isso só com class-validator
+  // (depende de outro campo do mesmo DTO), então fica aqui, compartilhada
+  // por criar() e atualizar(). Também confirma que o grupo/usuário
+  // referenciado realmente existe, devolvendo a entity já carregada (evita
+  // uma segunda consulta separada só pra isso).
+  private async validarEscopo(
+    destinatarioTipo: DestinatarioAvisoTipo,
+    grupoId: number | undefined,
+    usuarioId: number | undefined,
+  ): Promise<{ grupo: Grupo | null; usuarioDestinatario: Usuario | null }> {
+    if (destinatarioTipo === DestinatarioAvisoTipo.TODOS) {
+      if (grupoId !== undefined || usuarioId !== undefined) {
+        throw new BadRequestException(
+          'destinatarioTipo TODOS não aceita grupoId nem usuarioId',
+        );
+      }
+      return { grupo: null, usuarioDestinatario: null };
+    }
+
+    if (destinatarioTipo === DestinatarioAvisoTipo.GRUPO) {
+      if (grupoId === undefined || usuarioId !== undefined) {
+        throw new BadRequestException(
+          'destinatarioTipo GRUPO exige grupoId e não aceita usuarioId',
+        );
+      }
+      const grupo = await this.grupoRepository.findOne({
+        where: { id: grupoId },
+      });
+      if (!grupo) throw new NotFoundException('Grupo não encontrado');
+      return { grupo, usuarioDestinatario: null };
+    }
+
+    // USUARIO
+    if (usuarioId === undefined || grupoId !== undefined) {
+      throw new BadRequestException(
+        'destinatarioTipo USUARIO exige usuarioId e não aceita grupoId',
+      );
+    }
+    const usuarioDestinatario = await this.usuarioRepository.findOne({
+      where: { id: usuarioId },
+    });
+    if (!usuarioDestinatario) {
+      throw new NotFoundException('Colaborador não encontrado');
+    }
+    return { grupo: null, usuarioDestinatario };
   }
 }

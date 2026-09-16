@@ -1,9 +1,19 @@
 import { TipoAviso } from '../../common/enums/tipo-aviso.enum';
+import { DestinatarioAvisoTipo } from '../../common/enums/destinatario-aviso.enum';
 import { Aviso } from '../entities/aviso.entity';
 import {
   mapUsuarioParaResposta,
   UsuarioResponseDto,
 } from '../../usuarios/dto/usuario-response.dto';
+
+// Resumo mínimo pro frontend rotular o escopo ("Enviado para: grupo
+// Faturamento") sem precisar buscar o grupo/usuário inteiro à parte — não
+// reaproveita nenhum outro DTO (GrupoResponseDto traria `membros`, que
+// ninguém precisa aqui).
+export class GrupoResumoDto {
+  id: number;
+  nome: string;
+}
 
 export class AvisoResponseDto {
   id: number;
@@ -25,6 +35,12 @@ export class AvisoResponseDto {
   // demanda, pra não pesar esta listagem com nomes que a maioria das vezes
   // ninguém vai abrir.
   totalLeitores: number;
+  destinatarioTipo: DestinatarioAvisoTipo;
+  // Só um dos dois vem preenchido (ou nenhum, se TODOS) — espelha
+  // Aviso.grupo/Aviso.usuarioDestinatario. Usado pelo PublicarAvisoModal
+  // pra pré-selecionar o escopo ao editar um aviso existente.
+  grupoDestinatario: GrupoResumoDto | null;
+  usuarioDestinatario: UsuarioResponseDto | null;
 }
 
 export function mapAvisoParaResposta(
@@ -43,5 +59,12 @@ export function mapAvisoParaResposta(
     autor: mapUsuarioParaResposta(aviso.autor),
     lido,
     totalLeitores,
+    destinatarioTipo: aviso.destinatarioTipo,
+    grupoDestinatario: aviso.grupo
+      ? { id: aviso.grupo.id, nome: aviso.grupo.nome }
+      : null,
+    usuarioDestinatario: aviso.usuarioDestinatario
+      ? mapUsuarioParaResposta(aviso.usuarioDestinatario)
+      : null,
   };
 }
