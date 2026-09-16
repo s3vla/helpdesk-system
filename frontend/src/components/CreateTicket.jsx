@@ -16,6 +16,11 @@ import { IconPaperclip, IconInfo } from './icons'
 // @MinLength(5) de VerificarSemelhantesDto no backend, sem sentido
 // disparar a chamada antes disso.
 const TAMANHO_MINIMO_BUSCA_SEMELHANTES = 5
+// Mesmo limite (e mesmo raciocínio) já aplicado em
+// CriarComentarioDto/TicketPanel.jsx — checado aqui também pra dar
+// feedback imediato em vez de só descobrir no 400 da API. Espelhado no
+// backend via @ArrayMaxSize em CriarChamadoDto.imagensUrls.
+const MAXIMO_IMAGENS = 5
 const PRIORIDADES = [
   { valor: 'baixa', label: 'Baixa', cor: CORES_PRIORIDADE.baixa.dot },
   { valor: 'media', label: 'Média', cor: CORES_PRIORIDADE.media.dot },
@@ -113,6 +118,25 @@ function CreateTicket({ onSubmit, onSelect }) {
     }
   }
 
+  // Compartilhado pelo <input type="file"> (clique) e pelo paste — mesmo
+  // padrão de TicketPanel.adicionarArquivosComentario. Corta no limite em
+  // vez de recusar tudo (ex: já tem 4, seleciona 3: entram só 1, com
+  // mensagem clara em vez de tudo-ou-nada).
+  function adicionarArquivos(novos) {
+    if (novos.length === 0) return
+    setArquivos(prev => {
+      const espacoDisponivel = MAXIMO_IMAGENS - prev.length
+      if (espacoDisponivel <= 0) {
+        setErro(`Máximo de ${MAXIMO_IMAGENS} imagens por chamado`)
+        return prev
+      }
+      if (novos.length > espacoDisponivel) {
+        setErro(`Máximo de ${MAXIMO_IMAGENS} imagens por chamado — só ${espacoDisponivel} foram adicionadas`)
+      }
+      return [...prev, ...novos.slice(0, espacoDisponivel)]
+    })
+  }
+
   // Ctrl+V em qualquer campo do card (descrição, mensagem de erro etc.) —
   // capturado no container inteiro, não só na textarea, já que o evento
   // de paste borbulha normalmente até aqui e cobre qualquer campo focado
@@ -120,7 +144,7 @@ function CreateTicket({ onSubmit, onSelect }) {
   // upload do clique em "Anexar imagem" (ver extrairImagemColada).
   function aoColar(e) {
     const arquivo = extrairImagemColada(e)
-    if (arquivo) setArquivos(prev => [...prev, arquivo])
+    if (arquivo) adicionarArquivos([arquivo])
   }
 
   async function enviar() {
@@ -238,8 +262,7 @@ function CreateTicket({ onSubmit, onSelect }) {
             </span>
             <input ref={fileRef} type="file" accept="image/png, image/jpeg, image/webp" multiple style={{ display: 'none' }}
               onChange={e => {
-                const novos = Array.from(e.target.files ?? [])
-                if (novos.length) setArquivos(prev => [...prev, ...novos])
+                adicionarArquivos(Array.from(e.target.files ?? []))
                 // Zera o input pra poder selecionar o MESMO arquivo de novo
                 // depois de removê-lo da lista (senão o navegador ignora,
                 // já que o valor "não mudou" do ponto de vista dele).

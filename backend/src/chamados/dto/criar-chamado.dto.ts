@@ -1,4 +1,5 @@
 import {
+  ArrayMaxSize,
   IsArray,
   IsEnum,
   IsNotEmpty,
@@ -6,6 +7,8 @@ import {
   IsString,
 } from 'class-validator';
 import { PrioridadeChamado } from '../../common/enums/prioridade-chamado.enum';
+
+const MAXIMO_IMAGENS_POR_CHAMADO = 5;
 
 // Repare no que NÃO está aqui: `nivel`, `status`, `solicitanteId`. Nível é
 // calculado pela regra de negócio (ChamadosService.criar), status sempre
@@ -41,9 +44,13 @@ export class CriarChamadoDto {
   // Preenchida só depois de um ou mais uploads bem-sucedidos em POST
   // /uploads — o front sobe cada arquivo primeiro (um POST por arquivo),
   // recebe a URL de volta, e só então manda a lista aqui. Esta rota nunca
-  // recebe o arquivo em si.
+  // recebe o arquivo em si. Limite de 5, mesmo raciocínio (e mesmo número)
+  // já aplicado em CriarComentarioDto.imagensUrls.
   @IsOptional()
   @IsArray()
+  @ArrayMaxSize(MAXIMO_IMAGENS_POR_CHAMADO, {
+    message: `Envie no máximo ${MAXIMO_IMAGENS_POR_CHAMADO} imagens por chamado`,
+  })
   @IsString({ each: true })
   imagensUrls?: string[];
 

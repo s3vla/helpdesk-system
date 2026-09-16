@@ -13,6 +13,11 @@ import SolicitanteSelect from './SolicitanteSelect'
 import ResumoSolicitacao from './ResumoSolicitacao'
 import { IconPaperclip } from './icons'
 
+// Mesmo limite (e mesmo raciocínio) já aplicado em
+// CriarComentarioDto/TicketPanel.jsx e em CreateTicket.jsx — espelhado no
+// backend via @ArrayMaxSize em CriarChamadoDto.imagensUrls.
+const MAXIMO_IMAGENS = 5
+
 const PRIORIDADES = [
   { valor: 'baixa', label: 'Baixa', cor: CORES_PRIORIDADE.baixa.dot },
   { valor: 'media', label: 'Média', cor: CORES_PRIORIDADE.media.dot },
@@ -76,11 +81,28 @@ function ITAbrirChamado({ onSubmit }) {
     }).catch(() => {})
   }, [token])
 
+  // Mesmo padrão de CreateTicket.jsx (limite compartilhado entre clique e
+  // paste, corta em vez de recusar tudo).
+  function adicionarArquivos(novos) {
+    if (novos.length === 0) return
+    setArquivos(prev => {
+      const espacoDisponivel = MAXIMO_IMAGENS - prev.length
+      if (espacoDisponivel <= 0) {
+        setErro(`Máximo de ${MAXIMO_IMAGENS} imagens por chamado`)
+        return prev
+      }
+      if (novos.length > espacoDisponivel) {
+        setErro(`Máximo de ${MAXIMO_IMAGENS} imagens por chamado — só ${espacoDisponivel} foram adicionadas`)
+      }
+      return [...prev, ...novos.slice(0, espacoDisponivel)]
+    })
+  }
+
   // Mesmo raciocínio de CreateTicket.jsx — capturado no card inteiro, não
   // só numa textarea específica.
   function aoColar(e) {
     const arquivo = extrairImagemColada(e)
-    if (arquivo) setArquivos(prev => [...prev, arquivo])
+    if (arquivo) adicionarArquivos([arquivo])
   }
 
   async function enviar() {
@@ -183,8 +205,7 @@ function ITAbrirChamado({ onSubmit }) {
             </span>
             <input ref={fileRef} type="file" accept="image/png, image/jpeg, image/webp" multiple style={{ display: 'none' }}
               onChange={e => {
-                const novos = Array.from(e.target.files ?? [])
-                if (novos.length) setArquivos(prev => [...prev, ...novos])
+                adicionarArquivos(Array.from(e.target.files ?? []))
                 // Zera o input pra poder selecionar o MESMO arquivo de novo
                 // depois de removê-lo da lista (senão o navegador ignora,
                 // já que o valor "não mudou" do ponto de vista dele).
