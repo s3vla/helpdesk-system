@@ -1,7 +1,5 @@
 // Camada de acesso a dados de Grupo — mesmo padrão de avisosService.js,
-// chamarApi() em vez de fetch direto. Grupo é só organizacional por ora
-// (ver comentário em Grupo entity no backend): listar, criar, adicionar e
-// remover membro — nada funcional em cima disso ainda.
+// chamarApi() em vez de fetch direto.
 import { chamarApi } from './apiClient'
 import { mapearUsuario } from './ticketService'
 
@@ -21,6 +19,16 @@ export async function buscarGrupos(token) {
 export async function criarGrupo(token, nome) {
   const grupo = await chamarApi('/grupos', { token, metodo: 'POST', corpo: { nome } })
   return mapearGrupo(grupo)
+}
+
+export async function atualizarGrupo(token, grupoId, nome) {
+  const grupo = await chamarApi(`/grupos/${grupoId}`, { token, metodo: 'PATCH', corpo: { nome } })
+  return mapearGrupo(grupo)
+}
+
+// 204 sem corpo — nada pra mapear/devolver, mesmo padrão de removerAviso.
+export async function removerGrupo(token, grupoId) {
+  await chamarApi(`/grupos/${grupoId}`, { token, metodo: 'DELETE' })
 }
 
 export async function adicionarMembro(token, grupoId, usuarioId) {

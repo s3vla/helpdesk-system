@@ -13,6 +13,8 @@ import {
 import {
   buscarGrupos,
   criarGrupo,
+  atualizarGrupo,
+  removerGrupo,
   adicionarMembro,
   removerMembro,
 } from '../services/gruposService'
@@ -36,7 +38,7 @@ import { dataInicioPadrao, dataFimPadrao } from '../utils/periodoPadrao'
 import EstadoRequisicao from './EstadoRequisicao'
 import SolicitanteSelect from './SolicitanteSelect'
 import PasswordInput from './PasswordInput'
-import { IconX, IconPlus, IconSearch } from './icons'
+import { IconX, IconPlus, IconSearch, IconEdit, IconTrash } from './icons'
 
 // Shell da nova seção "Administração" — abas internas por sub-recurso, as
 // 5 já com funcionalidade de verdade (último bloco: Atividade e
@@ -443,6 +445,20 @@ function GruposTab() {
   const [novoMembroId, setNovoMembroId] = useState(null)
   const [alterandoMembro, setAlterandoMembro] = useState(false)
 
+  // Edição de nome — input inline, um grupo por vez (mesmo raciocínio de
+  // grupoExpandidoId acima).
+  const [editandoId, setEditandoId] = useState(null)
+  const [nomeEditando, setNomeEditando] = useState('')
+  const [salvandoEdicao, setSalvandoEdicao] = useState(false)
+  const [erroEdicao, setErroEdicao] = useState('')
+
+  // Confirmação inline por linha, mesmo padrão de CategoriasTab acima —
+  // sem a alternativa "Desativar em vez disso" porque Grupo não tem campo
+  // ativo/inativo, só existe/não existe.
+  const [confirmandoExclusaoId, setConfirmandoExclusaoId] = useState(null)
+  const [excluindo, setExcluindo] = useState(false)
+  const [erroExcluir, setErroExcluir] = useState('')
+
   async function carregar() {
     setCarregando(true)
     setErro('')
@@ -481,6 +497,59 @@ function GruposTab() {
     }
   }
 
+  function aoIniciarEdicao(grupo) {
+    setEditandoId(grupo.id)
+    setNomeEditando(grupo.nome)
+    setErroEdicao('')
+  }
+
+  function aoCancelarEdicao() {
+    setEditandoId(null)
+    setErroEdicao('')
+  }
+
+  async function aoSalvarEdicao(grupo) {
+    if (!nomeEditando.trim()) return
+    setSalvandoEdicao(true)
+    setErroEdicao('')
+    try {
+      const atualizado = await atualizarGrupo(token, grupo.id, nomeEditando.trim())
+      setGrupos(atual => atual.map(g => (g.id === atualizado.id ? atualizado : g)).sort((a, b) => a.nome.localeCompare(b.nome)))
+      setEditandoId(null)
+    } catch (e) {
+      if (!tratarErroApi(e)) setErroEdicao(traduzirErroApi(e))
+    } finally {
+      setSalvandoEdicao(false)
+    }
+  }
+
+  function aoPedirExclusao(grupo) {
+    setConfirmandoExclusaoId(grupo.id)
+    setErroExcluir('')
+  }
+
+  function aoCancelarExclusao() {
+    setConfirmandoExclusaoId(null)
+    setErroExcluir('')
+  }
+
+  // 409 (grupo em uso por aviso) chega com a mensagem já pronta do backend
+  // — ver GruposService.remover — mostrada direto na linha, sem derrubar a
+  // tela (mesmo padrão de CategoriasTab.aoConfirmarExclusao).
+  async function aoConfirmarExclusao(grupo) {
+    setExcluindo(true)
+    setErroExcluir('')
+    try {
+      await removerGrupo(token, grupo.id)
+      setGrupos(atual => atual.filter(g => g.id !== grupo.id))
+      setConfirmandoExclusaoId(null)
+    } catch (e) {
+      if (!tratarErroApi(e)) setErroExcluir(traduzirErroApi(e))
+    } finally {
+      setExcluindo(false)
+    }
+  }
+
   async function aoAdicionarMembro(grupo) {
     if (!novoMembroId) return
     setAlterandoMembro(true)
@@ -511,7 +580,7 @@ function GruposTab() {
           <div style={{ padding: '18px 22px', borderBottom: `1px solid ${CORES_APP.bordaSuave}` }}>
             <h2 style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: 16, color: CORES_APP.texto, margin: '0 0 3px' }}>Grupos</h2>
             <p style={{ color: CORES_APP.textoFraco, fontSize: 13, margin: 0 }}>
-              {grupos.length} grupo{grupos.length !== 1 ? 's' : ''} cadastrado{grupos.length !== 1 ? 's' : ''}, só organizacional, sem efeito em roteamento de chamado ainda.
+              {grupos.length} grupo{grupos.length !== 1 ? 's' : ''} cadastrado{grupos.length !== 1 ? 's' : ''}. Grupo usado por algum aviso do Mural não pode ser excluído.
             </p>
           </div>
           <div style={{ padding: '16px 22px' }}>
@@ -540,16 +609,72 @@ function GruposTab() {
               const expandido = grupoExpandidoId === grupo.id
               const idsNoGrupo = new Set(grupo.membros.map(m => m.id))
               const opcoesDisponiveis = colaboradores.filter(c => !idsNoGrupo.has(c.id))
+              const editando = editandoId === grupo.id
+              const confirmandoExclusao = confirmandoExclusaoId === grupo.id
               return (
-                <div key={grupo.id} style={estilos.card}>
-                  <button type="button" onClick={() => { setGrupoExpandidoId(expandido ? null : grupo.id); setNovoMembroId(null) }}
-                    style={{
-                      width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                      background: 'transparent', border: 'none', cursor: 'pointer', padding: '16px 22px', textAlign: 'left',
-                    }}>
-                    <span style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: 15, color: CORES_APP.texto }}>{grupo.nome}</span>
-                    <span style={{ color: CORES_APP.textoFraco, fontSize: 13 }}>{grupo.membros.length} membro{grupo.membros.length !== 1 ? 's' : ''}</span>
-                  </button>
+                <div key={grupo.id} style={{ ...estilos.card, border: `1px solid ${confirmandoExclusao ? 'rgba(239,68,68,0.35)' : CORES_APP.borda}` }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 22px' }}>
+                    {editando ? (
+                      <div style={{ flex: 1, display: 'flex', gap: 8, alignItems: 'center' }}>
+                        <input value={nomeEditando} onChange={e => setNomeEditando(e.target.value)} disabled={salvandoEdicao} autoFocus
+                          style={{ ...estilos.input, flex: 1 }} />
+                        <button type="button" onClick={() => aoSalvarEdicao(grupo)} disabled={!nomeEditando.trim() || salvandoEdicao}
+                          style={{ ...estilos.btnPrimary, width: 'auto', padding: '9px 16px', fontSize: 13, opacity: !nomeEditando.trim() || salvandoEdicao ? 0.6 : 1 }}>
+                          {salvandoEdicao ? 'Salvando...' : 'Salvar'}
+                        </button>
+                        <button type="button" onClick={aoCancelarEdicao} disabled={salvandoEdicao}
+                          style={{ background: CORES_APP.fundoCampo, color: CORES_APP.textoFraco, border: `1px solid ${CORES_APP.borda}`, borderRadius: 8, padding: '9px 16px', fontSize: 13, fontFamily: 'Outfit, sans-serif', fontWeight: 500, cursor: 'pointer' }}>
+                          Cancelar
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <button type="button" onClick={() => { setGrupoExpandidoId(expandido ? null : grupo.id); setNovoMembroId(null) }}
+                          style={{
+                            flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                            background: 'transparent', border: 'none', cursor: 'pointer', padding: '4px 0', textAlign: 'left',
+                          }}>
+                          <span style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: 15, color: CORES_APP.texto }}>{grupo.nome}</span>
+                          <span style={{ color: CORES_APP.textoFraco, fontSize: 13 }}>{grupo.membros.length} membro{grupo.membros.length !== 1 ? 's' : ''}</span>
+                        </button>
+                        <button type="button" onClick={() => aoIniciarEdicao(grupo)} title="Editar nome"
+                          style={{ background: 'none', border: 'none', color: CORES_APP.textoSuave, cursor: 'pointer', display: 'flex', padding: 6, flexShrink: 0 }}>
+                          <IconEdit width={15} height={15} />
+                        </button>
+                        {!confirmandoExclusao && (
+                          <button type="button" onClick={() => aoPedirExclusao(grupo)} title="Excluir grupo"
+                            style={{ background: 'none', border: 'none', color: CORES_APP.textoSuave, cursor: 'pointer', display: 'flex', padding: 6, flexShrink: 0 }}>
+                            <IconTrash width={15} height={15} />
+                          </button>
+                        )}
+                      </>
+                    )}
+                  </div>
+                  {erroEdicao && editando && (
+                    <p style={{ color: CORES_APP.erro, fontSize: 13, margin: '0 22px 12px' }}>{erroEdicao}</p>
+                  )}
+                  {confirmandoExclusao && (
+                    <div style={{ padding: '0 22px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <div style={{ color: CORES_APP.tinta, fontSize: 13 }}>
+                        Tem certeza que quer excluir <strong>{grupo.nome}</strong>? Essa ação não pode ser desfeita.
+                      </div>
+                      {erroExcluir && <p style={{ color: CORES_APP.erro, fontSize: 13, margin: 0 }}>{erroExcluir}</p>}
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <button type="button" onClick={() => aoConfirmarExclusao(grupo)} disabled={excluindo}
+                          style={{
+                            background: 'rgba(239,68,68,0.15)', color: CORES_PRIORIDADE.alta.dot, border: '1px solid rgba(239,68,68,0.35)',
+                            borderRadius: 8, padding: '9px 16px', fontSize: 13, fontFamily: 'Outfit, sans-serif', fontWeight: 700,
+                            cursor: excluindo ? 'default' : 'pointer', opacity: excluindo ? 0.6 : 1,
+                          }}>
+                          {excluindo ? 'Excluindo...' : 'Sim, excluir'}
+                        </button>
+                        <button type="button" onClick={aoCancelarExclusao} disabled={excluindo}
+                          style={{ background: CORES_APP.fundoCampo, color: CORES_APP.textoFraco, border: `1px solid ${CORES_APP.borda}`, borderRadius: 8, padding: '9px 16px', fontSize: 13, fontFamily: 'Outfit, sans-serif', fontWeight: 500, cursor: 'pointer' }}>
+                          Cancelar
+                        </button>
+                      </div>
+                    </div>
+                  )}
                   {expandido && (
                     <div style={{ padding: '0 22px 20px', display: 'flex', flexDirection: 'column', gap: 12, borderTop: `1px solid ${CORES_APP.bordaSuave}` }}>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 14 }}>

@@ -3,8 +3,11 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   ParseIntPipe,
+  Patch,
   Post,
   UseGuards,
 } from '@nestjs/common';
@@ -14,6 +17,7 @@ import { Roles } from '../common/decorators/roles.decorator';
 import { TipoUsuario } from '../common/enums/tipo-usuario.enum';
 import { GruposService } from './grupos.service';
 import { CriarGrupoDto } from './dto/criar-grupo.dto';
+import { AtualizarGrupoDto } from './dto/atualizar-grupo.dto';
 import { AdicionarMembroDto } from './dto/adicionar-membro.dto';
 import { mapGrupoParaResposta } from './dto/grupo-response.dto';
 
@@ -42,6 +46,24 @@ export class GruposController {
   async criar(@Body() dto: CriarGrupoDto) {
     const grupo = await this.gruposService.criarGrupo(dto);
     return mapGrupoParaResposta(grupo);
+  }
+
+  @Patch(':id')
+  async atualizar(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: AtualizarGrupoDto,
+  ) {
+    const grupo = await this.gruposService.atualizarGrupo(id, dto);
+    return mapGrupoParaResposta(grupo);
+  }
+
+  // Exclusão física — bloqueada quando o grupo ainda está referenciado por
+  // algum Aviso (ver GruposService.remover, mesmo padrão de
+  // CategoriasController.remover).
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async remover(@Param('id', ParseIntPipe) id: number) {
+    await this.gruposService.remover(id);
   }
 
   @Post(':id/membros')

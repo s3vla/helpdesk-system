@@ -7,12 +7,12 @@ import {
 } from 'typeorm';
 import { Usuario } from '../../usuarios/entities/usuario.entity';
 
-// Grupo é PURAMENTE organizacional por enquanto — só agrupa usuários
+// Grupo começou puramente organizacional — só agrupa usuários
 // (colaboradores ou técnicos, sem restrição de tipo) pra facilitar
-// referência humana ("time de Faturamento", "N2 de Rede"). Decisão
-// explícita: nenhuma lógica funcional em cima disso ainda (não roteia
-// chamado, não define permissão, não filtra nada) — se um dia precisar,
-// isso é decisão separada, não implementada aqui.
+// referência humana ("time de Faturamento", "N2 de Rede"). Hoje já tem UM
+// uso funcional: Aviso.grupo, quando destinatarioTipo = GRUPO (ver
+// AvisosService) — é por isso que GruposService.remover bloqueia excluir
+// um grupo ainda referenciado por algum aviso, em vez de excluir livre.
 //
 // M2M dono deste lado (Grupo → Usuario via @JoinTable) de propósito: a
 // entity Usuario não precisa saber de Grupo pra nada hoje, então não
