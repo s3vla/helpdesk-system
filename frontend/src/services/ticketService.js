@@ -315,6 +315,19 @@ export async function atualizarNivelChamado(token, chamadoId, nivel) {
   return mapearChamado(chamado)
 }
 
+// PATCH /chamados/:id/prioridade — solicitante ou técnico (backend valida
+// os dois casos e recusa qualquer outro colaborador). `prioridade` chega
+// aqui como 'baixa'|'media'|'alta' (mesmo formato de `chamado.priority`),
+// PRIORIDADE_PARA_API traduz pro enum maiúsculo que a API espera.
+export async function atualizarPrioridadeChamado(token, chamadoId, prioridade) {
+  const chamado = await chamarApi(`/chamados/${chamadoId}/prioridade`, {
+    token,
+    metodo: 'PATCH',
+    corpo: { prioridade: PRIORIDADE_PARA_API[prioridade] },
+  })
+  return mapearChamado(chamado)
+}
+
 // Define/troca/remove (null) o técnico responsável — diferente de
 // atualizarStatusChamado(status: 'andamento'), que só auto-atribui o
 // próprio técnico logado, esta permite escolher QUALQUER técnico da lista

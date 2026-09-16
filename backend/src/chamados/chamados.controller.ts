@@ -24,6 +24,7 @@ import { CriarChamadoDto } from './dto/criar-chamado.dto';
 import { AbrirChamadoTecnicoDto } from './dto/abrir-chamado-tecnico.dto';
 import { AtualizarStatusChamadoDto } from './dto/atualizar-status-chamado.dto';
 import { AtualizarNivelChamadoDto } from './dto/atualizar-nivel-chamado.dto';
+import { AtualizarPrioridadeChamadoDto } from './dto/atualizar-prioridade-chamado.dto';
 import { AtribuirChamadoDto } from './dto/atribuir-chamado.dto';
 import { LogAuditoriaService } from '../log-auditoria/log-auditoria.service';
 import { mapLogAuditoriaParaResposta } from '../log-auditoria/dto/log-auditoria-response.dto';
@@ -222,6 +223,23 @@ export class ChamadosController {
     @UsuarioAtual() usuarioAtual: JwtPayload,
   ) {
     const chamado = await this.chamadosService.reclassificarNivel(
+      id,
+      dto,
+      usuarioAtual,
+    );
+    return mapChamadoParaResposta(chamado);
+  }
+
+  // Sem @Roles() de propósito — solicitante E técnico podem chamar, a
+  // checagem mista (dono OU técnico) fica dentro de
+  // ChamadosService.atualizarPrioridade, mesmo padrão de buscarDetalhado.
+  @Patch(':id/prioridade')
+  async atualizarPrioridade(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: AtualizarPrioridadeChamadoDto,
+    @UsuarioAtual() usuarioAtual: JwtPayload,
+  ) {
+    const chamado = await this.chamadosService.atualizarPrioridade(
       id,
       dto,
       usuarioAtual,

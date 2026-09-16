@@ -16,6 +16,7 @@ import { CriarChamadoDto } from './dto/criar-chamado.dto';
 import { AbrirChamadoTecnicoDto } from './dto/abrir-chamado-tecnico.dto';
 import { AtualizarStatusChamadoDto } from './dto/atualizar-status-chamado.dto';
 import { AtualizarNivelChamadoDto } from './dto/atualizar-nivel-chamado.dto';
+import { AtualizarPrioridadeChamadoDto } from './dto/atualizar-prioridade-chamado.dto';
 import { AtribuirChamadoDto } from './dto/atribuir-chamado.dto';
 import { LogAuditoriaService } from '../log-auditoria/log-auditoria.service';
 import { AcaoAuditoria } from '../common/enums/acao-auditoria.enum';
@@ -82,6 +83,14 @@ const LABEL_STATUS: Record<StatusChamado, string> = {
   [StatusChamado.PARADO]: 'Na fila',
   [StatusChamado.ANDAMENTO]: 'Em atendimento',
   [StatusChamado.FINALIZADO]: 'Finalizado',
+};
+
+// Mesmo raciocínio de LABEL_STATUS acima, pro texto do log de auditoria de
+// ChamadosService.atualizarPrioridade.
+const LABEL_PRIORIDADE: Record<PrioridadeChamado, string> = {
+  [PrioridadeChamado.BAIXA]: 'Baixa',
+  [PrioridadeChamado.MEDIA]: 'Média',
+  [PrioridadeChamado.ALTA]: 'Alta',
 };
 
 // O "número do chamado" exibido no front (#1000+id, ver
@@ -971,6 +980,55 @@ export class ChamadosService {
         usuarioId: tecnicoAtual.sub,
         acao: AcaoAuditoria.EDICAO,
         descricao: `Nível alterado de ${nivelAnterior} para ${dto.nivel}`,
+      });
+    }
+
+    return this.buscarPorIdOuFalhar(id);
+  }
+
+  // PATCH /chamados/:id/prioridade — diferente de reclassificarNivel
+  // (só técnico, sem checagem de dono: nível é etiqueta técnica), aqui o
+  // SOLICITANTE também pode ajustar a própria prioridade, além de
+  // qualquer técnico. Sem @Roles() no controller de propósito — a
+  // autorização mista (dono OU técnico) só cabe dentro do service, mesmo
+  // padrão de buscarDetalhado.
+  async atualizarPrioridade(
+    id: number,
+    dto: AtualizarPrioridadeChamadoDto,
+    usuarioAtual: JwtPayload,
+  ): Promise<Chamado> {
+    const chamado = await this.chamadoRepository.findOne({
+      where: { id },
+      relations: RELACOES_PARA_ATUALIZAR,
+    });
+    if (!chamado) throw new NotFoundException('Chamado não encontrado');
+
+    const ehSolicitante = chamado.solicitante.id === usuarioAtual.sub;
+    const ehTecnico = usuarioAtual.tipo === TipoUsuario.TECNICO;
+    if (!ehSolicitante && !ehTecnico) {
+      throw new ForbiddenException(
+        'Você não tem permissão para alterar a prioridade deste chamado',
+      );
+    }
+
+    if (chamado.status === StatusChamado.FINALIZADO) {
+      throw new BadRequestException(
+        'Não é possível alterar prioridade de chamado finalizado',
+      );
+    }
+
+    // Idempotente, mesmo raciocínio de reclassificarNivel: reenviar a
+    // mesma prioridade não é uma mudança de verdade, não gera log.
+    if (dto.prioridade !== chamado.prioridade) {
+      const prioridadeAnterior = chamado.prioridade;
+      chamado.prioridade = dto.prioridade;
+      await this.chamadoRepository.save(chamado);
+
+      await this.logAuditoriaService.registrar({
+        chamadoId: id,
+        usuarioId: usuarioAtual.sub,
+        acao: AcaoAuditoria.EDICAO,
+        descricao: `Prioridade alterada de "${LABEL_PRIORIDADE[prioridadeAnterior]}" para "${LABEL_PRIORIDADE[dto.prioridade]}"`,
       });
     }
 

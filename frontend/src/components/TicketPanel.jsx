@@ -4,7 +4,7 @@ import { useWindowWidth } from '../hooks/useWindowWidth'
 import { useAuth } from '../hooks/useAuth'
 import { useAvisoSairSemSalvar } from '../hooks/useAvisoSairSemSalvar'
 import { formatarData, formatarHora, obterIniciais, tempoDecorrido } from '../utils/formatters'
-import { adicionarObservador, atribuirChamado, atualizarNivelChamado, atualizarStatusChamado, buscarChamado, buscarColaboradores, buscarComentarios, buscarLogsAuditoria, buscarSolucoesSugeridas, buscarTecnicos, criarComentario, enviarImagem, removerObservador } from '../services/ticketService'
+import { adicionarObservador, atribuirChamado, atualizarNivelChamado, atualizarPrioridadeChamado, atualizarStatusChamado, buscarChamado, buscarColaboradores, buscarComentarios, buscarLogsAuditoria, buscarSolucoesSugeridas, buscarTecnicos, criarComentario, enviarImagem, removerObservador } from '../services/ticketService'
 import { traduzirErroApi } from '../utils/traduzirErroApi'
 import { URL_BASE } from '../services/apiClient'
 import { LABEL_CATEGORIA } from '../utils/categorias'
@@ -109,7 +109,7 @@ const estadoSidebarPorChamado = new Map()
 // responsável) é sempre resolvido pelo backend a partir do token — nunca
 // enviado daqui.
 function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
-  const { token, tratarErroApi } = useAuth()
+  const { token, usuario, tratarErroApi } = useAuth()
   const [chamado, setChamado] = useState(chamadoInicial)
   const [comentarios, setComentarios] = useState([])
   const [carregandoComentarios, setCarregandoComentarios] = useState(true)
@@ -128,6 +128,8 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
   const [sugestaoExpandida, setSugestaoExpandida] = useState(null)
   const [mostrarMenuNivel, setMostrarMenuNivel] = useState(false)
   const [salvandoNivel, setSalvandoNivel] = useState(false)
+  const [mostrarMenuPrioridade, setMostrarMenuPrioridade] = useState(false)
+  const [salvandoPrioridade, setSalvandoPrioridade] = useState(false)
   const [imagemAmpliada, setImagemAmpliada] = useState(null)
   const [arquivoComentario, setArquivoComentario] = useState(null)
   const [enviandoImagemComentario, setEnviandoImagemComentario] = useState(false)
@@ -348,6 +350,26 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
     }
   }
 
+  // Mesmo raciocínio de reclassificarNivel logo acima — idempotente (não
+  // chama a API se a prioridade escolhida já é a atual) e recarrega
+  // onAtualizado() pra refletir em qualquer lista aberta por trás
+  // (Central de Chamados, Meus Chamados etc.).
+  async function alterarPrioridade(novaPrioridade) {
+    setMostrarMenuPrioridade(false)
+    if (novaPrioridade === chamado.priority) return
+    setErroAcao('')
+    setSalvandoPrioridade(true)
+    try {
+      const atualizado = await atualizarPrioridadeChamado(token, chamado.id, novaPrioridade)
+      setChamado(atualizado)
+      onAtualizado()
+    } catch (e) {
+      if (!tratarErroApi(e)) setErroAcao(traduzirErroApi(e))
+    } finally {
+      setSalvandoPrioridade(false)
+    }
+  }
+
   async function mudarStatus(novoStatus, extras = {}) {
     setErroAcao('')
     setCarregandoAcao(true)
@@ -422,6 +444,11 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
   }
 
   const chamadoFinalizado = chamado.status === 'finalizado'
+  // Dono do chamado OU qualquer técnico — mesma regra validada no backend
+  // (ChamadosService.atualizarPrioridade), checada aqui só pra decidir a
+  // aparência (badge clicável ou não). `usuario.id`/`chamado.userId` são
+  // string os dois (ver mapearUsuario/mapearChamado).
+  const podeEditarPrioridade = !chamadoFinalizado && (isIT || chamado.userId === usuario.id)
 
   return (
     <>
@@ -449,7 +476,31 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10, flexWrap: 'wrap' }}>
                 <StatusBadge status={chamado.status} />
-                <PriorityChip priority={chamado.priority} />
+                {podeEditarPrioridade ? (
+                  <div style={{ position: 'relative' }}>
+                    <button type="button" onClick={() => setMostrarMenuPrioridade(v => !v)} disabled={salvandoPrioridade}
+                      title="Alterar prioridade"
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 3, background: 'none', border: 'none', padding: 0, cursor: salvandoPrioridade ? 'default' : 'pointer' }}>
+                      <PriorityChip priority={chamado.priority} />
+                      <IconChevronDown width={11} height={11} style={{ color: CORES_APP.textoSuave, transform: mostrarMenuPrioridade ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
+                    </button>
+                    {mostrarMenuPrioridade && (
+                      <>
+                        <div style={{ position: 'fixed', inset: 0, zIndex: 6 }} onClick={() => setMostrarMenuPrioridade(false)} />
+                        <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, zIndex: 7, background: CORES_APP.popover, border: `1px solid ${CORES_APP.borda}`, borderRadius: 8, padding: 4, boxShadow: '0 8px 24px rgba(16,35,31,0.18)', minWidth: 90 }}>
+                          {['baixa', 'media', 'alta'].map(p => (
+                            <button key={p} type="button" onClick={() => alterarPrioridade(p)}
+                              style={{ display: 'block', width: '100%', textAlign: 'left', background: p === chamado.priority ? CORES_APP.fundoCampo : 'transparent', color: p === chamado.priority ? CORES_PRIORIDADE[p].fg ?? CORES_PRIORIDADE[p].dot : CORES_APP.texto, border: 'none', borderRadius: 6, padding: '6px 9px', fontSize: 12, fontFamily: 'Outfit, sans-serif', fontWeight: p === chamado.priority ? 600 : 400, cursor: 'pointer' }}>
+                              {CORES_PRIORIDADE[p].label}
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                ) : (
+                  <PriorityChip priority={chamado.priority} />
+                )}
                 <AguardandoRespostaBadge status={chamado.status} aguardandoRespostaDe={chamado.aguardandoRespostaDe} isIT={isIT} />
                 {isIT ? (
                   <div style={{ position: 'relative' }}>
