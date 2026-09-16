@@ -149,7 +149,7 @@ function ITDashboard({ versaoDados, onSelect, onAbrirChamado }) {
             const cor = valor !== 'all' ? CORES_STATUS[valor].fg : CORES_TI.accent
             return (
               <button key={valor} onClick={() => setFiltroStatus(valor)}
-                style={{ background: ativo ? `${cor}1a` : CORES_APP.fundoCampo, color: ativo ? cor : CORES_APP.textoFraco, border: `1px solid ${ativo ? `${cor}44` : CORES_APP.borda}`, borderRadius: 999, padding: '6px 13px', fontSize: 12, fontFamily: 'Outfit, sans-serif', fontWeight: ativo ? 600 : 400, cursor: 'pointer' }}>
+                style={{ background: ativo ? `color-mix(in srgb, ${cor} 10%, transparent)` : CORES_APP.fundoCampo, color: ativo ? cor : CORES_APP.textoFraco, border: `1px solid ${ativo ? `color-mix(in srgb, ${cor} 27%, transparent)` : CORES_APP.borda}`, borderRadius: 999, padding: '6px 13px', fontSize: 12, fontFamily: 'Outfit, sans-serif', fontWeight: ativo ? 600 : 400, cursor: 'pointer' }}>
                 {label}
               </button>
             )
