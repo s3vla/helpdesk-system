@@ -1,4 +1,12 @@
-import { IsBoolean, IsOptional, IsString } from 'class-validator';
+import {
+  ArrayMaxSize,
+  IsArray,
+  IsBoolean,
+  IsOptional,
+  IsString,
+} from 'class-validator';
+
+const MAXIMO_IMAGENS_POR_COMENTARIO = 5;
 
 // `interno` é opcional e, mesmo se vier `true`, o ComentariosService ignora
 // esse valor quando quem está comentando é COLABORADOR (força false) — a
@@ -19,10 +27,16 @@ export class CriarComentarioDto {
   @IsBoolean()
   interno?: boolean;
 
-  // Preenchido só depois de um upload bem-sucedido em POST /uploads —
-  // comentário aceita só uma imagem por vez (diferente do chamado e da
-  // solução na finalização, que aceitam múltiplas via `imagensUrls`).
+  // Preenchidas só depois de upload bem-sucedido em POST /uploads (uma
+  // chamada por arquivo) — mesmo fluxo de duas etapas de
+  // Chamado.imagensUrls/SolucaoConhecida.imagensUrls. Limite de 5 não
+  // existe (ainda) nos outros dois — introduzido aqui de propósito, fora
+  // do escopo mexer nos demais.
   @IsOptional()
-  @IsString()
-  imagemUrl?: string;
+  @IsArray()
+  @ArrayMaxSize(MAXIMO_IMAGENS_POR_COMENTARIO, {
+    message: `Envie no máximo ${MAXIMO_IMAGENS_POR_COMENTARIO} imagens por comentário`,
+  })
+  @IsString({ each: true })
+  imagensUrls?: string[];
 }

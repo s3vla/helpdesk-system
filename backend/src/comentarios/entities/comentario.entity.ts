@@ -38,12 +38,16 @@ export class Comentario {
   interno: boolean;
 
   // Mesmo fluxo de duas etapas dos outros uploads (chamado, solução
-  // conhecida): sobe o arquivo em POST /uploads primeiro, referencia a URL
-  // aqui depois. Se `interno: true`, a imagem some pro colaborador junto
-  // com o resto do comentário — mesma checagem de ComentariosService, não
-  // precisa de regra própria.
-  @Column({ type: 'text', nullable: true })
-  imagemUrl: string | null;
+  // conhecida): sobe cada arquivo em POST /uploads primeiro, referencia as
+  // URLs aqui depois. Se `interno: true`, as imagens somem pro colaborador
+  // junto com o resto do comentário — mesma checagem de ComentariosService,
+  // não precisa de regra própria. `simple-json` em vez de tabela própria —
+  // mesmo padrão já usado em Chamado.imagensUrls/SolucaoConhecida.
+  // imagensUrls (era `imagemUrl` único até a migration
+  // AdicionarImagensMultiplasComentario). Limite de 5 é validado em
+  // CriarComentarioDto, não aqui.
+  @Column({ type: 'simple-json', default: '[]' })
+  imagensUrls: string[];
 
   // Registrado no momento da criação (não recalculado depois) — se o autor
   // for removido como observador mais tarde, o comentário antigo continua

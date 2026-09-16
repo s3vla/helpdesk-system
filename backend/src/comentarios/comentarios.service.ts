@@ -95,7 +95,7 @@ export class ComentariosService {
     // Comentário só com imagem (sem texto nenhum) é válido — só bloqueia se
     // os dois estiverem vazios, senão daria pra mandar uma requisição
     // completamente em branco.
-    if (!dto.texto?.trim() && !dto.imagemUrl) {
+    if (!dto.texto?.trim() && !dto.imagensUrls?.length) {
       throw new BadRequestException(
         'O comentário precisa ter um texto ou uma imagem anexada',
       );
@@ -119,7 +119,7 @@ export class ComentariosService {
       autor: { id: usuarioAtual.sub } as Usuario,
       texto: dto.texto ?? '',
       interno,
-      imagemUrl: dto.imagemUrl ?? null,
+      imagensUrls: dto.imagensUrls ?? [],
       ehObservador,
     });
     const salvo = await this.comentarioRepository.save(comentario);

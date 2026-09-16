@@ -114,7 +114,7 @@ function mapearSugestao(s) {
 function mapearComentario(c) {
   return {
     id: String(c.id), author: c.autor.nome, text: c.texto, date: new Date(c.dataCriacao),
-    internal: c.interno, imagemUrl: c.imagemUrl, isObserver: c.ehObservador,
+    internal: c.interno, imagensUrls: c.imagensUrls, isObserver: c.ehObservador,
     // NIVEL_AJUSTADO é a entrada automática de auditoria gerada ao
     // reclassificar o nível (ver PATCH /chamados/:id/nivel) — o painel usa
     // isso pra mostrar esse histórico separado da conversa de verdade, em
@@ -383,11 +383,11 @@ export async function buscarComentarios(token, chamadoId) {
   return comentarios.map(mapearComentario)
 }
 
-export async function criarComentario(token, chamadoId, { texto, interno, imagemUrl }) {
+export async function criarComentario(token, chamadoId, { texto, interno, imagensUrls }) {
   const comentario = await chamarApi(`/chamados/${chamadoId}/comentarios`, {
     token,
     metodo: 'POST',
-    corpo: { texto, interno, ...(imagemUrl ? { imagemUrl } : {}) },
+    corpo: { texto, interno, ...(imagensUrls?.length ? { imagensUrls } : {}) },
   })
   return mapearComentario(comentario)
 }

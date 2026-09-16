@@ -101,6 +101,14 @@ const estadoSidebarPorChamado = new Map()
 // simplesmente empilham em ordem (esquerda inteira, depois direita), sem
 // grid — mesma experiência de rolagem única de antes.
 //
+// Mesmo limite do backend (CriarComentarioDto) — checado aqui também pra
+// dar feedback imediato (clique ou paste) em vez de só descobrir no 400
+// da API depois de tentar enviar. Não existe um limite real equivalente em
+// CreateTicket.jsx/ITAbrirChamado.jsx/ResolutionModal.jsx hoje (o "5" que
+// aparece lá é só um limiar de rolagem da lista, não um bloqueio) — este
+// limite é novo, introduzido só pra comentário.
+const MAXIMO_IMAGENS_COMENTARIO = 5
+
 // Recebe `chamadoInicial` (o que já foi clicado na tela de lista, pra
 // aparecer na hora) mas depois mantém seu PRÓPRIO estado `chamado` — toda
 // mudança de status/finalização vem da resposta da API, nunca é só
@@ -132,7 +140,7 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
   const [mostrarMenuPrioridade, setMostrarMenuPrioridade] = useState(false)
   const [salvandoPrioridade, setSalvandoPrioridade] = useState(false)
   const [imagemAmpliada, setImagemAmpliada] = useState(null)
-  const [arquivoComentario, setArquivoComentario] = useState(null)
+  const [arquivosComentario, setArquivosComentario] = useState([])
   const [enviandoImagemComentario, setEnviandoImagemComentario] = useState(false)
   const [colaboradores, setColaboradores] = useState([])
   const [salvandoObservador, setSalvandoObservador] = useState(false)
@@ -151,7 +159,7 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
   // Comentário digitado (ou imagem anexada) e ainda não enviado — avisa
   // antes de fechar a aba/recarregar, mesmo o modal continuando aberto por
   // cima de outra tela (ver useAvisoSairSemSalvar).
-  useAvisoSairSemSalvar(Boolean(textoComentario.trim() || arquivoComentario))
+  useAvisoSairSemSalvar(Boolean(textoComentario.trim() || arquivosComentario.length > 0))
   // Sempre nasce expandida (regra 1/3), exceto se ESTE MESMO chamado já
   // tinha sido aberto (e recolhido) antes nesta sessão (regra 4, bônus) —
   // ver comentário em `estadoSidebarPorChamado` acima.
@@ -411,33 +419,55 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
     }
   }
 
+  // Compartilhado pelo <input type="file"> (clique) e pelo paste — evita
+  // duplicar a checagem de limite nos dois lugares. Corta no limite em vez
+  // de recusar tudo (ex: já tem 4, cola/seleciona 3: entram só 1, com
+  // mensagem clara em vez de um bloqueio silencioso ou tudo-ou-nada).
+  function adicionarArquivosComentario(novos) {
+    if (novos.length === 0) return
+    setArquivosComentario(prev => {
+      const espacoDisponivel = MAXIMO_IMAGENS_COMENTARIO - prev.length
+      if (espacoDisponivel <= 0) {
+        setErroComentarios(`Máximo de ${MAXIMO_IMAGENS_COMENTARIO} imagens por comentário`)
+        return prev
+      }
+      if (novos.length > espacoDisponivel) {
+        setErroComentarios(`Máximo de ${MAXIMO_IMAGENS_COMENTARIO} imagens por comentário — só ${espacoDisponivel} foram adicionadas`)
+      }
+      return [...prev, ...novos.slice(0, espacoDisponivel)]
+    })
+  }
+
   // Ctrl+V na textarea do comentário — diferente dos formulários de abrir
   // chamado/finalizar (onPaste no card inteiro), aqui é só a textarea
   // mesmo: o resto do painel (tabs, seletor de nível etc.) não tem nenhum
-  // campo de texto que faça sentido interceptar paste. Substitui
-  // (não acumula) porque o anexo de comentário é um só, mesma regra do
-  // clique em "Anexar imagem".
+  // campo de texto que faça sentido interceptar paste.
   function aoColarNoComentario(e) {
     const arquivo = extrairImagemColada(e)
-    if (arquivo) setArquivoComentario(arquivo)
+    if (arquivo) adicionarArquivosComentario([arquivo])
   }
 
   async function adicionarComentarioNoChamado() {
-    if (!textoComentario.trim() && !arquivoComentario) return
+    if (!textoComentario.trim() && arquivosComentario.length === 0) return
     setEnviandoComentario(true)
     setErroComentarios('')
     try {
-      let imagemUrl
-      if (arquivoComentario) {
+      const imagensUrls = []
+      if (arquivosComentario.length > 0) {
         setEnviandoImagemComentario(true)
-        imagemUrl = await enviarImagem(token, arquivoComentario)
+        // Sequencial (não Promise.all) — mesmo motivo de CreateTicket.jsx/
+        // ResolutionModal.jsx: evita disparar todos os uploads de uma vez
+        // pro mesmo endpoint.
+        for (const arquivo of arquivosComentario) {
+          imagensUrls.push(await enviarImagem(token, arquivo))
+        }
         setEnviandoImagemComentario(false)
       }
-      const novo = await criarComentario(token, chamado.id, { texto: textoComentario, interno: comentarioInterno, imagemUrl })
+      const novo = await criarComentario(token, chamado.id, { texto: textoComentario, interno: comentarioInterno, imagensUrls })
       setComentarios(prev => [...prev, novo])
       setTextoComentario('')
       setComentarioInterno(false)
-      setArquivoComentario(null)
+      setArquivosComentario([])
       // Comentar (quando não-interno, com o chamado em andamento) muda
       // `aguardandoRespostaDe` no backend — busca o chamado de novo pra
       // esse indicativo virar na hora aqui no cabeçalho, sem esperar uma
@@ -968,9 +998,22 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
                               <span style={{ color: CORES_APP.textoSuave, fontSize: 12 }}>{formatarData(c.date)} {formatarHora(c.date)}</span>
                             </div>
                             {c.text && <p style={{ color: CORES_APP.texto, fontSize: 14, margin: 0, lineHeight: 1.65, whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }}>{c.text}</p>}
-                            {c.imagemUrl && (
-                              <img src={`${URL_BASE}${c.imagemUrl}`} alt="Imagem anexada ao comentário" onClick={() => setImagemAmpliada(`${URL_BASE}${c.imagemUrl}`)}
-                                style={{ maxWidth: '100%', maxHeight: 200, borderRadius: 8, display: 'block', marginTop: 9, cursor: 'zoom-in' }} />
+                            {/* Mesmo padrão de galeria de chamado.imagens
+                                acima: 1 imagem = preview grande, 2+ = grade
+                                de miniaturas, todas abrindo no mesmo
+                                ImageLightbox. */}
+                            {c.imagensUrls?.length > 0 && (
+                              c.imagensUrls.length === 1 ? (
+                                <img src={`${URL_BASE}${c.imagensUrls[0]}`} alt="Imagem anexada ao comentário" onClick={() => setImagemAmpliada(`${URL_BASE}${c.imagensUrls[0]}`)}
+                                  style={{ maxWidth: '100%', maxHeight: 200, borderRadius: 8, display: 'block', marginTop: 9, cursor: 'zoom-in' }} />
+                              ) : (
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 9 }}>
+                                  {c.imagensUrls.map((url, indice) => (
+                                    <img key={url} src={`${URL_BASE}${url}`} alt={`Imagem anexada ao comentário ${indice + 1}`} onClick={() => setImagemAmpliada(`${URL_BASE}${url}`)}
+                                      style={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 8, cursor: 'zoom-in' }} />
+                                  ))}
+                                </div>
+                              )
                             )}
                           </div>
                         ))}
@@ -1006,18 +1049,35 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
                     style={{ ...estilos.input, minHeight: 88, resize: 'vertical', lineHeight: 1.65 }} />
                   <div>
                     <button type="button" onClick={() => !enviandoComentario && fileRefComentario.current?.click()} disabled={enviandoComentario}
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: arquivoComentario ? 'rgba(0,179,81,0.1)' : CORES_APP.fundoCampo, color: arquivoComentario ? CORES_APP.verde : CORES_APP.textoFraco, border: `1px solid ${arquivoComentario ? 'rgba(0,120,81,0.3)' : CORES_APP.borda}`, borderRadius: 8, padding: '6px 12px', fontSize: 12, fontFamily: 'Outfit, sans-serif', cursor: enviandoComentario ? 'default' : 'pointer' }}>
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: arquivosComentario.length ? 'rgba(0,179,81,0.1)' : CORES_APP.fundoCampo, color: arquivosComentario.length ? CORES_APP.verde : CORES_APP.textoFraco, border: `1px solid ${arquivosComentario.length ? 'rgba(0,120,81,0.3)' : CORES_APP.borda}`, borderRadius: 8, padding: '6px 12px', fontSize: 12, fontFamily: 'Outfit, sans-serif', cursor: enviandoComentario ? 'default' : 'pointer' }}>
                       <IconPaperclip width={13} height={13} />
-                      {arquivoComentario ? arquivoComentario.name : 'Anexar imagem'}
+                      {arquivosComentario.length === 0 ? 'Anexar imagem' : arquivosComentario.length === 1 ? arquivosComentario[0].name : `${arquivosComentario.length} imagens selecionadas`}
                     </button>
-                    {arquivoComentario && (
-                      <button type="button" onClick={() => setArquivoComentario(null)} disabled={enviandoComentario}
-                        style={{ background: 'none', border: 'none', color: CORES_APP.textoSuave, fontSize: 12, marginLeft: 8, cursor: enviandoComentario ? 'default' : 'pointer', textDecoration: 'underline' }}>
-                        remover
-                      </button>
+                    <input ref={fileRefComentario} type="file" accept="image/png, image/jpeg, image/webp" multiple style={{ display: 'none' }}
+                      onChange={e => {
+                        adicionarArquivosComentario(Array.from(e.target.files ?? []))
+                        // Zera o input pra poder selecionar o MESMO arquivo de
+                        // novo depois de removê-lo da lista (mesmo cuidado de
+                        // CreateTicket.jsx/ITAbrirChamado.jsx/ResolutionModal.jsx).
+                        e.target.value = ''
+                      }} disabled={enviandoComentario} />
+                    {arquivosComentario.length > 0 && (
+                      <div style={{
+                        display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8,
+                        ...(arquivosComentario.length >= 5 ? { maxHeight: 180, overflowY: 'auto', paddingRight: 4 } : {}),
+                      }}>
+                        {arquivosComentario.map((arq, indice) => (
+                          <div key={`${arq.name}-${indice}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, background: CORES_APP.fundoCampo, borderRadius: 8, padding: '7px 10px' }}>
+                            <span style={{ color: CORES_APP.texto, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{arq.name}</span>
+                            <button type="button" onClick={() => setArquivosComentario(prev => prev.filter((_, i) => i !== indice))} disabled={enviandoComentario}
+                              title="Remover"
+                              style={{ background: 'none', border: 'none', color: CORES_APP.textoSuave, fontSize: 17, lineHeight: 1, cursor: enviandoComentario ? 'default' : 'pointer', flexShrink: 0, padding: 0 }}>
+                              ×
+                            </button>
+                          </div>
+                        ))}
+                      </div>
                     )}
-                    <input ref={fileRefComentario} type="file" accept="image/png, image/jpeg, image/webp" style={{ display: 'none' }}
-                      onChange={e => setArquivoComentario(e.target.files?.[0] ?? null)} disabled={enviandoComentario} />
                   </div>
                   {isIT && comentarioInterno && (
                     <p style={{ background: CORES_NIVEL.bgAviso, border: `1px solid ${CORES_NIVEL.bordaAviso}`, borderRadius: 8, padding: '8px 12px', color: CORES_NIVEL.fg, fontSize: 12, margin: 0, lineHeight: 1.5 }}>
@@ -1031,9 +1091,9 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
                         Comentário interno
                       </label>
                     ) : <span />}
-                    <button onClick={adicionarComentarioNoChamado} disabled={enviandoComentario || (!textoComentario.trim() && !arquivoComentario)}
-                      style={{ ...estilos.btnGhost, padding: '8px 18px', fontSize: 13, opacity: enviandoComentario || (!textoComentario.trim() && !arquivoComentario) ? 0.6 : 1, cursor: enviandoComentario || (!textoComentario.trim() && !arquivoComentario) ? 'default' : 'pointer' }}>
-                      {enviandoImagemComentario ? 'Enviando imagem...' : enviandoComentario ? 'Enviando...' : 'Comentar'}
+                    <button onClick={adicionarComentarioNoChamado} disabled={enviandoComentario || (!textoComentario.trim() && arquivosComentario.length === 0)}
+                      style={{ ...estilos.btnGhost, padding: '8px 18px', fontSize: 13, opacity: enviandoComentario || (!textoComentario.trim() && arquivosComentario.length === 0) ? 0.6 : 1, cursor: enviandoComentario || (!textoComentario.trim() && arquivosComentario.length === 0) ? 'default' : 'pointer' }}>
+                      {enviandoImagemComentario ? 'Enviando imagens...' : enviandoComentario ? 'Enviando...' : 'Comentar'}
                     </button>
                   </div>
                 </div>

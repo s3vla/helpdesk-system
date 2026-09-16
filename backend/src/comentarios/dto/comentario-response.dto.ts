@@ -9,7 +9,7 @@ export class ComentarioResponseDto {
   id: number;
   texto: string;
   interno: boolean;
-  imagemUrl: string | null;
+  imagensUrls: string[];
   dataCriacao: Date;
   autor: UsuarioResponseDto;
   // true quando quem escreveu era um observador ("Cc") do chamado no
@@ -30,7 +30,7 @@ export function mapComentarioParaResposta(
     id: comentario.id,
     texto: comentario.texto,
     interno: comentario.interno,
-    imagemUrl: comentario.imagemUrl,
+    imagensUrls: comentario.imagensUrls,
     dataCriacao: comentario.dataCriacao,
     autor: mapUsuarioParaResposta(comentario.autor),
     ehObservador: comentario.ehObservador,
