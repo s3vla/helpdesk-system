@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { motion } from 'framer-motion'
 import { estilos, CORES_APP, CORES_STATUS } from '../styles/theme'
 import { useWindowWidth } from '../hooks/useWindowWidth'
 import { useAuth } from '../hooks/useAuth'
@@ -40,6 +41,20 @@ const ALTURA_RESERVADA_COLUNA = 300
 // Pointer Events já cobrem mouse/touch/caneta com um único código, sem
 // dependência nova. `touchAction: 'none'` no card é necessário pro touch
 // não brigar com o scroll da página durante o arraste.
+//
+// A troca de coluna em si (mover(), otimista) não move o card no DOM — ela
+// REMOVE o item do array da coluna de origem e ADICIONA um nos array da
+// coluna de destino (dois `useListaCarregarMais` diferentes). Pro React
+// isso é desmontar um componente numa árvore e montar outro (mesmo id)
+// numa árvore irmã, não um simples reorder — animação de layout comum
+// (`layout` sozinho) não cobre esse caso. `layoutId` é o que resolve: o
+// framer-motion rastreia globalmente a última posição conhecida de
+// qualquer motion.div com aquele id e anima o próximo elemento que montar
+// com o MESMO layoutId a partir dali, mesmo vindo de um pai diferente —
+// é o que dá a sensação de "o card voou de uma coluna pra outra" em vez de
+// piscar/reaparecer. `layout` (sem id) nos outros cards da mesma coluna
+// complementa isso: quando um card sai/entra, os vizinhos deslizam pra
+// fechar/abrir espaço, em vez de pular.
 function MinhasTarefas() {
   const { token, tratarErroApi } = useAuth()
   const largura = useWindowWidth()
@@ -209,7 +224,8 @@ function MinhasTarefas() {
                 ) : (
                   <>
                     {estado.itens.map(tarefa => (
-                      <div key={tarefa.id}
+                      <motion.div key={tarefa.id}
+                        layout layoutId={`tarefa-${tarefa.id}`} transition={{ duration: 0.18, ease: 'easeOut' }}
                         onPointerDown={e => aoPressionarCard(e, tarefa)}
                         onPointerMove={aoMoverPonteiro}
                         onPointerUp={finalizarArraste}
@@ -258,7 +274,7 @@ function MinhasTarefas() {
                             </div>
                           </div>
                         )}
-                      </div>
+                      </motion.div>
                     ))}
                     {estado.temMais && (
                       <button onClick={estado.carregarMais} disabled={estado.carregandoMais}
