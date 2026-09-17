@@ -439,10 +439,13 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
     })
   }
 
-  // Ctrl+V na textarea do comentário — diferente dos formulários de abrir
-  // chamado/finalizar (onPaste no card inteiro), aqui é só a textarea
-  // mesmo: o resto do painel (tabs, seletor de nível etc.) não tem nenhum
-  // campo de texto que faça sentido interceptar paste.
+  // Ctrl+V no composer de comentário (onPaste na div que envolve textarea +
+  // botão de anexo, mesmo padrão dos outros 3 formulários) — não no painel
+  // inteiro, já que o resto (tabs, seletor de nível etc.) não tem nenhum
+  // campo de texto que faça sentido interceptar paste. Precisa estar na
+  // div e não só na textarea: depois de escolher um arquivo pelo seletor
+  // nativo, o foco volta pro <button>, que é irmão da textarea — um
+  // onPaste só nela não pegaria o evento nesse caso.
   function aoColarNoComentario(e) {
     const arquivo = extrairImagemColada(e)
     if (arquivo) adicionarArquivosComentario([arquivo])
@@ -1088,7 +1091,7 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
                   <p style={{ color: CORES_APP.textoFraco, fontSize: 13, margin: 0 }}>Chamado finalizado, reabra para comentar</p>
                 </div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div onPaste={aoColarNoComentario} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   <textarea value={textoComentario} onChange={e => setTextoComentario(e.target.value)}
                     onKeyDown={e => {
                       if (e.key === 'Enter' && !e.shiftKey) {
@@ -1096,15 +1099,30 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
                         adicionarComentarioNoChamado()
                       }
                     }}
-                    onPaste={aoColarNoComentario}
                     placeholder="Escreva um comentário..." disabled={enviandoComentario}
                     style={{ ...estilos.input, minHeight: 88, resize: 'vertical', lineHeight: 1.65 }} />
                   <div>
-                    <button type="button" onClick={() => !enviandoComentario && fileRefComentario.current?.click()} disabled={enviandoComentario}
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: arquivosComentario.length ? 'rgba(0,179,81,0.1)' : CORES_APP.fundoCampo, color: arquivosComentario.length ? CORES_APP.verde : CORES_APP.textoFraco, border: `1px solid ${arquivosComentario.length ? 'rgba(0,120,81,0.3)' : CORES_APP.borda}`, borderRadius: 8, padding: '6px 12px', fontSize: 12, fontFamily: 'Outfit, sans-serif', cursor: enviandoComentario ? 'default' : 'pointer' }}>
-                      <IconPaperclip width={13} height={13} />
-                      {arquivosComentario.length === 0 ? 'Anexar imagem' : arquivosComentario.length === 1 ? arquivosComentario[0].name : `${arquivosComentario.length} imagens selecionadas`}
-                    </button>
+                    {/* Botão circular discreto — mesmo padrão de
+                        CreateTicket.jsx/ITAbrirChamado.jsx/
+                        ResolutionModal.jsx, no lugar do pill largo de
+                        antes (que já não era a dropzone grande, mas ainda
+                        maior/mais chamativo que o padrão pedido). */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <button type="button" onClick={() => !enviandoComentario && fileRefComentario.current?.click()} disabled={enviandoComentario}
+                        title="Anexar imagem"
+                        style={{
+                          width: 30, height: 30, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          background: arquivosComentario.length ? 'rgba(0,179,81,0.12)' : CORES_APP.fundoCampo,
+                          border: `1px solid ${arquivosComentario.length ? 'rgba(0,120,81,0.3)' : CORES_APP.borda}`,
+                          color: arquivosComentario.length ? CORES_APP.verde : CORES_APP.textoFraco,
+                          cursor: enviandoComentario ? 'default' : 'pointer', transition: 'all 0.15s',
+                        }}>
+                        <IconPaperclip width={14} height={14} />
+                      </button>
+                      <span style={{ color: arquivosComentario.length ? CORES_APP.textoFraco : CORES_APP.textoSuave, fontSize: 12.5 }}>
+                        {arquivosComentario.length === 0 ? 'ou cole uma imagem (Ctrl+V)' : arquivosComentario.length === 1 ? `${arquivosComentario[0].name} — clique para adicionar mais` : `${arquivosComentario.length} imagens anexadas — clique para adicionar mais`}
+                      </span>
+                    </div>
                     <input ref={fileRefComentario} type="file" accept="image/png, image/jpeg, image/webp" multiple style={{ display: 'none' }}
                       onChange={e => {
                         adicionarArquivosComentario(Array.from(e.target.files ?? []))

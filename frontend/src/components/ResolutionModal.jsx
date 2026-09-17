@@ -99,13 +99,22 @@ function ResolutionModal({ carregando: carregandoExterno, onConfirm, onCancel })
 
         <div>
           <label style={estilos.label}>Prints da solução</label>
-          <div onClick={() => !carregando && fileRef.current?.click()}
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, border: `2px dashed ${arquivos.length ? 'rgba(0,120,81,0.4)' : CORES_APP.borda}`, borderRadius: 10, padding: '22px 14px', textAlign: 'center', cursor: carregando ? 'default' : 'pointer', background: arquivos.length ? 'rgba(0,179,81,0.05)' : 'transparent', transition: 'all 0.2s' }}>
-            <span style={{ color: arquivos.length ? CORES_APP.verde : CORES_APP.textoFraco, display: 'flex', flexShrink: 0 }}>
-              <IconPaperclip width={16} height={16} />
-            </span>
-            <span style={{ color: arquivos.length ? CORES_APP.verde : CORES_APP.textoFraco, fontSize: 13 }}>
-              {arquivos.length ? `${arquivos.length} ${arquivos.length > 1 ? 'imagens' : 'imagem'} selecionada${arquivos.length > 1 ? 's' : ''}, clique para adicionar mais` : 'Clique para anexar imagens'}
+          {/* Botão circular discreto — mesmo padrão de CreateTicket.jsx,
+              ver comentário lá sobre a troca da dropzone grande. */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <button type="button" onClick={() => !carregando && fileRef.current?.click()} disabled={carregando}
+              title="Anexar imagem"
+              style={{
+                width: 30, height: 30, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: arquivos.length ? 'rgba(0,179,81,0.12)' : CORES_APP.fundoCampo,
+                border: `1px solid ${arquivos.length ? 'rgba(0,120,81,0.3)' : CORES_APP.borda}`,
+                color: arquivos.length ? CORES_APP.verde : CORES_APP.textoFraco,
+                cursor: carregando ? 'default' : 'pointer', transition: 'all 0.15s',
+              }}>
+              <IconPaperclip width={14} height={14} />
+            </button>
+            <span style={{ color: arquivos.length ? CORES_APP.textoFraco : CORES_APP.textoSuave, fontSize: 12.5 }}>
+              {arquivos.length ? `${arquivos.length} ${arquivos.length > 1 ? 'imagens' : 'imagem'} anexada${arquivos.length > 1 ? 's' : ''} — clique para adicionar mais` : 'ou cole uma imagem (Ctrl+V)'}
             </span>
             <input ref={fileRef} type="file" accept="image/png, image/jpeg, image/webp" multiple style={{ display: 'none' }}
               onChange={e => {
