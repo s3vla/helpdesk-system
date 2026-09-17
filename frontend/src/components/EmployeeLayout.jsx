@@ -73,7 +73,19 @@ function EmployeeLayout({ user, telaAtiva, onNav, onLogout, onTrocarSenha, largu
             itens NUNCA quebrem linha (a causa raiz do bug reportado); se
             não couberem, rolam horizontalmente por dentro do próprio menu
             em vez de estourar a altura fixa do header. */}
-        <nav style={{ display: 'flex', flexWrap: 'nowrap', gap: mobile ? 4 : compacto ? 2 : 4, flexShrink: 1, minWidth: 0, overflowX: 'auto', scrollbarWidth: 'thin' }}>
+        <nav style={{
+          display: 'flex', flexWrap: 'nowrap', gap: mobile ? 4 : compacto ? 2 : 4, flexShrink: 1, minWidth: 0,
+          overflowX: 'auto', scrollbarWidth: 'thin',
+          // `overflowX: 'auto'` sozinho força o navegador a tratar
+          // `overflowY` como 'auto' também (não dá pra ter só um eixo
+          // rolável) — isso cortava o badge de contagem, que flutua
+          // acima/à direita do botão via `top/right: -4px` (mais o anel
+          // de `boxShadow` de 2px, 6px de protrusão real no total). O
+          // corte de overflow acontece na borda do padding-box, não do
+          // content-box — esse padding cria espaço suficiente ali,
+          // sem mudar a posição visual do badge em si.
+          padding: mobile ? '2px 4px' : '6px',
+        }}>
           {itensNav.map(item => (
             <button key={item.tela} onClick={() => onNav(item.tela)}
               style={{
