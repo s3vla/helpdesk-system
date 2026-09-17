@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { motion } from 'framer-motion'
 import Logo from './Logo'
 import { useWindowWidth } from '../hooks/useWindowWidth'
 import { IconMenu, IconLock, IconLogOut, IconSun, IconMoon, IconBarChart, IconSettings, IconMegaphone, IconListChecks, IconLightbulb, IconShield } from './icons'
@@ -87,7 +88,15 @@ function ITLayout({ tela, usuario, onNav, onLogout, onTrocarSenha, children }) {
   const { modo, alternarTema } = useTheme()
 
   const sidebar = (
-    <aside style={{ width: 220, background: CORES_APP.card, borderRight: `1px solid ${CORES_APP.bordaSuave}`, display: 'flex', flexDirection: 'column', padding: '22px 14px', height: '100%', boxSizing: 'border-box' }}>
+    // Fade + leve slide horizontal ao montar — toca uma vez quando o
+    // componente entra no DOM (aqui: ao carregar a página no desktop, ou
+    // toda vez que o menu hambúrguer abre no mobile, já que os dois
+    // reaproveitam este mesmo `sidebar`). Sem AnimatePresence de
+    // propósito — não foi pedida uma animação de SAÍDA, só de entrada, e
+    // sem ela o fechamento continua instantâneo como já era.
+    <motion.aside
+      initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.18, ease: 'easeOut' }}
+      style={{ width: 220, background: CORES_APP.card, borderRight: `1px solid ${CORES_APP.bordaSuave}`, display: 'flex', flexDirection: 'column', padding: '22px 14px', height: '100%', boxSizing: 'border-box' }}>
       <div style={{ marginBottom: 32, padding: '0 4px' }}><Logo size={34} /></div>
       <div style={{ background: 'rgba(0,73,192,0.08)', border: '1px solid rgba(0,73,192,0.22)', borderRadius: 8, padding: '7px 11px', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 8 }}>
         <span className="animate-pulse-dot" style={{ width: 7, height: 7, borderRadius: '50%', background: CORES_TI.accent, display: 'inline-block', flexShrink: 0 }} />
@@ -96,15 +105,29 @@ function ITLayout({ tela, usuario, onNav, onLogout, onTrocarSenha, children }) {
       <nav style={{ display: 'flex', flexDirection: 'column', gap: 3, flex: 1 }}>
         {ITENS_NAV.map(item => {
           const ativo = tela === item.tela || (tela === 'it-user' && item.tela === 'it-users')
+          // Fundo "de repouso" (sem hover) — usado tanto no estilo inicial
+          // quanto pra restaurar no onMouseLeave, já que o hover muta
+          // `style.background` direto no elemento (mesmo padrão de
+          // ObservadorSelect.jsx/SolicitanteSelect.jsx), não outro state.
+          const fundoRepouso = ativo ? 'rgba(0,73,192,0.1)' : (item.destaque ? 'rgba(0,73,192,0.05)' : 'transparent')
           return (
             <button key={item.tela} onClick={() => { onNav(item.tela); setMenuAberto(false) }}
+              onMouseEnter={e => { if (!ativo) e.currentTarget.style.background = 'rgba(0,73,192,0.07)' }}
+              onMouseLeave={e => { e.currentTarget.style.background = fundoRepouso }}
               style={{
-                background: ativo ? 'rgba(0,73,192,0.1)' : (item.destaque ? 'rgba(0,73,192,0.05)' : 'transparent'),
+                background: fundoRepouso,
                 color: ativo || item.destaque ? CORES_TI.accent : CORES_APP.textoFraco,
                 border: item.destaque && !ativo ? '1px solid rgba(0,73,192,0.22)' : 'none',
                 borderRadius: 9, padding: '11px 13px', fontSize: 14,
                 fontFamily: 'Outfit, sans-serif', fontWeight: ativo || item.destaque ? 600 : 400, cursor: 'pointer',
-                textAlign: 'left', display: 'flex', alignItems: 'center', gap: 10, transition: 'all 0.15s',
+                textAlign: 'left', display: 'flex', alignItems: 'center', gap: 10,
+                // Propriedades explícitas (não `all`) — `all` tentaria
+                // interpolar até font-weight (400↔600 na troca de item
+                // ativo), gerando uma leve oscilação de peso não
+                // intencional. `ease-out`: mesma curva conceitual do
+                // `easeOut` já usado nas animações de framer-motion desta
+                // sessão, pra manter o mesmo "toque" entre CSS e JS.
+                transition: 'background-color 0.15s ease-out, color 0.15s ease-out, border-color 0.15s ease-out',
                 marginBottom: item.destaque ? 8 : 0,
               }}>
               {item.icon}{item.label}
@@ -139,7 +162,7 @@ function ITLayout({ tela, usuario, onNav, onLogout, onTrocarSenha, children }) {
           <IconLogOut width={14} height={14} /> Sair
         </button>
       </div>
-    </aside>
+    </motion.aside>
   )
 
   // height (não minHeight) + overflow hidden nos dois wrappers, mesmo

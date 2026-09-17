@@ -86,17 +86,32 @@ function EmployeeLayout({ user, telaAtiva, onNav, onLogout, onTrocarSenha, largu
           // sem mudar a posição visual do badge em si.
           padding: mobile ? '2px 4px' : '6px',
         }}>
-          {itensNav.map(item => (
+          {itensNav.map(item => {
+            const ativo = telaAtiva === item.tela
+            // Mesmo padrão de ITLayout.jsx — fundo de repouso guardado à
+            // parte pra restaurar no onMouseLeave, já que o hover muta
+            // `style.background` direto (mesma técnica de
+            // ObservadorSelect.jsx/SolicitanteSelect.jsx).
+            const fundoRepouso = ativo ? 'rgba(0,120,81,0.1)' : 'transparent'
+            return (
             <button key={item.tela} onClick={() => onNav(item.tela)}
+              onMouseEnter={e => { if (!ativo) e.currentTarget.style.background = 'rgba(0,120,81,0.06)' }}
+              onMouseLeave={e => { e.currentTarget.style.background = fundoRepouso }}
               style={{
                 position: 'relative',
-                background: telaAtiva === item.tela ? 'rgba(0,120,81,0.1)' : 'transparent',
-                color: telaAtiva === item.tela ? cores.verdeEscuro : CORES_APP.textoFraco,
-                border: `1px solid ${telaAtiva === item.tela ? 'rgba(0,120,81,0.25)' : 'transparent'}`,
+                background: fundoRepouso,
+                color: ativo ? cores.verdeEscuro : CORES_APP.textoFraco,
+                border: `1px solid ${ativo ? 'rgba(0,120,81,0.25)' : 'transparent'}`,
                 borderRadius: 8, padding: mobile ? '7px 14px' : compacto ? '7px 10px' : '7px 16px',
                 fontSize: mobile ? 16 : compacto ? 12 : 13,
-                fontFamily: 'Outfit, sans-serif', fontWeight: telaAtiva === item.tela ? 600 : 400,
-                cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap', flexShrink: 0,
+                fontFamily: 'Outfit, sans-serif', fontWeight: ativo ? 600 : 400,
+                cursor: 'pointer',
+                // Propriedades explícitas (não `all`) + `ease-out` — mesmo
+                // raciocínio de ITLayout.jsx: evita interpolar font-weight
+                // sem querer, e usa a mesma curva das animações de
+                // framer-motion desta sessão.
+                transition: 'background-color 0.15s ease-out, color 0.15s ease-out, border-color 0.15s ease-out',
+                whiteSpace: 'nowrap', flexShrink: 0,
               }}>
               {item.label}
               {!!item.badge && (
@@ -111,7 +126,8 @@ function EmployeeLayout({ user, telaAtiva, onNav, onLogout, onTrocarSenha, largu
                 </span>
               )}
             </button>
-          ))}
+            )
+          })}
         </nav>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, position: 'relative', flexShrink: 0 }}>
           {!mobile && (
