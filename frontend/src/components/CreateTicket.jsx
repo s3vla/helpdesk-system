@@ -31,11 +31,13 @@ const PRIORIDADES = [
 // "achatados" — voltado ao padrão, só mantido como const local pro caso de
 // precisar customizar de novo sem mexer no estilos.input compartilhado).
 const campoCompacto = { ...estilos.input, padding: '13px 14px', fontSize: 15 }
-// Idem pro rótulo — marginBottom menor que estilos.label (7), só aqui e em
-// ITAbrirChamado.jsx, pra bater com a densidade da Central de Chamados
-// (linhas da tabela, referência de espaçamento pedida) sem mexer no
-// estilos.label compartilhado, usado em telas que não pediram esse ajuste.
-const rotuloCompacto = { ...estilos.label, marginBottom: 5 }
+// Volta ao marginBottom padrão de estilos.label (7) — reduzido pra 5 num
+// ajuste anterior de densidade, revertido depois porque o card ficava
+// "curto" demais sobrando espaço vazio na tela em monitores altos (ver
+// também o gap do card logo abaixo e o minHeight da textarea). Mantido
+// como const local em vez de usar estilos.label direto só pelo caso de
+// precisar customizar de novo sem mexer no shared.
+const rotuloCompacto = { ...estilos.label, marginBottom: 7 }
 
 // Formulário "Abrir chamado". Categoria e prioridade são estado controlado
 // (useState + comparação `cat === c` para destacar o botão ativo) — o valor
@@ -185,7 +187,7 @@ function CreateTicket({ onSubmit, onSelect }) {
   // largura do <main> — sem isso, o formulário esticaria a tela toda em
   // monitores largos).
   const duasColunas = largura >= 860
-  const LARGURA_MAXIMA = 1280
+  const LARGURA_MAXIMA = 1440
 
   return (
     <div className="animate-fade-up" style={{ maxWidth: LARGURA_MAXIMA, margin: '0 auto' }}>
@@ -194,11 +196,11 @@ function CreateTicket({ onSubmit, onSelect }) {
         <p style={{ color: CORES_APP.textoFraco, fontSize: 14, margin: 0, lineHeight: 1.5 }}>Descreva o problema que você está enfrentando. O Time de TI entrará em contato.</p>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: duasColunas ? 'minmax(0, 2fr) minmax(280px, 1fr)' : '1fr', gap: 24, alignItems: 'start' }}>
-      <div onPaste={aoColar} style={{ ...estilos.card, border: '1px solid rgba(0,120,81,0.14)', padding: largura < 640 ? 16 : 22, display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div onPaste={aoColar} style={{ ...estilos.card, border: '1px solid rgba(0,120,81,0.14)', padding: largura < 640 ? 16 : '32px 25px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <div>
           <label style={rotuloCompacto}>O que você precisa? <span style={{ color: CORES_PRIORIDADE.alta.dot }}>*</span></label>
           <textarea value={desc} onChange={e => setDesc(e.target.value)} onKeyDown={aoTeclarEnter} placeholder="Ex: impressora do setor não imprime, aparece 'sem papel' mas tem papel na bandeja"
-            style={{ ...campoCompacto, minHeight: 96, maxHeight: 200, overflowY: 'auto', resize: 'vertical', lineHeight: 1.5 }} disabled={carregando} />
+            style={{ ...campoCompacto, minHeight: 140, maxHeight: 260, overflowY: 'auto', resize: 'vertical', lineHeight: 1.5 }} disabled={carregando} />
           {/* Só informativo, nunca bloqueia — colaborador pode ignorar e
               seguir abrindo o chamado novo normalmente. Só olha pros
               PRÓPRIOS chamados ainda abertos (o backend garante isso via
