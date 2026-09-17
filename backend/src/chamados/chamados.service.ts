@@ -869,7 +869,11 @@ export class ChamadosService {
           );
       } else {
         void this.emailService
-          .enviarNotificacaoAtualizacaoChamado(atualizado, tecnicoAtual.sub)
+          // `true`: só técnico chama PATCH /chamados/:id/status
+          // (@Roles(TipoUsuario.TECNICO)) — nunca aciona o fallback pra
+          // EMAILS_TECNICO_AUTORIZADOS (esse é só pra quando um
+          // colaborador comenta sem ninguém ainda ter assumido).
+          .enviarNotificacaoAtualizacaoChamado(atualizado, tecnicoAtual.sub, true)
           .catch((erro: unknown) =>
             this.logger.error(
               'Falha ao notificar atualização de chamado por e-mail',

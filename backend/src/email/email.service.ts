@@ -272,11 +272,22 @@ export class EmailService {
 
   // Dispara em mudança de status (exceto PARADO -> ANDAMENTO, que tem
   // e-mail próprio — ver acima) ou comentário não-interno — notifica o
-  // solicitante e os observadores ("Cc"), exceto quem foi o autor da própria
-  // ação (`autorId`), pra ninguém receber e-mail avisando da própria ação.
-  // `chamado.solicitante` e `chamado.observadores.usuario` precisam já vir
-  // carregados por quem chama (RELACOES_PADRAO cobre os dois casos de uso
-  // atuais: ChamadosService.atualizarStatus e ComentariosService.criar).
+  // solicitante, os observadores ("Cc") E o técnico responsável (se já
+  // houver um atribuído), exceto quem foi o autor da própria ação
+  // (`autorId`), pra ninguém receber e-mail avisando da própria ação — é
+  // essa checagem que faz um comentário do TÉCNICO notificar só o lado
+  // colaborador, e um comentário do COLABORADOR notificar o técnico (antes
+  // desta mudança, comentário de colaborador não notificava ninguém do lado
+  // técnico depois do e-mail de abertura — só corrigido agora). Sem técnico
+  // atribuído ainda (chamado PARADO, nunca teve atendimento iniciado), não
+  // há ninguém específico a adicionar aqui — o aviso desse estágio continua
+  // sendo só o e-mail de "Novo chamado" (broadcast pros técnicos
+  // autorizados, disparado uma vez na abertura).
+  // `chamado.solicitante`, `chamado.tecnicoResponsavel` e
+  // `chamado.observadores.usuario` precisam já vir carregados por quem
+  // chama (RELACOES_PADRAO cobre ChamadosService.atualizarStatus;
+  // ComentariosService.carregarChamadoPermitido foi ajustado pra também
+  // carregar tecnicoResponsavel).
   //
   // `textoComentario`/`nomeAutorComentario`: só quando a notificação foi
   // disparada por um comentário não-interno (ComentariosService.criar) —
@@ -286,9 +297,23 @@ export class EmailService {
   // pode comentar) — por isso usa o nome de verdade, não um rótulo fixo.
   // Ausentes = notificação por mudança de status, mantém só o cabeçalho
   // padrão (comportamento de antes desta mudança).
+  //
+  // `autorEhTecnico`: obrigatório (não opcional, de propósito) — quem chama
+  // sempre sabe o tipo de quem agiu, e um default errado aqui esconderia
+  // silenciosamente o fallback abaixo. Usado só pra decidir o fallback:
+  // chamado sem tecnicoResponsavel (ainda PARADO, ninguém assumiu) E quem
+  // comentou não é técnico — sem isso, um colaborador comentando de novo
+  // nesse estado não notificava NINGUÉM do lado técnico (bug encontrado ao
+  // validar a correção anterior desta mesma função). Cai pro mesmo
+  // broadcast do e-mail de abertura (EMAILS_TECNICO_AUTORIZADOS), pra
+  // sempre ter alguém a avisar, mesmo sem responsável definido ainda.
+  // ChamadosService.atualizarStatus sempre passa `true` (só técnico chama
+  // aquela rota, `@Roles(TipoUsuario.TECNICO)`), então nunca aciona esse
+  // fallback — só ComentariosService.criar pode.
   async enviarNotificacaoAtualizacaoChamado(
     chamado: Chamado,
     autorId: number,
+    autorEhTecnico: boolean,
     textoComentario?: string,
     nomeAutorComentario?: string,
   ): Promise<void> {
@@ -301,7 +326,12 @@ export class EmailService {
         destinatarios.set(observador.usuario.id, observador.usuario.email);
       }
     }
-    if (destinatarios.size === 0) return;
+    if (chamado.tecnicoResponsavel && chamado.tecnicoResponsavel.id !== autorId) {
+      destinatarios.set(
+        chamado.tecnicoResponsavel.id,
+        chamado.tecnicoResponsavel.email,
+      );
+    }
 
     const temComentario = !!textoComentario?.trim();
     const abertura = temComentario
@@ -310,6 +340,21 @@ export class EmailService {
            ${textoComentario!.replace(/\n/g, '<br>')}
          </blockquote>`
       : `<p>Olá! Seu chamado "${chamado.titulo}" teve uma atualização de status.</p>`;
+
+    if (!chamado.tecnicoResponsavel && !autorEhTecnico) {
+      await this.enviarComSeguranca({
+        to: EMAILS_TECNICO_AUTORIZADOS,
+        subject: `Chamado ${numeroChamado(chamado.id)} sem atendimento tem comentário novo — ${chamado.titulo}`,
+        html: this.envelope(`
+          <p>Olá! O chamado "${chamado.titulo}" ainda aguarda atendimento e recebeu um novo comentário${nomeAutorComentario ? ` de <strong>${nomeAutorComentario}</strong>` : ''}:</p>
+          ${temComentario ? `<blockquote style="margin: 10px 0; padding: 10px 16px; border-left: 3px solid ${COR_MARCA}; background: ${COR_FUNDO_BLOCO}; border-radius: 0 8px 8px 0;">${textoComentario!.replace(/\n/g, '<br>')}</blockquote>` : ''}
+          ${this.blocoDados(this.dadosChamado(chamado))}
+          ${this.botaoLink(this.linkDoChamado(chamado.id), 'Ver chamado no sistema')}
+        `),
+      });
+    }
+
+    if (destinatarios.size === 0) return;
 
     await this.enviarComSeguranca({
       to: [...destinatarios.values()],

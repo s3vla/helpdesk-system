@@ -55,7 +55,16 @@ export class ComentariosService {
   ): Promise<Chamado> {
     const chamado = await this.chamadoRepository.findOne({
       where: { id: chamadoId },
-      relations: { solicitante: true, observadores: { usuario: true } },
+      // tecnicoResponsavel entra aqui além de solicitante/observadores só
+      // pra EmailService.enviarNotificacaoAtualizacaoChamado (chamado por
+      // criar(), abaixo) conseguir notificar o técnico responsável quando
+      // quem comentou for o colaborador — não afeta a checagem de acesso
+      // logo abaixo, que continua só olhando solicitante/observadores.
+      relations: {
+        solicitante: true,
+        observadores: { usuario: true },
+        tecnicoResponsavel: true,
+      },
     });
     if (!chamado) throw new NotFoundException('Chamado não encontrado');
 
@@ -176,6 +185,7 @@ export class ComentariosService {
         .enviarNotificacaoAtualizacaoChamado(
           chamado,
           usuarioAtual.sub,
+          usuarioAtual.tipo === TipoUsuario.TECNICO,
           comentario.texto,
           comentarioCompleto.autor.nome ?? comentarioCompleto.autor.email,
         )
