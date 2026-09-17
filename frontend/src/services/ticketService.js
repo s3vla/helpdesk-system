@@ -113,13 +113,20 @@ function mapearSugestao(s) {
 
 function mapearComentario(c) {
   return {
-    id: String(c.id), author: c.autor.nome, text: c.texto, date: new Date(c.dataCriacao),
+    // String() no id do autor porque usuario.id (AuthContext, ver
+    // mapearUsuario acima) também é sempre string — comparação teria
+    // silenciosamente falhado sempre (number !== string) em
+    // podeEditarComentario, escondendo o botão de editar até pra quem é
+    // dono do comentário.
+    id: String(c.id), authorId: String(c.autor.id), author: c.autor.nome, text: c.texto, date: new Date(c.dataCriacao),
     internal: c.interno, imagensUrls: c.imagensUrls, isObserver: c.ehObservador,
     // NIVEL_AJUSTADO é a entrada automática de auditoria gerada ao
     // reclassificar o nível (ver PATCH /chamados/:id/nivel) — o painel usa
     // isso pra mostrar esse histórico separado da conversa de verdade, em
-    // vez de misturado nela.
+    // vez de misturado nela. Também nunca editável (ver
+    // ComentariosService.editar, no backend).
     isLevelChange: c.tipo === 'NIVEL_AJUSTADO',
+    editedAt: c.editadoEm ? new Date(c.editadoEm) : null,
   }
 }
 
@@ -388,6 +395,20 @@ export async function criarComentario(token, chamadoId, { texto, interno, imagen
     token,
     metodo: 'POST',
     corpo: { texto, interno, ...(imagensUrls?.length ? { imagensUrls } : {}) },
+  })
+  return mapearComentario(comentario)
+}
+
+// PATCH /comentarios/:id — controller próprio, sem chamadoId na URL (ver
+// ComentariosController no backend). Regras (autor, janela de 15min, não
+// finalizado, não é registro automático) são checadas no backend; o
+// frontend só evita OFERECER o botão fora dessas condições, mas a validação
+// de verdade é sempre lá (ver TicketPanel.jsx).
+export async function editarComentario(token, comentarioId, texto) {
+  const comentario = await chamarApi(`/comentarios/${comentarioId}`, {
+    token,
+    metodo: 'PATCH',
+    corpo: { texto },
   })
   return mapearComentario(comentario)
 }

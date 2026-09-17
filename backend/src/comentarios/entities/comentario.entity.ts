@@ -60,6 +60,13 @@ export class Comentario {
   @CreateDateColumn()
   dataCriacao: Date;
 
+  // Preenchido só quando o comentário é editado (ver ComentariosService.editar)
+  // — null significa "nunca editado". Usado tanto pro frontend mostrar
+  // "(editado)" quanto como registro de que o texto original mudou (o
+  // texto anterior em si não fica guardado, só o fato + quando).
+  @Column({ type: 'timestamp', nullable: true })
+  editadoEm: Date | null;
+
   @ManyToOne(() => Chamado, (chamado) => chamado.comentarios, {
     nullable: false,
     onDelete: 'CASCADE',

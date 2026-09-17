@@ -3,13 +3,16 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Comentario } from './entities/comentario.entity';
 import { Chamado } from '../chamados/entities/chamado.entity';
 import { ComentariosService } from './comentarios.service';
+import { ComentariosController } from './comentarios.controller';
 import { LogAuditoriaModule } from '../log-auditoria/log-auditoria.module';
 import { EmailModule } from '../email/email.module';
 
-// Sem controller próprio: as rotas de comentário (/chamados/:id/comentarios)
-// são aninhadas sob "chamados" no contrato da API, então quem as expõe é o
-// ChamadosController — ele importa este módulo só para injetar o
-// ComentariosService (ver `exports` abaixo).
+// Criar/listar (/chamados/:id/comentarios) continuam aninhados sob
+// ChamadosController, que importa este módulo só pra injetar
+// ComentariosService (ver `exports` abaixo) — sem mudar isso. Editar
+// (PATCH /comentarios/:id) é a exceção: tem controller PRÓPRIO aqui
+// (ComentariosController), porque não precisa do chamadoId na URL — ver
+// comentário no controller.
 @Module({
   imports: [
     TypeOrmModule.forFeature([Comentario, Chamado]),
@@ -17,6 +20,7 @@ import { EmailModule } from '../email/email.module';
     EmailModule,
   ],
   providers: [ComentariosService],
+  controllers: [ComentariosController],
   exports: [ComentariosService],
 })
 export class ComentariosModule {}

@@ -11,6 +11,8 @@ export class ComentarioResponseDto {
   interno: boolean;
   imagensUrls: string[];
   dataCriacao: Date;
+  // null = nunca editado. Preenchido por ComentariosService.editar.
+  editadoEm: Date | null;
   autor: UsuarioResponseDto;
   // true quando quem escreveu era um observador ("Cc") do chamado no
   // momento do comentário — nunca o solicitante original nem um técnico.
@@ -32,6 +34,7 @@ export function mapComentarioParaResposta(
     interno: comentario.interno,
     imagensUrls: comentario.imagensUrls,
     dataCriacao: comentario.dataCriacao,
+    editadoEm: comentario.editadoEm,
     autor: mapUsuarioParaResposta(comentario.autor),
     ehObservador: comentario.ehObservador,
     tipo: comentario.tipo,

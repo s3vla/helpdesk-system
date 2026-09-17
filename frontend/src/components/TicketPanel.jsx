@@ -5,13 +5,13 @@ import { useWindowWidth } from '../hooks/useWindowWidth'
 import { useAuth } from '../hooks/useAuth'
 import { useAvisoSairSemSalvar } from '../hooks/useAvisoSairSemSalvar'
 import { formatarData, formatarHora, obterIniciais, tempoDecorrido } from '../utils/formatters'
-import { adicionarObservador, atribuirChamado, atualizarNivelChamado, atualizarPrioridadeChamado, atualizarStatusChamado, buscarChamado, buscarColaboradores, buscarComentarios, buscarLogsAuditoria, buscarSolucoesSugeridas, buscarTecnicos, criarComentario, enviarImagem, removerObservador } from '../services/ticketService'
+import { adicionarObservador, atribuirChamado, atualizarNivelChamado, atualizarPrioridadeChamado, atualizarStatusChamado, buscarChamado, buscarColaboradores, buscarComentarios, buscarLogsAuditoria, buscarSolucoesSugeridas, buscarTecnicos, criarComentario, editarComentario, enviarImagem, removerObservador } from '../services/ticketService'
 import { traduzirErroApi } from '../utils/traduzirErroApi'
 import { extrairImagemColada } from '../utils/colarImagem'
 import { URL_BASE } from '../services/apiClient'
 import { LABEL_CATEGORIA } from '../utils/categorias'
 import { numeroChamado } from '../utils/numeroChamado'
-import { IconChevronDown, IconLightbulb, IconMonitor, IconPaperclip, IconPause, IconPlay, IconRotateCcw } from './icons'
+import { IconChevronDown, IconEdit, IconLightbulb, IconMonitor, IconPaperclip, IconPause, IconPlay, IconRotateCcw, IconX } from './icons'
 import StatusBadge from './StatusBadge'
 import PriorityChip from './PriorityChip'
 import AguardandoRespostaBadge from './AguardandoRespostaBadge'
@@ -127,6 +127,14 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
   const [textoComentario, setTextoComentario] = useState('')
   const [comentarioInterno, setComentarioInterno] = useState(false)
   const [enviandoComentario, setEnviandoComentario] = useState(false)
+  // Edição de comentário — "um id em foco por vez" (mesmo padrão de
+  // confirmandoExclusaoId em Administracao.jsx), tanto pro hover que revela
+  // o ícone de editar quanto pro modo de edição em si.
+  const [comentarioComHoverId, setComentarioComHoverId] = useState(null)
+  const [editandoComentarioId, setEditandoComentarioId] = useState(null)
+  const [textoEdicaoComentario, setTextoEdicaoComentario] = useState('')
+  const [salvandoEdicaoComentario, setSalvandoEdicaoComentario] = useState(false)
+  const [erroEdicaoComentario, setErroEdicaoComentario] = useState('')
   const [mostrarModalResolucao, setMostrarModalResolucao] = useState(false)
   // Só usado no bloco "Reabrir" (chamado.resolution existe e ainda não
   // está marcada como conhecida) — decide se o PATCH de reabertura vai
@@ -486,6 +494,48 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
     } finally {
       setEnviandoComentario(false)
       setEnviandoImagemComentario(false)
+    }
+  }
+
+  // Mesma janela do backend (ComentariosService.editar) — só evita OFERECER
+  // o botão fora da janela; a validação de verdade é sempre lá, então não
+  // precisa recalcular em tempo real (ver comentário no plano aprovado):
+  // qualquer interação no painel já re-renderiza e reavalia isso.
+  const JANELA_EDICAO_MS = 15 * 60 * 1000
+  function podeEditarComentario(c) {
+    return (
+      c.authorId === usuario.id &&
+      !c.isLevelChange &&
+      !chamadoFinalizado &&
+      Date.now() - c.date.getTime() <= JANELA_EDICAO_MS
+    )
+  }
+
+  function iniciarEdicaoComentario(c) {
+    setEditandoComentarioId(c.id)
+    setTextoEdicaoComentario(c.text)
+    setErroEdicaoComentario('')
+  }
+
+  function cancelarEdicaoComentario() {
+    setEditandoComentarioId(null)
+    setTextoEdicaoComentario('')
+    setErroEdicaoComentario('')
+  }
+
+  async function salvarEdicaoComentario(comentarioId) {
+    if (!textoEdicaoComentario.trim()) return
+    setSalvandoEdicaoComentario(true)
+    setErroEdicaoComentario('')
+    try {
+      const atualizado = await editarComentario(token, comentarioId, textoEdicaoComentario.trim())
+      setComentarios(prev => prev.map(c => (c.id === atualizado.id ? atualizado : c)))
+      setEditandoComentarioId(null)
+      setTextoEdicaoComentario('')
+    } catch (e) {
+      if (!tratarErroApi(e)) setErroEdicaoComentario(traduzirErroApi(e))
+    } finally {
+      setSalvandoEdicaoComentario(false)
     }
   }
 
@@ -1038,7 +1088,10 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                         {comentariosReais.map(c => (
-                          <div key={c.id} style={{ background: c.internal ? CORES_NIVEL.bgComentarioInterno : CORES_APP.fundoCampo, border: `1px solid ${c.internal ? CORES_NIVEL.bordaComentarioInterno : CORES_APP.borda}`, borderRadius: 10, padding: '11px 13px' }}>
+                          <div key={c.id}
+                            onMouseEnter={() => setComentarioComHoverId(c.id)}
+                            onMouseLeave={() => setComentarioComHoverId(atual => (atual === c.id ? null : atual))}
+                            style={{ background: c.internal ? CORES_NIVEL.bgComentarioInterno : CORES_APP.fundoCampo, border: `1px solid ${c.internal ? CORES_NIVEL.bordaComentarioInterno : CORES_APP.borda}`, borderRadius: 10, padding: '11px 13px' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, flexWrap: 'wrap', gap: 4 }}>
                               <span style={{ color: c.internal ? CORES_NIVEL.fgClaro : CORES_APP.verde, fontFamily: 'Outfit, sans-serif', fontWeight: 600, fontSize: 13 }}>
                                 {c.author}
@@ -1050,9 +1103,42 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
                                 )}
                                 {c.internal && <span style={{ fontSize: 10, opacity: 0.75, marginLeft: 6 }}>(interno)</span>}
                               </span>
-                              <span style={{ color: CORES_APP.textoSuave, fontSize: 12 }}>{formatarData(c.date)} {formatarHora(c.date)}</span>
+                              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <span style={{ color: CORES_APP.textoSuave, fontSize: 12 }}>
+                                  {formatarData(c.date)} {formatarHora(c.date)}{c.editedAt && ' (editado)'}
+                                </span>
+                                {/* Ícone só ao passar o mouse, pra não poluir a
+                                    conversa — some sozinho fora da janela de
+                                    15min ou se editandoComentarioId já for
+                                    este (o botão de editar vira desnecessário,
+                                    já está no modo de edição). */}
+                                {comentarioComHoverId === c.id && editandoComentarioId !== c.id && podeEditarComentario(c) && (
+                                  <button type="button" onClick={() => iniciarEdicaoComentario(c)} title="Editar comentário"
+                                    style={{ background: 'none', border: 'none', padding: 2, display: 'flex', color: CORES_APP.textoSuave, cursor: 'pointer' }}>
+                                    <IconEdit width={13} height={13} />
+                                  </button>
+                                )}
+                              </span>
                             </div>
-                            {c.text && <p style={{ color: CORES_APP.texto, fontSize: 14, margin: 0, lineHeight: 1.65, whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }}>{c.text}</p>}
+                            {editandoComentarioId === c.id ? (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                <textarea value={textoEdicaoComentario} onChange={e => setTextoEdicaoComentario(e.target.value)} autoFocus disabled={salvandoEdicaoComentario}
+                                  style={{ ...estilos.input, minHeight: 60, resize: 'vertical', fontSize: 14, lineHeight: 1.55, padding: '8px 10px' }} />
+                                {erroEdicaoComentario && <p style={{ color: CORES_APP.erro, fontSize: 12.5, margin: 0 }}>{erroEdicaoComentario}</p>}
+                                <div style={{ display: 'flex', gap: 8 }}>
+                                  <button type="button" onClick={() => salvarEdicaoComentario(c.id)} disabled={!textoEdicaoComentario.trim() || salvandoEdicaoComentario}
+                                    style={{ ...estilos.btnPrimary, width: 'auto', padding: '6px 14px', fontSize: 12.5, opacity: !textoEdicaoComentario.trim() || salvandoEdicaoComentario ? 0.6 : 1 }}>
+                                    {salvandoEdicaoComentario ? 'Salvando...' : 'Salvar'}
+                                  </button>
+                                  <button type="button" onClick={cancelarEdicaoComentario} disabled={salvandoEdicaoComentario}
+                                    style={{ background: CORES_APP.fundoCampo, color: CORES_APP.textoFraco, border: `1px solid ${CORES_APP.borda}`, borderRadius: 8, padding: '6px 14px', fontSize: 12.5, fontFamily: 'Outfit, sans-serif', fontWeight: 500, cursor: salvandoEdicaoComentario ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                    <IconX width={12} height={12} /> Cancelar
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              c.text && <p style={{ color: CORES_APP.texto, fontSize: 14, margin: 0, lineHeight: 1.65, whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }}>{c.text}</p>
+                            )}
                             {/* Mesmo padrão de galeria de chamado.imagens
                                 acima: 1 imagem = preview grande, 2+ = grade
                                 de miniaturas, todas abrindo no mesmo

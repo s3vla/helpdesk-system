@@ -11,12 +11,17 @@ import { Comentario } from './entities/comentario.entity';
 import { Chamado } from '../chamados/entities/chamado.entity';
 import { Usuario } from '../usuarios/entities/usuario.entity';
 import { CriarComentarioDto } from './dto/criar-comentario.dto';
+import { EditarComentarioDto } from './dto/editar-comentario.dto';
 import { TipoUsuario } from '../common/enums/tipo-usuario.enum';
+import { TipoComentario } from '../common/enums/tipo-comentario.enum';
 import { StatusChamado } from '../common/enums/status-chamado.enum';
 import { JwtPayload } from '../common/interfaces/jwt-payload.interface';
 import { LogAuditoriaService } from '../log-auditoria/log-auditoria.service';
 import { AcaoAuditoria } from '../common/enums/acao-auditoria.enum';
 import { EmailService } from '../email/email.service';
+
+// Janela pra editar um comentário próprio, ver ComentariosService.editar.
+const JANELA_EDICAO_MS = 15 * 60 * 1000;
 
 @Injectable()
 export class ComentariosService {
@@ -199,6 +204,62 @@ export class ComentariosService {
         : { chamado: { id: chamadoId }, interno: false },
       relations: { autor: true },
       order: { dataCriacao: 'ASC' },
+    });
+  }
+
+  // PATCH /comentarios/:id — diferente de criar/listarPorChamado, não passa
+  // por carregarChamadoPermitido: a checagem de acesso aqui é mais estrita
+  // (só o AUTOR, nunca outro solicitante/observador do mesmo chamado), então
+  // não faz sentido reaproveitar aquela regra mais ampla.
+  async editar(
+    comentarioId: number,
+    dto: EditarComentarioDto,
+    usuarioAtual: JwtPayload,
+  ): Promise<Comentario> {
+    const comentario = await this.comentarioRepository.findOne({
+      where: { id: comentarioId },
+      relations: { autor: true, chamado: true },
+    });
+    if (!comentario) throw new NotFoundException('Comentário não encontrado');
+
+    if (comentario.autor.id !== usuarioAtual.sub) {
+      throw new ForbiddenException('Só o autor pode editar este comentário');
+    }
+    // NIVEL_AJUSTADO é um registro automático de auditoria (ver
+    // ChamadosService.reclassificarNivel), não algo "escrito por alguém" —
+    // mesmo que o autor bata (o técnico que reclassificou), não é uma
+    // conversa pra editar.
+    if (comentario.tipo !== TipoComentario.COMENTARIO) {
+      throw new ForbiddenException(
+        'Este registro é gerado automaticamente e não pode ser editado',
+      );
+    }
+    if (comentario.chamado.status === StatusChamado.FINALIZADO) {
+      throw new ForbiddenException(
+        'Chamado finalizado — não é possível editar comentários',
+      );
+    }
+    const decorridoMs = Date.now() - comentario.dataCriacao.getTime();
+    if (decorridoMs > JANELA_EDICAO_MS) {
+      throw new ForbiddenException(
+        'Prazo de 15 minutos para editar este comentário já passou',
+      );
+    }
+
+    comentario.texto = dto.texto.trim();
+    comentario.editadoEm = new Date();
+    const salvo = await this.comentarioRepository.save(comentario);
+
+    await this.logAuditoriaService.registrar({
+      chamadoId: comentario.chamado.id,
+      usuarioId: usuarioAtual.sub,
+      acao: AcaoAuditoria.EDICAO,
+      descricao: 'Comentário editado',
+    });
+
+    return this.comentarioRepository.findOneOrFail({
+      where: { id: salvo.id },
+      relations: { autor: true },
     });
   }
 }
