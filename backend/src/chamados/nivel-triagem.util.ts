@@ -1,32 +1,6 @@
 import { Categoria } from '../categorias/entities/categoria.entity';
 import { NivelChamado } from '../common/enums/nivel-chamado.enum';
 
-// Menção ao ERP principal da empresa — sempre N3, não importa a categoria,
-// porque o Viasoft parado afeta a operação inteira. Cobre as variações mais
-// comuns de escrita ("viasoft erp" já cai na primeira, por conter
-// "viasoft" como substring) e também como colaboradores se referem a ele
-// sem citar o nome do produto ("sistema viasoft", "sistema da empresa").
-// "sistema" sozinho fica de fora de propósito — genérico demais, apareceria
-// até numa frase como "o sistema travou" sem nada a ver com o ERP.
-const TERMOS_N3_VIASOFT = [
-  'viasoft',
-  'via soft',
-  'sistema viasoft',
-  'sistema da empresa',
-];
-
-// Termos de infraestrutura compartilhada — também sempre N3, pelo mesmo
-// motivo: tende a afetar mais gente que um problema isolado numa máquina.
-// "dominio" já cobre "domínio" porque o texto é normalizado (acentos
-// removidos) antes da comparação.
-const TERMOS_N3_INFRAESTRUTURA = [
-  'servidor',
-  'banco de dados',
-  'backup',
-  'firewall',
-  'dominio',
-];
-
 // Faixa Unicode dos acentos "soltos" que sobram depois de normalize('NFD')
 // separar uma letra acentuada em base + marca (ex: 'í' -> 'i' + marca de
 // acento agudo). Filtrar por código, em vez de um literal de regex com os
@@ -52,38 +26,32 @@ function contemAlgumTermo(textoNormalizado: string, termos: string[]): boolean {
   return termos.some((termo) => textoNormalizado.includes(termo));
 }
 
-// Regra de triagem automática de nível — checada nesta ordem, a primeira
-// que bater define o nível (ver CONTRATO.md):
-//   1. Menção ao Viasoft (ERP principal)                  -> N3
-//   2. Menção a infraestrutura crítica (servidor, backup...) -> N3
-//   3. Categoria.consideradaRede === true                  -> N2
-//   4. Qualquer outro caso                                 -> N1
-// Sem IA de propósito — é busca de termo simples, do mesmo jeito que a
-// comparação de soluções parecidas (ver solucoes-conhecidas/palavras-chave.util.ts).
+// Regra de triagem automática de nível — checada nesta ordem (ver
+// CONTRATO.md):
+//   1. Texto contém alguma palavra do dicionário PalavraChaveN3 ativa -> N3
+//   2. Qualquer outro caso                                            -> categoria.nivelPadrao
+// Palavra-chave sempre sobrepõe a categoria, nunca o contrário — um chamado
+// numa categoria N1 que menciona "viasoft" ainda vai pra N3. Sem IA de
+// propósito — é busca de termo simples, do mesmo jeito que a comparação de
+// soluções parecidas (ver solucoes-conhecidas/palavras-chave.util.ts).
 // Esse nível é só uma categorização/filtro pro técnico se organizar — NÃO é
 // controle de acesso: os dois técnicos continuam vendo e podendo assumir
 // qualquer chamado, seja qual for o nível calculado aqui.
 //
-// Recebe a Categoria inteira (não só o nome) porque a regra #3 depende do
-// flag `consideradaRede`, marcável na tela de Administração — comparar por
-// nome (`categoria.nome === 'Rede'`) quebraria assim que alguém renomeasse
-// a categoria ou criasse uma nova categoria "tipo rede" (ex: "VPN") sem se
-// chamar literalmente "Rede".
+// `palavrasChaveN3` já vem filtrada por ativo=true (ver
+// PalavrasChaveN3Service.listarAtivas, chamado por ChamadosService antes de
+// calcular o nível) — este util não sabe nada sobre banco de dados.
 export function calcularNivelSugerido(
   categoria: Categoria,
   descricao: string,
   mensagemErro: string | null,
+  palavrasChaveN3: string[],
 ): NivelChamado {
   const textoCombinado = normalizar(`${descricao} ${mensagemErro ?? ''}`);
+  const termosNormalizados = palavrasChaveN3.map(normalizar);
 
-  if (contemAlgumTermo(textoCombinado, TERMOS_N3_VIASOFT)) {
+  if (contemAlgumTermo(textoCombinado, termosNormalizados)) {
     return NivelChamado.N3;
   }
-  if (contemAlgumTermo(textoCombinado, TERMOS_N3_INFRAESTRUTURA)) {
-    return NivelChamado.N3;
-  }
-  if (categoria.consideradaRede) {
-    return NivelChamado.N2;
-  }
-  return NivelChamado.N1;
+  return categoria.nivelPadrao;
 }

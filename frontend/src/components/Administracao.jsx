@@ -26,6 +26,12 @@ import {
   removerCategoria,
 } from '../services/categoriasService'
 import {
+  buscarPalavrasChaveN3,
+  criarPalavraChaveN3,
+  atualizarPalavraChaveN3,
+  removerPalavraChaveN3,
+} from '../services/palavrasChaveN3Service'
+import {
   buscarRelatorioAcesso,
   buscarRelatorioAtividadeChamados,
   buscarRelatorioTempoAtendimento,
@@ -45,6 +51,7 @@ import { IconX, IconPlus, IconSearch, IconEdit, IconTrash } from './icons'
 // Relatórios — 3 relatórios administrativos sobre acesso/uso do sistema).
 const ABAS = [
   { id: 'categorias', label: 'Categorias' },
+  { id: 'palavras-chave-n3', label: 'Palavras-chave N3' },
   { id: 'setores', label: 'Setores' },
   { id: 'grupos', label: 'Grupos' },
   { id: 'colaboradores', label: 'Colaboradores' },
@@ -291,6 +298,16 @@ function CategoriasTab() {
     }
   }
 
+  async function aoDefinirNivelPadrao(categoria, nivel) {
+    if (categoria.nivelPadrao === nivel) return
+    try {
+      const atualizada = await atualizarCategoria(token, categoria.id, { nivelPadrao: nivel })
+      setCategorias(atual => atual.map(c => (c.id === atualizada.id ? atualizada : c)))
+    } catch (e) {
+      if (!tratarErroApi(e)) setErro(traduzirErroApi(e))
+    }
+  }
+
   function aoPedirExclusao(categoria) {
     setConfirmandoExclusaoId(categoria.id)
     setErroExcluir('')
@@ -331,7 +348,7 @@ function CategoriasTab() {
           <div style={{ padding: '18px 22px', borderBottom: `1px solid ${CORES_APP.bordaSuave}` }}>
             <h2 style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: 16, color: CORES_APP.texto, margin: '0 0 3px' }}>Categorias</h2>
             <p style={{ color: CORES_APP.textoFraco, fontSize: 13, margin: 0 }}>
-              {categorias.length} categoria{categorias.length !== 1 ? 's' : ''} cadastrada{categorias.length !== 1 ? 's' : ''}. Excluir só é permitido pra categoria nunca usada; caso contrário, desative. &quot;Considerada rede&quot; classifica automaticamente o chamado como nível N2.
+              {categorias.length} categoria{categorias.length !== 1 ? 's' : ''} cadastrada{categorias.length !== 1 ? 's' : ''}. Excluir só é permitido pra categoria nunca usada; caso contrário, desative. O nível padrão classifica automaticamente o chamado — uma palavra-chave da aba &quot;Palavras-chave N3&quot; sempre sobrepõe pra N3, independente do nível padrão aqui.
             </p>
           </div>
           <div style={{ padding: '16px 22px', display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -363,10 +380,24 @@ function CategoriasTab() {
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
                       <span style={{ fontSize: 14, fontWeight: 600, color: CORES_APP.texto }}>{c.nome}</span>
                       <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: CORES_APP.textoFraco, cursor: 'pointer' }}>
-                          <input type="checkbox" checked={c.consideradaRede} onChange={() => aoAlternarCampo(c, 'consideradaRede')} />
-                          Considerada rede (N2)
-                        </label>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span style={{ fontSize: 12, color: CORES_APP.textoFraco }}>Nível padrão</span>
+                          <div style={{ display: 'flex', gap: 4 }}>
+                            {['N1', 'N2', 'N3'].map(nivel => (
+                              <button key={nivel} type="button" onClick={() => aoDefinirNivelPadrao(c, nivel)}
+                                title={`Considerado ${nivel}`}
+                                style={{
+                                  background: c.nivelPadrao === nivel ? 'rgba(0,73,192,0.12)' : CORES_APP.fundoCampo,
+                                  color: c.nivelPadrao === nivel ? CORES_TI.accent : CORES_APP.textoFraco,
+                                  border: `1px solid ${c.nivelPadrao === nivel ? 'rgba(0,73,192,0.3)' : CORES_APP.borda}`,
+                                  borderRadius: 6, padding: '4px 9px', fontSize: 11.5, fontFamily: 'Outfit, sans-serif',
+                                  fontWeight: c.nivelPadrao === nivel ? 700 : 500, cursor: 'pointer', transition: 'all 0.15s',
+                                }}>
+                                {nivel}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
                         <button type="button" onClick={() => aoAlternarCampo(c, 'ativo')}
                           style={{
                             background: c.ativo ? 'rgba(0,73,192,0.08)' : 'rgba(0,120,81,0.08)',
@@ -414,6 +445,186 @@ function CategoriasTab() {
                               Desativar em vez disso
                             </button>
                           )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+    </EstadoRequisicao>
+  )
+}
+
+// Dicionário administrável que sobrepõe o nível de um chamado pra N3
+// sempre que o texto (descrição/mensagem de erro) contém alguma palavra
+// ativa daqui — independente do nível padrão da categoria (ver
+// CategoriasTab e nivel-triagem.util.ts no backend). Mesmo padrão de
+// CategoriasTab, sem o bloco de "desativar em vez de excluir" (aqui
+// excluir é sempre físico e direto — nada referencia a palavra por FK).
+function PalavrasChaveN3Tab() {
+  const { token, tratarErroApi } = useAuth()
+  const [palavrasChave, setPalavrasChave] = useState([])
+  const [carregando, setCarregando] = useState(true)
+  const [erro, setErro] = useState('')
+
+  const [palavraNova, setPalavraNova] = useState('')
+  const [criando, setCriando] = useState(false)
+  const [erroCriar, setErroCriar] = useState('')
+
+  const [confirmandoExclusaoId, setConfirmandoExclusaoId] = useState(null)
+  const [excluindo, setExcluindo] = useState(false)
+  const [erroExcluir, setErroExcluir] = useState('')
+
+  async function carregar() {
+    setCarregando(true)
+    setErro('')
+    try {
+      setPalavrasChave(await buscarPalavrasChaveN3(token))
+    } catch (e) {
+      if (!tratarErroApi(e)) setErro(traduzirErroApi(e))
+    } finally {
+      setCarregando(false)
+    }
+  }
+
+  useEffect(() => {
+    carregar()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  async function aoCriar(e) {
+    e.preventDefault()
+    if (!palavraNova.trim()) return
+    setCriando(true)
+    setErroCriar('')
+    try {
+      const criada = await criarPalavraChaveN3(token, palavraNova.trim())
+      setPalavrasChave(atual => [...atual, criada].sort((a, b) => a.palavra.localeCompare(b.palavra)))
+      setPalavraNova('')
+    } catch (e) {
+      if (!tratarErroApi(e)) setErroCriar(traduzirErroApi(e))
+    } finally {
+      setCriando(false)
+    }
+  }
+
+  async function aoAlternarAtivo(palavraChave) {
+    try {
+      const atualizada = await atualizarPalavraChaveN3(token, palavraChave.id, { ativo: !palavraChave.ativo })
+      setPalavrasChave(atual => atual.map(p => (p.id === atualizada.id ? atualizada : p)))
+    } catch (e) {
+      if (!tratarErroApi(e)) setErro(traduzirErroApi(e))
+    }
+  }
+
+  function aoPedirExclusao(palavraChave) {
+    setConfirmandoExclusaoId(palavraChave.id)
+    setErroExcluir('')
+  }
+
+  function aoCancelarExclusao() {
+    setConfirmandoExclusaoId(null)
+    setErroExcluir('')
+  }
+
+  async function aoConfirmarExclusao(palavraChave) {
+    setExcluindo(true)
+    setErroExcluir('')
+    try {
+      await removerPalavraChaveN3(token, palavraChave.id)
+      setPalavrasChave(atual => atual.filter(p => p.id !== palavraChave.id))
+      setConfirmandoExclusaoId(null)
+    } catch (e) {
+      if (!tratarErroApi(e)) setErroExcluir(traduzirErroApi(e))
+    } finally {
+      setExcluindo(false)
+    }
+  }
+
+  return (
+    <EstadoRequisicao carregando={carregando} erro={erro} aoTentarNovamente={carregar}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
+        <div style={estilos.card}>
+          <div style={{ padding: '18px 22px', borderBottom: `1px solid ${CORES_APP.bordaSuave}` }}>
+            <h2 style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: 16, color: CORES_APP.texto, margin: '0 0 3px' }}>Palavras-chave N3</h2>
+            <p style={{ color: CORES_APP.textoFraco, fontSize: 13, margin: 0 }}>
+              {palavrasChave.length} palavra{palavrasChave.length !== 1 ? 's' : ''} cadastrada{palavrasChave.length !== 1 ? 's' : ''}. Um chamado cujo texto (descrição ou mensagem de erro) contenha alguma palavra ativa aqui é automaticamente classificado como N3, independente da categoria escolhida.
+            </p>
+          </div>
+          <div style={{ padding: '16px 22px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <form onSubmit={aoCriar} style={{ display: 'flex', gap: 10 }}>
+              <input
+                value={palavraNova}
+                onChange={e => setPalavraNova(e.target.value)}
+                placeholder="Palavra ou expressão nova, ex: nota fiscal"
+                disabled={criando}
+                style={{ ...estilos.input, flex: 1 }}
+              />
+              <button type="submit" disabled={!palavraNova.trim() || criando}
+                style={{ ...estilos.btnPrimary, width: 'auto', padding: '0 22px', opacity: !palavraNova.trim() || criando ? 0.6 : 1 }}>
+                {criando ? 'Criando...' : 'Adicionar'}
+              </button>
+            </form>
+            {erroCriar && <p style={{ color: CORES_APP.erro, fontSize: 13, margin: 0 }}>{erroCriar}</p>}
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 6 }}>
+              {palavrasChave.map(p => {
+                const confirmando = confirmandoExclusaoId === p.id
+                return (
+                  <div key={p.id} style={{
+                    display: 'flex', flexDirection: 'column', gap: 8,
+                    padding: '10px 12px', borderRadius: 8,
+                    border: `1px solid ${confirmando ? 'rgba(239,68,68,0.35)' : CORES_APP.bordaSuave}`,
+                    opacity: p.ativo ? 1 : 0.55,
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: 14, fontWeight: 600, color: CORES_APP.texto }}>{p.palavra}</span>
+                      <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
+                        <button type="button" onClick={() => aoAlternarAtivo(p)}
+                          style={{
+                            background: p.ativo ? 'rgba(0,73,192,0.08)' : 'rgba(0,120,81,0.08)',
+                            color: p.ativo ? CORES_TI.accent : cores.verdeEscuro,
+                            border: 'none', borderRadius: 999, padding: '5px 14px', fontSize: 12.5,
+                            fontFamily: 'Outfit, sans-serif', fontWeight: 600, cursor: 'pointer',
+                          }}>
+                          {p.ativo ? 'Desativar' : 'Ativar'}
+                        </button>
+                        {!confirmando && (
+                          <button type="button" onClick={() => aoPedirExclusao(p)}
+                            style={{
+                              background: 'rgba(239,68,68,0.08)', color: CORES_PRIORIDADE.alta.dot,
+                              border: 'none', borderRadius: 999, padding: '5px 14px', fontSize: 12.5,
+                              fontFamily: 'Outfit, sans-serif', fontWeight: 600, cursor: 'pointer',
+                            }}>
+                            Excluir
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {confirmando && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 8, borderTop: `1px solid ${CORES_APP.bordaSuave}` }}>
+                        <div style={{ color: CORES_APP.tinta, fontSize: 13 }}>
+                          Tem certeza que quer excluir <strong>{p.palavra}</strong>? Essa ação não pode ser desfeita.
+                        </div>
+                        {erroExcluir && <p style={{ color: CORES_APP.erro, fontSize: 13, margin: 0 }}>{erroExcluir}</p>}
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          <button type="button" onClick={() => aoConfirmarExclusao(p)} disabled={excluindo}
+                            style={{
+                              background: 'rgba(239,68,68,0.15)', color: CORES_PRIORIDADE.alta.dot, border: '1px solid rgba(239,68,68,0.35)',
+                              borderRadius: 8, padding: '9px 16px', fontSize: 13, fontFamily: 'Outfit, sans-serif', fontWeight: 700,
+                              cursor: excluindo ? 'default' : 'pointer', opacity: excluindo ? 0.6 : 1,
+                            }}>
+                            {excluindo ? 'Excluindo...' : 'Sim, excluir'}
+                          </button>
+                          <button type="button" onClick={aoCancelarExclusao} disabled={excluindo}
+                            style={{ background: CORES_APP.fundoCampo, color: CORES_APP.textoFraco, border: `1px solid ${CORES_APP.borda}`, borderRadius: 8, padding: '9px 16px', fontSize: 13, fontFamily: 'Outfit, sans-serif', fontWeight: 500, cursor: 'pointer' }}>
+                            Cancelar
+                          </button>
                         </div>
                       </div>
                     )}
@@ -1393,6 +1604,7 @@ function Administracao() {
 
       <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
         {aba === 'categorias' && <CategoriasTab />}
+        {aba === 'palavras-chave-n3' && <PalavrasChaveN3Tab />}
         {aba === 'setores' && <SetoresTab />}
         {aba === 'grupos' && <GruposTab />}
         {aba === 'colaboradores' && <ColaboradoresTab />}

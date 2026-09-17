@@ -1,4 +1,5 @@
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { NivelChamado } from '../../common/enums/nivel-chamado.enum';
 
 // Substitui o antigo enum CategoriaChamado (HARDWARE/SOFTWARE/REDE/ACESSO/
 // OUTRO, fixo em código) — agora o técnico cadastra categorias novas pela
@@ -21,12 +22,13 @@ export class Categoria {
   @Column({ default: true })
   ativo: boolean;
 
-  // Substitui a comparação `categoria === CategoriaChamado.REDE` que
-  // nivel-triagem.util.ts fazia antes — com categoria dinâmica, comparar
-  // por nome/enum não faz mais sentido (o nome pode ser editado, e uma
-  // categoria nova como "VPN" também poderia ser "tipo rede" sem se chamar
-  // literalmente "Rede"). Marcável na tela de Administração; só a
-  // categoria "Rede" original vem com isso true, seedada pela migration.
-  @Column({ default: false })
-  consideradaRede: boolean;
+  // Ponto de partida do nível sugerido em nivel-triagem.util.ts — cada
+  // categoria pode ser configurada pra classificar automaticamente o
+  // chamado em N1, N2 ou N3. Uma palavra-chave de PalavraChaveN3 ativa no
+  // texto do chamado sempre sobrepõe pra N3, independente do que estiver
+  // aqui (ver calcularNivelSugerido). Substitui o antigo `consideradaRede`
+  // (boolean, só cobria N2) — categorias que tinham `consideradaRede=true`
+  // migraram pra 'N2', preservando o comportamento anterior.
+  @Column({ type: 'enum', enum: NivelChamado, default: NivelChamado.N1 })
+  nivelPadrao: NivelChamado;
 }

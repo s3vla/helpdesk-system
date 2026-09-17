@@ -24,6 +24,7 @@ import { ForumModule } from './forum/forum.module';
 import { SetoresModule } from './setores/setores.module';
 import { GruposModule } from './grupos/grupos.module';
 import { CategoriasModule } from './categorias/categorias.module';
+import { PalavrasChaveN3Module } from './palavras-chave-n3/palavras-chave-n3.module';
 import { LogAcessoModule } from './log-acesso/log-acesso.module';
 import { RelatoriosModule } from './relatorios/relatorios.module';
 import { Usuario } from './usuarios/entities/usuario.entity';
@@ -43,6 +44,7 @@ import { Setor } from './setores/entities/setor.entity';
 import { MapeamentoSetorEmail } from './setores/entities/mapeamento-setor-email.entity';
 import { Grupo } from './grupos/entities/grupo.entity';
 import { Categoria } from './categorias/entities/categoria.entity';
+import { PalavraChaveN3 } from './palavras-chave-n3/entities/palavra-chave-n3.entity';
 import { LogAcesso } from './log-acesso/entities/log-acesso.entity';
 
 @Module({
@@ -83,6 +85,7 @@ import { LogAcesso } from './log-acesso/entities/log-acesso.entity';
           MapeamentoSetorEmail,
           Grupo,
           Categoria,
+          PalavraChaveN3,
           LogAcesso,
         ],
         // Migrations (não mais synchronize:true) são quem manda no schema —
@@ -133,6 +136,7 @@ import { LogAcesso } from './log-acesso/entities/log-acesso.entity';
     SetoresModule,
     GruposModule,
     CategoriasModule,
+    PalavrasChaveN3Module,
     LogAcessoModule,
     RelatoriosModule,
   ],

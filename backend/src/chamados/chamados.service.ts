@@ -32,6 +32,7 @@ import { TipoMetrica } from '../common/enums/tipo-metrica.enum';
 import { JwtPayload } from '../common/interfaces/jwt-payload.interface';
 import { SolucoesConhecidasService } from '../solucoes-conhecidas/solucoes-conhecidas.service';
 import { CategoriasService } from '../categorias/categorias.service';
+import { PalavrasChaveN3Service } from '../palavras-chave-n3/palavras-chave-n3.service';
 import { ObservadoresService } from '../observadores/observadores.service';
 import { EmailService } from '../email/email.service';
 import { calcularNivelSugerido } from './nivel-triagem.util';
@@ -196,6 +197,10 @@ export class ChamadosService {
     // criar()) — e fornece a lista de nomes ativos pra zero-preencher o
     // gráfico "Distribuição por categoria" (ver obterMetricas).
     private readonly categoriasService: CategoriasService,
+    // Fornece a lista de palavras ativas pra calcularNivelSugerido
+    // sobrepor pra N3 independente do nivelPadrao da categoria — ver
+    // criar() e nivel-triagem.util.ts.
+    private readonly palavrasChaveN3Service: PalavrasChaveN3Service,
   ) {}
 
   async criar(
@@ -206,6 +211,7 @@ export class ChamadosService {
     const categoria = await this.categoriasService.buscarAtivaPorNomeOuFalhar(
       dto.categoria,
     );
+    const palavrasChaveN3 = await this.palavrasChaveN3Service.listarAtivas();
     const chamado = this.chamadoRepository.create({
       titulo: dto.titulo,
       descricao: dto.descricao,
@@ -218,6 +224,7 @@ export class ChamadosService {
         categoria,
         dto.descricao,
         dto.mensagemErro ?? null,
+        palavrasChaveN3.map((p) => p.palavra),
       ),
       status: StatusChamado.PARADO,
       // Atribuir só `{ id }` (em vez de buscar o Usuario inteiro) é um atalho

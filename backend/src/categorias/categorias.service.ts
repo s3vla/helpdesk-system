@@ -54,15 +54,15 @@ export class CategoriasService {
   }
 
   // Sem exclusão física de propósito (ver comentário na entity) — só ativa/
-  // desativa e marca/desmarca "considerada rede".
+  // desativa e ajusta o nível padrão.
   async atualizar(id: number, dto: AtualizarCategoriaDto): Promise<Categoria> {
     const categoria = await this.categoriaRepository.findOne({
       where: { id },
     });
     if (!categoria) throw new NotFoundException('Categoria não encontrada');
     if (dto.ativo !== undefined) categoria.ativo = dto.ativo;
-    if (dto.consideradaRede !== undefined) {
-      categoria.consideradaRede = dto.consideradaRede;
+    if (dto.nivelPadrao !== undefined) {
+      categoria.nivelPadrao = dto.nivelPadrao;
     }
     return this.categoriaRepository.save(categoria);
   }

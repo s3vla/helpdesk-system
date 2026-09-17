@@ -11,6 +11,7 @@ import { ObservadoresModule } from '../observadores/observadores.module';
 import { LogAuditoriaModule } from '../log-auditoria/log-auditoria.module';
 import { EmailModule } from '../email/email.module';
 import { CategoriasModule } from '../categorias/categorias.module';
+import { PalavrasChaveN3Module } from '../palavras-chave-n3/palavras-chave-n3.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { CategoriasModule } from '../categorias/categorias.module';
     LogAuditoriaModule,
     EmailModule,
     CategoriasModule,
+    PalavrasChaveN3Module,
   ],
   providers: [ChamadosService],
   controllers: [ChamadosController],

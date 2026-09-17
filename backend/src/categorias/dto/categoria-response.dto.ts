@@ -1,10 +1,11 @@
 import { Categoria } from '../entities/categoria.entity';
+import { NivelChamado } from '../../common/enums/nivel-chamado.enum';
 
 export class CategoriaResponseDto {
   id: number;
   nome: string;
   ativo: boolean;
-  consideradaRede: boolean;
+  nivelPadrao: NivelChamado;
 }
 
 export function mapCategoriaParaResposta(
@@ -14,6 +15,6 @@ export function mapCategoriaParaResposta(
     id: categoria.id,
     nome: categoria.nome,
     ativo: categoria.ativo,
-    consideradaRede: categoria.consideradaRede,
+    nivelPadrao: categoria.nivelPadrao,
   };
 }

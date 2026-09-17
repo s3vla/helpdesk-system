@@ -1,4 +1,5 @@
-import { IsBoolean, IsOptional } from 'class-validator';
+import { IsEnum, IsBoolean, IsOptional } from 'class-validator';
+import { NivelChamado } from '../../common/enums/nivel-chamado.enum';
 
 // PATCH /categorias/:id — os dois únicos campos editáveis depois de criada
 // (nome nunca muda: é a chave que já pode estar espalhada em chamados e
@@ -11,6 +12,6 @@ export class AtualizarCategoriaDto {
   ativo?: boolean;
 
   @IsOptional()
-  @IsBoolean()
-  consideradaRede?: boolean;
+  @IsEnum(NivelChamado)
+  nivelPadrao?: NivelChamado;
 }
