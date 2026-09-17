@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 import { estilos, CORES_STATUS, CORES_APP, CORES_NIVEL, CORES_PRIORIDADE } from '../styles/theme'
 import { useWindowWidth } from '../hooks/useWindowWidth'
 import { useAuth } from '../hooks/useAuth'
@@ -494,9 +495,18 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
 
   return (
     <>
-      <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: mobile ? 'stretch' : 'center', justifyContent: 'center', padding: mobile ? 0 : 28 }} onClick={onClose}>
+      {/* Mesmo piloto de ResolutionModal.jsx (ver comentário lá) — fade no
+          overlay, fade+leve escala no painel, mesma duração rápida
+          (0.15-0.18s). AnimatePresence precisa envolver o PONTO DE
+          MONTAGEM condicional deste componente (em App.jsx, onde
+          `chamadoSelecionado && <TicketPanel .../>` decide se ele existe),
+          não algo aqui dentro — é lá que a saída precisa ser animada. */}
+      <motion.div
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}
+        style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: mobile ? 'stretch' : 'center', justifyContent: 'center', padding: mobile ? 0 : 28 }} onClick={onClose}>
         <div style={{ position: 'absolute', inset: 0, background: CORES_APP.overlay, backdropFilter: 'blur(4px)' }} />
-        <div
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} transition={{ duration: 0.18, ease: 'easeOut' }}
           // `height` fixo em 88vh (não mais usado no desktop) fazia o modal
           // sempre ocupar quase a tela inteira, mesmo com pouco conteúdo
           // (ex: chamado sem comentário nenhum) — sobrava um vazio enorme
@@ -633,23 +643,57 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
               maxHeight calculado a partir da altura medida do cabeçalho,
               então ela nunca fica mais alta do que o espaço realmente
               visível — ver alturaCabecalho acima. */}
-          <div style={{ position: 'relative', display: 'grid', gridTemplateColumns: mobile ? '1fr' : (sidebarExpandida ? 'minmax(300px, 380px) 1fr' : '1fr'), gap: mobile ? 22 : 28, transition: mobile ? undefined : 'grid-template-columns 0.18s ease' }}>
+          <div style={{ position: 'relative', display: 'flex' }}>
 
             {/* ── Coluna esquerda: fatos do chamado e ações — só renderiza
                 quando expandida (desktop: item normal do grid; mobile:
                 overlay absoluto sobre a conversa). Nasce expandida sempre
                 que é a primeira vez que ESTE chamado é aberto na sessão
                 (ver `sidebarExpandida` acima), nunca detona sozinha por
-                tempo ou scroll, só pelo clique no botão do cabeçalho. */}
-            {sidebarExpandida && (
-            <div style={{
-              display: 'flex', flexDirection: 'column', gap: 20, minWidth: 0, alignSelf: mobile ? undefined : 'start',
-              ...(mobile ? {
-                position: 'absolute', inset: 0, zIndex: 20, background: CORES_APP.card,
-                padding: 20, boxSizing: 'border-box', overflowY: 'auto',
-                boxShadow: '0 12px 40px rgba(16,35,31,0.2)',
-              } : {}),
-            }}>
+                tempo ou scroll, só pelo clique no botão do cabeçalho.
+                AnimatePresence com initial={false}: sem isso, ela também
+                tocaria a animação de entrada no primeiro render do painel
+                inteiro (que já tem sua própria animação, via motion.div
+                lá em cima) — aqui só deve animar quando o TOGGLE muda o
+                estado depois de montado, não a montagem inicial.
+
+                Desktop anima `width`/`marginRight` (0↔380/0↔28) no MESMO
+                motion.div que também controla a opacidade — de propósito,
+                depois de um bug real encontrado em teste: a primeira
+                versão usava uma transição CSS separada em
+                `grid-template-columns` pra animar a largura da coluna,
+                paralela à animação do framer-motion no conteúdo. Duas
+                animações de motores diferentes (CSS transition vs.
+                framer-motion), mesmo com a mesma duração declarada, não
+                terminam garantidamente no mesmo frame — no instante em
+                que o AnimatePresence desmontava o conteúdo, se o grid
+                ainda não tivesse chegado a 0px de verdade, sobrava um
+                micro-reajuste visível bem no final. Com UMA animação só
+                controlando width+marginRight+opacity juntos, e a coluna
+                da conversa em `flex:1` (recalculada pelo navegador a cada
+                frame, sem transição própria, só reagindo ao tamanho atual
+                do irmão), não existem dois sistemas pra sincronizar.
+
+                Mobile continua com o slide simples (x + fade) de antes —
+                lá a sidebar é `position:absolute`, não disputa espaço com
+                a conversa, então nunca teve esse problema. */}
+            <AnimatePresence initial={false}>
+              {sidebarExpandida && (
+                <motion.div
+                  key="sidebar-coluna"
+                  initial={mobile ? { opacity: 0, x: -20 } : { opacity: 0, width: 0, marginRight: 0 }}
+                  animate={mobile ? { opacity: 1, x: 0 } : { opacity: 1, width: 380, marginRight: 28 }}
+                  exit={mobile ? { opacity: 0, x: -20 } : { opacity: 0, width: 0, marginRight: 0 }}
+                  transition={{ duration: 0.18, ease: 'easeOut' }}
+                  style={mobile ? {
+                    position: 'absolute', inset: 0, zIndex: 20, background: CORES_APP.card,
+                    padding: 20, boxSizing: 'border-box', overflowY: 'auto',
+                    boxShadow: '0 12px 40px rgba(16,35,31,0.2)',
+                    display: 'flex', flexDirection: 'column', gap: 20,
+                  } : {
+                    overflow: 'hidden', flexShrink: 0, alignSelf: 'start',
+                  }}>
+                <div style={mobile ? undefined : { display: 'flex', flexDirection: 'column', gap: 20, width: 380 }}>
               {isIT && sugestoes.length > 0 && (
                 <div style={{ background: CORES_NIVEL.bgCaixaSugestao, border: `1px solid ${CORES_NIVEL.bordaCaixaSugestao}`, borderRadius: 12, padding: '14px 15px', display: 'flex', flexDirection: 'column', gap: 10 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -883,8 +927,10 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
                   </div>
                 </div>
               )}
-            </div>
-            )}
+                </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* ── Coluna direita: feed de conversa — rolagem própria no
                 desktop, independente da coluna esquerda. `position:sticky`
@@ -914,6 +960,12 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
               position: mobile ? undefined : 'sticky',
               top: mobile ? undefined : 0,
               alignSelf: mobile ? undefined : 'start',
+              // flex:1 (não grid) — ocupa o que sobrar, recalculado pelo
+              // navegador a cada frame conforme a largura atual do irmão
+              // (a sidebar) muda, sem precisar de nenhuma transição
+              // própria aqui. Ver comentário grande na abertura da coluna
+              // esquerda, acima, sobre por que isso deixou de ser grid.
+              flex: mobile ? undefined : 1,
               maxHeight: mobile ? undefined : `calc(88vh - 94px - ${alturaCabecalho}px)`,
               width: !mobile && !sidebarExpandida ? '100%' : undefined,
               maxWidth: !mobile && !sidebarExpandida ? 760 : undefined,
@@ -1102,16 +1154,27 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
               )}
             </div>
           </div>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
 
-      {mostrarModalResolucao && (
-        <ResolutionModal
-          carregando={carregandoAcao}
-          onConfirm={finalizar}
-          onCancel={() => setMostrarModalResolucao(false)}
-        />
-      )}
+      {/* AnimatePresence precisa envolver o ponto de montagem condicional
+          (não o componente em si) pra conseguir animar a SAÍDA — sem
+          isso, ResolutionModal some do DOM na hora que
+          mostrarModalResolucao vira false, antes de qualquer exit rodar.
+          Ele detecta a remoção do filho, mantém montado até a transição
+          `exit` do motion.div terminar, só então desmonta de verdade.
+          `key` explícita porque AnimatePresence precisa de uma pra
+          rastrear identidade do filho entre renders. */}
+      <AnimatePresence>
+        {mostrarModalResolucao && (
+          <ResolutionModal
+            key="resolution-modal"
+            carregando={carregandoAcao}
+            onConfirm={finalizar}
+            onCancel={() => setMostrarModalResolucao(false)}
+          />
+        )}
+      </AnimatePresence>
 
       <ImageLightbox src={imagemAmpliada} alt="Imagem ampliada" onClose={() => setImagemAmpliada(null)} />
     </>

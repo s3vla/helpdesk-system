@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { AnimatePresence } from 'framer-motion'
 import LoginScreen from './components/LoginScreen'
 import ITLoginScreen from './components/ITLoginScreen'
 import EmployeeLayout from './components/EmployeeLayout'
@@ -124,14 +125,21 @@ function App() {
         {telaColaborador === 'emp-tarefas' && <MinhasTarefas />}
         {telaColaborador === 'emp-anotacoes' && <MinhasAnotacoes />}
         {telaColaborador === 'emp-forum' && <Forum podeAlterarStatus={false} />}
-        {chamadoSelecionado && (
-          <TicketPanel
-            chamadoInicial={chamadoSelecionado}
-            onClose={() => setChamadoSelecionado(null)}
-            isIT={false}
-            onAtualizado={aoAtualizarChamado}
-          />
-        )}
+        {/* AnimatePresence aqui (não dentro de TicketPanel) — mesmo
+            raciocínio de ResolutionModal.jsx: é este ponto de montagem
+            condicional que precisa "segurar" o componente montado durante
+            a animação de saída. */}
+        <AnimatePresence>
+          {chamadoSelecionado && (
+            <TicketPanel
+              key="ticket-panel-colaborador"
+              chamadoInicial={chamadoSelecionado}
+              onClose={() => setChamadoSelecionado(null)}
+              isIT={false}
+              onAtualizado={aoAtualizarChamado}
+            />
+          )}
+        </AnimatePresence>
         {mostrarTrocarSenha && (
           <TrocarSenhaModal onFechar={() => setMostrarTrocarSenha(false)} onSucesso={() => setMostrarTrocarSenha(false)} />
         )}
@@ -172,14 +180,17 @@ function App() {
       {telaTI === 'it-avisos' && <MuralAvisos podePublicar={true} />}
       {telaTI === 'it-tarefas' && <MinhasTarefas />}
       {telaTI === 'it-forum' && <Forum podeAlterarStatus={true} />}
-      {chamadoSelecionado && (
-        <TicketPanel
-          chamadoInicial={chamadoSelecionado}
-          onClose={() => setChamadoSelecionado(null)}
-          isIT={true}
-          onAtualizado={aoAtualizarChamado}
-        />
-      )}
+      <AnimatePresence>
+        {chamadoSelecionado && (
+          <TicketPanel
+            key="ticket-panel-tecnico"
+            chamadoInicial={chamadoSelecionado}
+            onClose={() => setChamadoSelecionado(null)}
+            isIT={true}
+            onAtualizado={aoAtualizarChamado}
+          />
+        )}
+      </AnimatePresence>
       {mostrarTrocarSenha && (
         <TrocarSenhaModal onFechar={() => setMostrarTrocarSenha(false)} onSucesso={() => setMostrarTrocarSenha(false)} />
       )}

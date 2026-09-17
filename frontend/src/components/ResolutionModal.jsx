@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { motion } from 'framer-motion'
 import { estilos, CORES_APP, CORES_PRIORIDADE } from '../styles/theme'
 import { useAuth } from '../hooks/useAuth'
 import { enviarImagem } from '../services/ticketService'
@@ -65,9 +66,20 @@ function ResolutionModal({ carregando: carregandoExterno, onConfirm, onCancel })
   const textoBotao = etapa === 'enviando-imagem' ? 'Enviando imagens...' : carregandoExterno ? 'Finalizando...' : 'Confirmar e finalizar'
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 55, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, background: CORES_APP.overlay, backdropFilter: 'blur(6px)' }} onClick={onCancel}>
-      <div onPaste={aoColar} style={{ background: CORES_APP.card, border: '1px solid rgba(34,197,94,0.25)', borderRadius: 16, padding: '28px 26px', width: '100%', maxWidth: 460, maxHeight: '90vh', overflowY: 'auto', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 18 }}
-        onClick={e => e.stopPropagation()} className="animate-fade-up">
+    // Piloto de framer-motion neste projeto (ver comentário no ponto de
+    // montagem, em TicketPanel.jsx) — troca a entrada/saída instantânea
+    // (antes só `className="animate-fade-up"`, uma animação de CSS só de
+    // ENTRADA) por fade+leve escala nos dois sentidos, via
+    // <AnimatePresence> no componente pai. initial/animate/exit
+    // simétricos de propósito: a saída é o inverso exato da entrada, não
+    // uma transição nova.
+    <motion.div
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}
+      style={{ position: 'fixed', inset: 0, zIndex: 55, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, background: CORES_APP.overlay, backdropFilter: 'blur(6px)' }} onClick={onCancel}>
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} transition={{ duration: 0.18, ease: 'easeOut' }}
+        onPaste={aoColar} style={{ background: CORES_APP.card, border: '1px solid rgba(34,197,94,0.25)', borderRadius: 16, padding: '28px 26px', width: '100%', maxWidth: 460, maxHeight: '90vh', overflowY: 'auto', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 18 }}
+        onClick={e => e.stopPropagation()}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>✓</div>
           <div>
@@ -148,8 +160,8 @@ function ResolutionModal({ carregando: carregandoExterno, onConfirm, onCancel })
             Cancelar
           </button>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   )
 }
 
