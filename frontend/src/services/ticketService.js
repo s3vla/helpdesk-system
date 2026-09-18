@@ -335,6 +335,19 @@ export async function atualizarPrioridadeChamado(token, chamadoId, prioridade) {
   return mapearChamado(chamado)
 }
 
+// PATCH /chamados/:id/categoria — mesma autorização de
+// atualizarPrioridadeChamado (solicitante ou técnico). `categoria` já é o
+// nome de verdade, sem tradução de camada (ver categoriasService.js — o
+// esquema antigo CATEGORIA_PARA_API/CATEGORIA_DA_API não existe mais).
+export async function atualizarCategoriaChamado(token, chamadoId, categoria) {
+  const chamado = await chamarApi(`/chamados/${chamadoId}/categoria`, {
+    token,
+    metodo: 'PATCH',
+    corpo: { categoria },
+  })
+  return mapearChamado(chamado)
+}
+
 // Define/troca/remove (null) o técnico responsável — diferente de
 // atualizarStatusChamado(status: 'andamento'), que só auto-atribui o
 // próprio técnico logado, esta permite escolher QUALQUER técnico da lista

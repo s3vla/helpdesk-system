@@ -17,6 +17,7 @@ import { AbrirChamadoTecnicoDto } from './dto/abrir-chamado-tecnico.dto';
 import { AtualizarStatusChamadoDto } from './dto/atualizar-status-chamado.dto';
 import { AtualizarNivelChamadoDto } from './dto/atualizar-nivel-chamado.dto';
 import { AtualizarPrioridadeChamadoDto } from './dto/atualizar-prioridade-chamado.dto';
+import { AtualizarCategoriaChamadoDto } from './dto/atualizar-categoria-chamado.dto';
 import { AtribuirChamadoDto } from './dto/atribuir-chamado.dto';
 import { LogAuditoriaService } from '../log-auditoria/log-auditoria.service';
 import { AcaoAuditoria } from '../common/enums/acao-auditoria.enum';
@@ -1040,6 +1041,75 @@ export class ChamadosService {
         usuarioId: usuarioAtual.sub,
         acao: AcaoAuditoria.EDICAO,
         descricao: `Prioridade alterada de "${LABEL_PRIORIDADE[prioridadeAnterior]}" para "${LABEL_PRIORIDADE[dto.prioridade]}"`,
+      });
+    }
+
+    return this.buscarPorIdOuFalhar(id);
+  }
+
+  // PATCH /chamados/:id/categoria — mesma autorização/restrição de
+  // atualizarPrioridade (solicitante OU técnico, bloqueado se FINALIZADO).
+  // Diferente de prioridade, trocar categoria RECALCULA o nível
+  // automaticamente: a categoria é o principal sinal de
+  // calcularNivelSugerido (nivelPadrao + palavras-chave sobre o texto já
+  // existente do chamado), então deixar o nível "parado" na categoria
+  // antiga depois de uma troca deliberada ficaria inconsistente — decisão
+  // confirmada com o usuário antes de implementar.
+  async atualizarCategoria(
+    id: number,
+    dto: AtualizarCategoriaChamadoDto,
+    usuarioAtual: JwtPayload,
+  ): Promise<Chamado> {
+    const chamado = await this.chamadoRepository.findOne({
+      where: { id },
+      relations: RELACOES_PARA_ATUALIZAR,
+    });
+    if (!chamado) throw new NotFoundException('Chamado não encontrado');
+
+    const ehSolicitante = chamado.solicitante.id === usuarioAtual.sub;
+    const ehTecnico = usuarioAtual.tipo === TipoUsuario.TECNICO;
+    if (!ehSolicitante && !ehTecnico) {
+      throw new ForbiddenException(
+        'Você não tem permissão para alterar a categoria deste chamado',
+      );
+    }
+
+    if (chamado.status === StatusChamado.FINALIZADO) {
+      throw new BadRequestException(
+        'Não é possível alterar categoria de chamado finalizado',
+      );
+    }
+
+    const novaCategoria = await this.categoriasService.buscarAtivaPorNomeOuFalhar(
+      dto.categoria,
+    );
+
+    // Idempotente, mesmo raciocínio de atualizarPrioridade: reenviar a
+    // mesma categoria não é uma mudança de verdade, não gera log nem
+    // recalcula nível.
+    if (novaCategoria.id !== chamado.categoria.id) {
+      const categoriaAnterior = chamado.categoria;
+      const nivelAnterior = chamado.nivel;
+      const palavrasChaveN3 = await this.palavrasChaveN3Service.listarAtivas();
+
+      chamado.categoria = novaCategoria;
+      chamado.nivel = calcularNivelSugerido(
+        novaCategoria,
+        chamado.descricao,
+        chamado.mensagemErro,
+        palavrasChaveN3.map((p) => p.palavra),
+      );
+      await this.chamadoRepository.save(chamado);
+
+      const descricaoNivel =
+        chamado.nivel !== nivelAnterior
+          ? ` (nível recalculado de ${nivelAnterior} para ${chamado.nivel})`
+          : '';
+      await this.logAuditoriaService.registrar({
+        chamadoId: id,
+        usuarioId: usuarioAtual.sub,
+        acao: AcaoAuditoria.EDICAO,
+        descricao: `Categoria alterada de "${categoriaAnterior.nome}" para "${novaCategoria.nome}"${descricaoNivel}`,
       });
     }
 

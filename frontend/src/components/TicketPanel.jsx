@@ -5,7 +5,8 @@ import { useWindowWidth } from '../hooks/useWindowWidth'
 import { useAuth } from '../hooks/useAuth'
 import { useAvisoSairSemSalvar } from '../hooks/useAvisoSairSemSalvar'
 import { formatarData, formatarHora, obterIniciais, tempoDecorrido } from '../utils/formatters'
-import { adicionarObservador, atribuirChamado, atualizarNivelChamado, atualizarPrioridadeChamado, atualizarStatusChamado, buscarChamado, buscarColaboradores, buscarComentarios, buscarLogsAuditoria, buscarSolucoesSugeridas, buscarTecnicos, criarComentario, editarComentario, enviarImagem, removerObservador } from '../services/ticketService'
+import { adicionarObservador, atribuirChamado, atualizarCategoriaChamado, atualizarNivelChamado, atualizarPrioridadeChamado, atualizarStatusChamado, buscarChamado, buscarColaboradores, buscarComentarios, buscarLogsAuditoria, buscarSolucoesSugeridas, buscarTecnicos, criarComentario, editarComentario, enviarImagem, removerObservador } from '../services/ticketService'
+import { buscarCategoriasAtivas } from '../services/categoriasService'
 import { traduzirErroApi } from '../utils/traduzirErroApi'
 import { extrairImagemColada } from '../utils/colarImagem'
 import { URL_BASE } from '../services/apiClient'
@@ -148,6 +149,9 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
   const [salvandoNivel, setSalvandoNivel] = useState(false)
   const [mostrarMenuPrioridade, setMostrarMenuPrioridade] = useState(false)
   const [salvandoPrioridade, setSalvandoPrioridade] = useState(false)
+  const [mostrarMenuCategoria, setMostrarMenuCategoria] = useState(false)
+  const [salvandoCategoria, setSalvandoCategoria] = useState(false)
+  const [categoriasAtivas, setCategoriasAtivas] = useState([])
   const [imagemAmpliada, setImagemAmpliada] = useState(null)
   const [arquivosComentario, setArquivosComentario] = useState([])
   const [enviandoImagemComentario, setEnviandoImagemComentario] = useState(false)
@@ -285,6 +289,19 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isIT])
 
+  // Opções do popover de categoria (ver podeEditarCategoria/alterarCategoria
+  // abaixo) — diferente de colaboradores/técnicos acima, não é gated por
+  // isIT: o solicitante também pode editar a própria categoria, mesmo
+  // padrão de permissão de prioridade. Busca uma vez só, ao abrir o painel.
+  useEffect(() => {
+    let cancelado = false
+    buscarCategoriasAtivas(token)
+      .then(lista => { if (!cancelado) setCategoriasAtivas(lista.map(c => c.nome)) })
+      .catch(() => { if (!cancelado) setCategoriasAtivas([]) })
+    return () => { cancelado = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   // Minimizar/expandir é sempre uma ação manual (clique aqui) — nunca
   // acontece sozinho por tempo ou rolagem. Guarda a escolha no Map de
   // sessão pra, se ESTE chamado for reaberto depois, lembrar o que o
@@ -385,6 +402,26 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
       if (!tratarErroApi(e)) setErroAcao(traduzirErroApi(e))
     } finally {
       setSalvandoPrioridade(false)
+    }
+  }
+
+  // Mesmo raciocínio de alterarPrioridade — idempotente e recarrega
+  // onAtualizado(). O nível pode vir recalculado pelo backend junto (ver
+  // ChamadosService.atualizarCategoria) — chamado atualizado já reflete
+  // isso, sem precisar de nenhuma lógica extra aqui.
+  async function alterarCategoria(novaCategoria) {
+    setMostrarMenuCategoria(false)
+    if (novaCategoria === chamado.category) return
+    setErroAcao('')
+    setSalvandoCategoria(true)
+    try {
+      const atualizado = await atualizarCategoriaChamado(token, chamado.id, novaCategoria)
+      setChamado(atualizado)
+      onAtualizado()
+    } catch (e) {
+      if (!tratarErroApi(e)) setErroAcao(traduzirErroApi(e))
+    } finally {
+      setSalvandoCategoria(false)
     }
   }
 
@@ -545,6 +582,7 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
   // aparência (badge clicável ou não). `usuario.id`/`chamado.userId` são
   // string os dois (ver mapearUsuario/mapearChamado).
   const podeEditarPrioridade = !chamadoFinalizado && (isIT || chamado.userId === usuario.id)
+  const podeEditarCategoria = !chamadoFinalizado && (isIT || chamado.userId === usuario.id)
 
   return (
     <>
@@ -632,7 +670,31 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
                 ) : (
                   <span style={{ background: CORES_NIVEL.bg, color: CORES_NIVEL.fgClaro, padding: '3px 10px', borderRadius: 99, fontSize: 12, fontWeight: 600, fontFamily: 'Outfit, sans-serif' }}>{chamado.level}</span>
                 )}
-                <span style={{ background: CORES_APP.fundoCampo, color: CORES_APP.textoFraco, padding: '3px 10px', borderRadius: 99, fontSize: 12, fontFamily: 'Outfit, sans-serif' }}>{LABEL_CATEGORIA[chamado.category] ?? chamado.category}</span>
+                {podeEditarCategoria ? (
+                  <div style={{ position: 'relative' }}>
+                    <button type="button" onClick={() => setMostrarMenuCategoria(v => !v)} disabled={salvandoCategoria}
+                      title="Alterar categoria"
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 3, background: CORES_APP.fundoCampo, color: CORES_APP.textoFraco, border: 'none', borderRadius: 99, padding: '3px 7px 3px 10px', fontSize: 12, fontFamily: 'Outfit, sans-serif', cursor: salvandoCategoria ? 'default' : 'pointer' }}>
+                      {LABEL_CATEGORIA[chamado.category] ?? chamado.category}
+                      <IconChevronDown width={11} height={11} style={{ transform: mostrarMenuCategoria ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
+                    </button>
+                    {mostrarMenuCategoria && (
+                      <>
+                        <div style={{ position: 'fixed', inset: 0, zIndex: 6 }} onClick={() => setMostrarMenuCategoria(false)} />
+                        <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, zIndex: 7, background: CORES_APP.popover, border: `1px solid ${CORES_APP.borda}`, borderRadius: 8, padding: 4, boxShadow: '0 8px 24px rgba(16,35,31,0.18)', minWidth: 130 }}>
+                          {categoriasAtivas.map(c => (
+                            <button key={c} type="button" onClick={() => alterarCategoria(c)}
+                              style={{ display: 'block', width: '100%', textAlign: 'left', background: c === chamado.category ? CORES_APP.fundoCampo : 'transparent', color: c === chamado.category ? CORES_APP.verde : CORES_APP.texto, border: 'none', borderRadius: 6, padding: '6px 9px', fontSize: 12, fontFamily: 'Outfit, sans-serif', fontWeight: c === chamado.category ? 600 : 400, cursor: 'pointer' }}>
+                              {LABEL_CATEGORIA[c] ?? c}
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                ) : (
+                  <span style={{ background: CORES_APP.fundoCampo, color: CORES_APP.textoFraco, padding: '3px 10px', borderRadius: 99, fontSize: 12, fontFamily: 'Outfit, sans-serif' }}>{LABEL_CATEGORIA[chamado.category] ?? chamado.category}</span>
+                )}
                 <ObservadoresCabecalho
                   observers={chamado.observers}
                   isIT={isIT}
