@@ -47,6 +47,7 @@ function ITAbrirChamado({ onSubmit }) {
   const [colaboradores, setColaboradores] = useState([])
   const [carregandoColaboradores, setCarregandoColaboradores] = useState(true)
   const [solicitanteId, setSolicitanteId] = useState(null)
+  const [titulo, setTitulo] = useState('')
   const [desc, setDesc] = useState('')
   const [errMsg, setErrMsg] = useState('')
   // Ver mesmo comentário em CreateTicket.jsx — lista dinâmica, não mais um
@@ -63,7 +64,7 @@ function ITAbrirChamado({ onSubmit }) {
 
   // Mesmo aviso de CreateTicket.jsx — solicitante selecionado sozinho
   // (sem nada mais preenchido) não conta como "mudança não salva".
-  useAvisoSairSemSalvar(Boolean(desc.trim() || errMsg.trim() || anydeskId.trim() || arquivos.length > 0))
+  useAvisoSairSemSalvar(Boolean(titulo.trim() || desc.trim() || errMsg.trim() || anydeskId.trim() || arquivos.length > 0))
 
   useEffect(() => {
     buscarColaboradores(token)
@@ -108,7 +109,7 @@ function ITAbrirChamado({ onSubmit }) {
   }
 
   async function enviar() {
-    if (!solicitanteId || !desc.trim() || !cat) return
+    if (!solicitanteId || !titulo.trim() || !desc.trim() || !cat) return
     setErro('')
     try {
       const imagensUrls = []
@@ -122,7 +123,7 @@ function ITAbrirChamado({ onSubmit }) {
         }
       }
       setEtapa('criando')
-      await abrirChamadoComoTecnico(token, { solicitanteId, descricao: desc, mensagemErro: errMsg, categoria: cat, prioridade: prio, imagensUrls, anydeskId })
+      await abrirChamadoComoTecnico(token, { solicitanteId, titulo: titulo.trim(), descricao: desc, mensagemErro: errMsg, categoria: cat, prioridade: prio, imagensUrls, anydeskId })
       onSubmit()
     } catch (e) {
       if (!tratarErroApi(e)) setErro(traduzirErroApi(e))
@@ -134,7 +135,7 @@ function ITAbrirChamado({ onSubmit }) {
   const aoTeclarEnter = useEnterParaEnviar(enviar)
   const carregando = etapa !== null
   const textoBotao = etapa === 'enviando-imagem' ? 'Enviando imagens...' : etapa === 'criando' ? 'Enviando chamado...' : 'Abrir chamado'
-  const podeEnviar = !!solicitanteId && desc.trim() && !!cat && !carregando
+  const podeEnviar = !!solicitanteId && titulo.trim() && desc.trim() && !!cat && !carregando
   // 2/3 pro formulário, 1/3 pro resumo (proporção literal via fr, não só
   // aproximada por px) em telas largas o bastante pra caber as duas
   // colunas sem apertar (coluna direita tem mínimo de 280px) — abaixo
@@ -162,6 +163,12 @@ function ITAbrirChamado({ onSubmit }) {
             onChange={setSolicitanteId}
             disabled={carregando || carregandoColaboradores}
           />
+        </div>
+        <div>
+          <label style={rotuloCompacto}>Título <span style={{ color: CORES_PRIORIDADE.alta.dot }}>*</span></label>
+          <input value={titulo} onChange={e => setTitulo(e.target.value)} onKeyDown={aoTeclarEnter} maxLength={100}
+            placeholder="Ex: Impressora do financeiro não imprime"
+            style={campoCompacto} disabled={carregando} />
         </div>
         <div>
           <label style={rotuloCompacto}>O que o colaborador precisa? <span style={{ color: CORES_PRIORIDADE.alta.dot }}>*</span></label>

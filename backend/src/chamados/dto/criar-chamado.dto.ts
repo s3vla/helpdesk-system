@@ -5,6 +5,7 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  MaxLength,
 } from 'class-validator';
 import { PrioridadeChamado } from '../../common/enums/prioridade-chamado.enum';
 
@@ -16,8 +17,14 @@ const MAXIMO_IMAGENS_POR_CHAMADO = 5;
 // nenhum desses pode vir do corpo da requisição, senão qualquer cliente da
 // API poderia abrir um chamado em nome de outra pessoa ou já finalizado.
 export class CriarChamadoDto {
+  // Antes desse campo virar um <input> de verdade no formulário, esse valor
+  // era sempre inventado no frontend (descricao.slice(0, 65)) — agora vem
+  // digitado pelo usuário, mas o limite continua existindo aqui pro backend
+  // nunca confiar só na validação client-side (alguém batendo na API
+  // direto poderia mandar um título gigante sem isso).
   @IsString()
-  @IsNotEmpty({ message: 'Descreva o problema' })
+  @IsNotEmpty({ message: 'Título é obrigatório' })
+  @MaxLength(100, { message: 'Título deve ter no máximo 100 caracteres' })
   titulo: string;
 
   @IsString()

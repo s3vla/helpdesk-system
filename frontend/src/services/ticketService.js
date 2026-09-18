@@ -239,15 +239,12 @@ export async function buscarChamado(token, chamadoId) {
   return mapearChamado(chamado)
 }
 
-// Deriva o título a partir dos primeiros caracteres da descrição — o
-// formulário de abertura de chamado nunca teve um campo de título separado,
-// então mantemos esse mesmo comportamento do protótipo original.
-export async function criarChamado(token, { descricao, mensagemErro, categoria, prioridade, imagensUrls, anydeskId }) {
+export async function criarChamado(token, { titulo, descricao, mensagemErro, categoria, prioridade, imagensUrls, anydeskId }) {
   const chamado = await chamarApi('/chamados', {
     token,
     metodo: 'POST',
     corpo: {
-      titulo: descricao.slice(0, 65),
+      titulo,
       descricao,
       mensagemErro: mensagemErro || undefined,
       categoria,
@@ -274,16 +271,14 @@ export async function buscarChamadosSemelhantes(token, { categoria, texto }) {
 
 // Técnico abre um chamado em nome de um colaborador (cenário "colega
 // ligou/pediu pessoalmente") — mesmo corpo de criarChamado() acima, mais
-// `solicitanteId`. Ainda deriva o título a partir da descrição, mesma
-// regra do formulário do colaborador (nunca existiu campo de título
-// separado em nenhum dos dois fluxos).
-export async function abrirChamadoComoTecnico(token, { solicitanteId, descricao, mensagemErro, categoria, prioridade, imagensUrls, anydeskId }) {
+// `solicitanteId`.
+export async function abrirChamadoComoTecnico(token, { solicitanteId, titulo, descricao, mensagemErro, categoria, prioridade, imagensUrls, anydeskId }) {
   const chamado = await chamarApi('/chamados/tecnico', {
     token,
     metodo: 'POST',
     corpo: {
       solicitanteId: Number(solicitanteId),
-      titulo: descricao.slice(0, 65),
+      titulo,
       descricao,
       mensagemErro: mensagemErro || undefined,
       categoria,

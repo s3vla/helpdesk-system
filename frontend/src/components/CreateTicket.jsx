@@ -51,6 +51,7 @@ const rotuloCompacto = { ...estilos.label, marginBottom: 7 }
 // o botão mostra dois estágios de carregamento diferentes.
 function CreateTicket({ onSubmit, onSelect }) {
   const { token, tratarErroApi } = useAuth()
+  const [titulo, setTitulo] = useState('')
   const [desc, setDesc] = useState('')
   const [errMsg, setErrMsg] = useState('')
   // Categorias ativas buscadas do backend — não é mais um array fixo (ver
@@ -73,7 +74,7 @@ function CreateTicket({ onSubmit, onSelect }) {
   // Avisa antes de fechar a aba/recarregar só enquanto tiver algo digitado
   // ou anexado que ainda não foi enviado — formulário vazio não dispara
   // aviso nenhum (ver useAvisoSairSemSalvar).
-  useAvisoSairSemSalvar(Boolean(desc.trim() || errMsg.trim() || anydeskId.trim() || arquivos.length > 0))
+  useAvisoSairSemSalvar(Boolean(titulo.trim() || desc.trim() || errMsg.trim() || anydeskId.trim() || arquivos.length > 0))
 
   useEffect(() => {
     buscarCategoriasAtivas(token).then(lista => {
@@ -150,7 +151,7 @@ function CreateTicket({ onSubmit, onSelect }) {
   }
 
   async function enviar() {
-    if (!desc.trim() || !cat) return
+    if (!titulo.trim() || !desc.trim() || !cat) return
     setErro('')
     try {
       const imagensUrls = []
@@ -164,7 +165,7 @@ function CreateTicket({ onSubmit, onSelect }) {
         }
       }
       setEtapa('criando')
-      await criarChamado(token, { descricao: desc, mensagemErro: errMsg, categoria: cat, prioridade: prio, imagensUrls, anydeskId })
+      await criarChamado(token, { titulo: titulo.trim(), descricao: desc, mensagemErro: errMsg, categoria: cat, prioridade: prio, imagensUrls, anydeskId })
       onSubmit()
     } catch (e) {
       if (!tratarErroApi(e)) setErro(traduzirErroApi(e))
@@ -197,6 +198,12 @@ function CreateTicket({ onSubmit, onSelect }) {
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: duasColunas ? 'minmax(0, 2fr) minmax(280px, 1fr)' : '1fr', gap: 24, alignItems: 'start' }}>
       <div onPaste={aoColar} style={{ ...estilos.card, border: '1px solid rgba(0,120,81,0.14)', padding: largura < 640 ? 16 : '32px 25px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div>
+          <label style={rotuloCompacto}>Título <span style={{ color: CORES_PRIORIDADE.alta.dot }}>*</span></label>
+          <input value={titulo} onChange={e => setTitulo(e.target.value)} onKeyDown={aoTeclarEnter} maxLength={100}
+            placeholder="Ex: Impressora do financeiro não imprime"
+            style={campoCompacto} disabled={carregando} />
+        </div>
         <div>
           <label style={rotuloCompacto}>O que você precisa? <span style={{ color: CORES_PRIORIDADE.alta.dot }}>*</span></label>
           <textarea value={desc} onChange={e => setDesc(e.target.value)} onKeyDown={aoTeclarEnter} placeholder="Ex: impressora do setor não imprime, aparece 'sem papel' mas tem papel na bandeja"
@@ -317,8 +324,8 @@ function CreateTicket({ onSubmit, onSelect }) {
           <p style={{ color: CORES_APP.textoSuave, fontSize: 12, margin: '4px 0 0' }}>Fica visível na tela inicial do AnyDesk.</p>
         </div>
         {erro && <p style={{ color: CORES_APP.erro, fontSize: 13, margin: 0 }}>{erro}</p>}
-        <button onClick={enviar} disabled={!desc.trim() || !cat || carregando}
-          style={{ ...estilos.btnPrimary, padding: '11px 28px', opacity: desc.trim() && cat && !carregando ? 1 : 0.45, cursor: desc.trim() && cat && !carregando ? 'pointer' : 'not-allowed', fontSize: 15 }}>
+        <button onClick={enviar} disabled={!titulo.trim() || !desc.trim() || !cat || carregando}
+          style={{ ...estilos.btnPrimary, padding: '11px 28px', opacity: titulo.trim() && desc.trim() && cat && !carregando ? 1 : 0.45, cursor: titulo.trim() && desc.trim() && cat && !carregando ? 'pointer' : 'not-allowed', fontSize: 15 }}>
           {textoBotao}
         </button>
       </div>
