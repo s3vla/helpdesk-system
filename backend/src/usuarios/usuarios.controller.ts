@@ -44,6 +44,7 @@ export class UsuariosController {
       filtros.pagina,
       filtros.limite,
       filtros.busca,
+      filtros.statusChamado,
     );
     // Uma query agrupada só pra TODOS os colaboradores desta página, em
     // vez do frontend pedir GET /usuarios/:id/chamados uma vez por linha

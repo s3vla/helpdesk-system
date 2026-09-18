@@ -423,7 +423,7 @@ export async function editarComentario(token, comentarioId, texto) {
 // `busca`: nome OU e-mail, parcial (ver ITUsers.jsx) — repassado direto pro
 // backend, mesmo padrão de busca já usado em Central de Chamados/Fórum
 // (?busca=, filtrando no servidor, não em memória).
-export async function buscarColaboradores(token, { pagina, porPagina, busca } = {}) {
+export async function buscarColaboradores(token, { pagina, porPagina, busca, statusChamado } = {}) {
   const params = new URLSearchParams()
   if (pagina) {
     params.set('pagina', pagina)
@@ -436,6 +436,10 @@ export async function buscarColaboradores(token, { pagina, porPagina, busca } = 
     params.set('limite', 10000)
   }
   if (busca?.trim()) params.set('busca', busca.trim())
+  // 'parado'/'andamento'/'finalizado' — mesma convenção minúscula das
+  // pílulas de status de ITDashboard.jsx, repassada direto (o backend
+  // converte pro enum maiúsculo, ver UsuariosService.listarColaboradores).
+  if (statusChamado) params.set('statusChamado', statusChamado)
   const resposta = await chamarApi(`/usuarios?${params.toString()}`, { token })
   return mapearRespostaPaginada(resposta, mapearUsuario)
 }

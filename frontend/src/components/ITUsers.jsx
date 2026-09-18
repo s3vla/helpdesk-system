@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { estilos, CORES_APP, CORES_STATUS, CORES_PRIORIDADE } from '../styles/theme'
+import { estilos, CORES_APP, CORES_STATUS, CORES_PRIORIDADE, CORES_TI } from '../styles/theme'
 import { cores } from '../styles/authTheme'
 import { obterIniciais } from '../utils/formatters'
 import { useAuth } from '../hooks/useAuth'
@@ -21,6 +21,11 @@ import { IconSearch } from './icons'
 // por Meus Chamados/Minhas Tarefas/etc.
 const COLABORADORES_POR_PAGINA = 20
 
+// Mesmo padrão de pílulas de ITDashboard.jsx (FILTROS_STATUS) — reaproveita
+// as mesmas chaves minúsculas e CORES_STATUS, pra ficar visualmente
+// idêntico ao filtro de status já existente na Central de Chamados.
+const FILTROS_STATUS = [['all', 'Todos'], ['parado', 'Parados'], ['andamento', 'Em andamento'], ['finalizado', 'Finalizados']]
+
 function ITUsers({ onSelect }) {
   const { token, tratarErroApi } = useAuth()
   const [usuarios, setUsuarios] = useState([])
@@ -31,6 +36,7 @@ function ITUsers({ onSelect }) {
   const [erro, setErro] = useState('')
   const [buscaInput, setBuscaInput] = useState('')
   const [busca, setBusca] = useState('')
+  const [filtroStatus, setFiltroStatus] = useState('all')
   const debounceRef = useRef(null)
 
   // Mesmo debounce de ~300-400ms já usado em ITSolutions.jsx pra busca —
@@ -41,18 +47,21 @@ function ITUsers({ onSelect }) {
     return () => clearTimeout(debounceRef.current)
   }, [buscaInput])
 
-  // Busca mudando volta pra página 1 — senão dá pra ficar "presa" numa
-  // página que não existe mais depois de um filtro que reduziu o total de
-  // resultados (mesmo raciocínio de ITSolutions.jsx).
+  // Busca ou filtro de status mudando volta pra página 1 — senão dá pra
+  // ficar "presa" numa página que não existe mais depois de um filtro que
+  // reduziu o total de resultados (mesmo raciocínio de ITSolutions.jsx).
   useEffect(() => {
     setPagina(1)
-  }, [busca])
+  }, [busca, filtroStatus])
 
   async function buscar() {
     setCarregando(true)
     setErro('')
     try {
-      const resposta = await buscarColaboradores(token, { pagina, porPagina: COLABORADORES_POR_PAGINA, busca })
+      const resposta = await buscarColaboradores(token, {
+        pagina, porPagina: COLABORADORES_POR_PAGINA, busca,
+        statusChamado: filtroStatus !== 'all' ? filtroStatus : undefined,
+      })
       setUsuarios(resposta.itens)
       setTotal(resposta.total)
       setTotalPaginas(resposta.totalPaginas)
@@ -66,7 +75,7 @@ function ITUsers({ onSelect }) {
   useEffect(() => {
     buscar()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pagina, busca])
+  }, [pagina, busca, filtroStatus])
 
   // height:'100%' + coluna flex: o wrapper assume TODO o espaço vertical
   // que o `main` do layout já reserva (ver EmployeeLayout.jsx/
@@ -83,13 +92,32 @@ function ITUsers({ onSelect }) {
           {carregando ? 'Carregando...' : `${total} colaborador${total !== 1 ? 'es' : ''} ${busca ? 'encontrado' + (total !== 1 ? 's' : '') : 'cadastrado' + (total !== 1 ? 's' : '')}`}
         </p>
       </div>
-      <div style={{ position: 'relative', marginBottom: 18, flexShrink: 0 }}>
+      <div style={{ position: 'relative', marginBottom: 14, flexShrink: 0 }}>
         <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: CORES_APP.textoSuave, pointerEvents: 'none', display: 'flex' }}><IconSearch /></span>
         <input
           value={buscaInput} onChange={e => setBuscaInput(e.target.value)}
           placeholder="Buscar por nome ou e-mail..."
           style={{ ...estilos.input, paddingLeft: 40, fontSize: 14 }}
         />
+      </div>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 18, flexShrink: 0 }}>
+        <span style={{ color: CORES_APP.textoSuave, fontFamily: 'Outfit, sans-serif', fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', marginRight: 2 }}>Status:</span>
+        {FILTROS_STATUS.map(([valor, label]) => {
+          const ativo = filtroStatus === valor
+          const cor = valor !== 'all' ? CORES_STATUS[valor].fg : CORES_TI.accent
+          return (
+            <button key={valor} type="button" onClick={() => setFiltroStatus(valor)}
+              style={{
+                background: ativo ? `color-mix(in srgb, ${cor} 10%, transparent)` : CORES_APP.fundoCampo,
+                color: ativo ? cor : CORES_APP.textoFraco,
+                border: `1px solid ${ativo ? `color-mix(in srgb, ${cor} 27%, transparent)` : CORES_APP.borda}`,
+                borderRadius: 999, padding: '6px 13px', fontSize: 12, fontFamily: 'Outfit, sans-serif',
+                fontWeight: ativo ? 600 : 400, cursor: 'pointer',
+              }}>
+              {label}
+            </button>
+          )
+        })}
       </div>
       <div style={{ flex: '1 1 auto', minHeight: 0, overflowY: 'auto' }}>
       <EstadoRequisicao carregando={carregando} erro={erro} aoTentarNovamente={buscar}>

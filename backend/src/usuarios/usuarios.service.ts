@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { FindOptionsWhere, ILike, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { Usuario } from './entities/usuario.entity';
 import { Setor } from '../setores/entities/setor.entity';
 import { TipoUsuario } from '../common/enums/tipo-usuario.enum';
@@ -86,33 +86,57 @@ export class UsuariosService {
   // diferente de `nome`, que fica null enquanto a conta está "aguardando
   // cadastro") — garante uma ordem estável entre páginas.
   //
-  // `busca`: nome OU e-mail, parcial e case-insensitive (ILike — Postgres
-  // resolve o "case-insensitive" nativamente, sem precisar de LOWER() dos
-  // dois lados como solucoes-conhecidas.service.ts faz na QueryBuilder).
-  // Dois `where` (array = OR) porque `nome` pode ser null numa conta
-  // resetada — ILike contra null simplesmente não bate, nunca lança erro.
+  // `busca`: nome OU e-mail, parcial e case-insensitive (ILIKE — Postgres
+  // resolve o "case-insensitive" nativamente). `nome` pode ser null numa
+  // conta resetada — ILIKE contra null simplesmente não bate, nunca lança
+  // erro.
+  //
+  // `statusChamado` (minúsculo — 'parado'/'andamento'/'finalizado', mesma
+  // convenção das pílulas de ITDashboard.jsx): filtra pra só devolver
+  // colaboradores com PELO MENOS 1 chamado nesse status, via EXISTS —
+  // aplicado ANTES do skip/take, então `total`/`totalPaginas` já saem
+  // corretos com o filtro (filtrar DEPOIS da paginação quebraria isso). A
+  // contagem exibida no card (Total/Abertos/Finalizados, ver
+  // UsuariosController.listar -> ChamadosService.contarPorSolicitantes)
+  // continua mostrando os números completos de sempre — o filtro só decide
+  // QUAIS colaboradores aparecem, nunca altera a contagem em si.
+  //
+  // QueryBuilder (em vez do `findAndCount` com array de `where` de antes)
+  // porque `busca` (OR) e `statusChamado` (EXISTS) precisam se combinar com
+  // AND — não dá pra expressar os dois juntos com `FindOptionsWhere` puro.
   async listarColaboradores(
     pagina?: number,
     limite?: number,
     busca?: string,
+    statusChamado?: string,
   ): Promise<RespostaPaginadaDto<Usuario>> {
     const paginacao = calcularPaginacao(pagina, limite);
     const termo = busca?.trim();
-    const base: FindOptionsWhere<Usuario> = { tipo: TipoUsuario.COLABORADOR };
-    const where: FindOptionsWhere<Usuario> | FindOptionsWhere<Usuario>[] = termo
-      ? [
-          { ...base, nome: ILike(`%${termo}%`) },
-          { ...base, email: ILike(`%${termo}%`) },
-        ]
-      : base;
 
-    const [usuarios, total] = await this.usuarioRepository.findAndCount({
-      where,
-      relations: { setor: true },
-      order: { email: 'ASC' },
-      skip: paginacao.skip,
-      take: paginacao.limite,
-    });
+    const consulta = this.usuarioRepository
+      .createQueryBuilder('usuario')
+      .leftJoinAndSelect('usuario.setor', 'setor')
+      .where('usuario.tipo = :tipo', { tipo: TipoUsuario.COLABORADOR });
+
+    if (termo) {
+      consulta.andWhere(
+        '(usuario.nome ILIKE :termo OR usuario.email ILIKE :termo)',
+        { termo: `%${termo}%` },
+      );
+    }
+    if (statusChamado) {
+      consulta.andWhere(
+        `EXISTS (SELECT 1 FROM chamado c WHERE c."solicitanteId" = usuario.id AND c.status = :status)`,
+        { status: statusChamado.toUpperCase() },
+      );
+    }
+
+    const [usuarios, total] = await consulta
+      .orderBy('usuario.email', 'ASC')
+      .skip(paginacao.skip)
+      .take(paginacao.limite)
+      .getManyAndCount();
+
     return montarRespostaPaginada(
       usuarios,
       total,
