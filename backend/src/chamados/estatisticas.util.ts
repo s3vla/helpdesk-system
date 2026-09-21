@@ -1,11 +1,12 @@
 // Agrupamento de "chamados que se repetem" pro Dashboard TI — reaproveita a
 // MESMA lógica de correspondência que SolucoesConhecidasService.sugerirParaChamado
-// já usa par-a-par (mesma categoria + pelo menos 1 palavra-chave em comum),
+// já usa par-a-par (mesma categoria + similaridade acima do limiar mínimo),
 // só que aplicada ao conjunto inteiro do período de uma vez, em vez de
 // comparado contra 1 chamado alvo.
 import {
-  contarPalavrasEmComum,
+  calcularSimilaridade,
   extrairPalavrasChave,
+  LIMIAR_SIMILARIDADE_MINIMA,
 } from '../solucoes-conhecidas/palavras-chave.util';
 
 const MAXIMO_GRUPOS = 10;
@@ -56,9 +57,10 @@ function palavraMaisFrequente(conjuntos: Set<string>[]): string {
 
 // Agrupamento guloso por "semente": dentro de cada categoria, cada chamado
 // ainda não agrupado inicia um grupo novo, puxando pra dentro dele todo
-// outro chamado da mesma categoria que compartilhe pelo menos 1 palavra-
-// chave com ele (contarPalavrasEmComum > 0 — mesmo limiar de
-// sugerirParaChamado). Simplificação deliberada: é agrupamento por semente,
+// outro chamado da mesma categoria cuja similaridade com ele passe do
+// limiar mínimo (calcularSimilaridade >= LIMIAR_SIMILARIDADE_MINIMA —
+// mesmo critério de sugerirParaChamado, ver palavras-chave.util.ts).
+// Simplificação deliberada: é agrupamento por semente,
 // não uma clusterização transitiva completa (união de conjuntos via
 // union-find) — mais simples de explicar e reaproveita o utilitário
 // existente sem inventar lógica nova de similaridade. Só grupos com 2+
@@ -91,7 +93,10 @@ export function agruparChamadosRepetidos(
 
       for (let j = i + 1; j < itens.length; j++) {
         if (itens[j].usado) continue;
-        if (contarPalavrasEmComum(itens[i].palavras, itens[j].palavras) > 0) {
+        if (
+          calcularSimilaridade(itens[i].palavras, itens[j].palavras) >=
+          LIMIAR_SIMILARIDADE_MINIMA
+        ) {
           itens[j].usado = true;
           grupo.push(itens[j]);
         }

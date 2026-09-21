@@ -119,10 +119,9 @@ export function extrairPalavrasChave(texto: string): Set<string> {
   return new Set(palavras);
 }
 
-// Quantidade de palavras que aparecem nos dois conjuntos — usado por
-// estatisticas.util.ts (agrupamento de "chamados que se repetem"), que
-// continua com o critério de contagem bruta > 0 (fora do escopo desta
-// correção — ver comentário em calcularSimilaridade abaixo).
+// Quantidade de palavras que aparecem nos dois conjuntos — usado só
+// internamente por calcularSimilaridade abaixo (numerador do índice de
+// Jaccard). Ninguém mais compara por contagem bruta hoje.
 export function contarPalavrasEmComum(a: Set<string>, b: Set<string>): number {
   let total = 0;
   for (const palavra of a) {
@@ -141,13 +140,14 @@ export const LIMIAR_SIMILARIDADE_MINIMA = 0.15;
 
 // Índice de Jaccard: proporção de palavras em comum sobre o total de
 // palavras ÚNICAS combinadas dos dois textos — não uma contagem bruta.
-// Substitui contarPalavrasEmComum > 0 em
-// SolucoesConhecidasService.sugerirParaChamado e
-// ChamadosService.buscarSemelhantesDoUsuario, que sugeriam qualquer
+// Substitui contarPalavrasEmComum > 0 nos 3 lugares que comparam
+// descrições de chamado (SolucoesConhecidasService.sugerirParaChamado,
+// ChamadosService.buscarSemelhantesDoUsuario e
+// estatisticas.util.ts/agruparChamadosRepetidos), que tratavam qualquer
 // chamado com só UMA palavra em comum (ex: "pedido", comum no vocabulário
-// da empresa mas sem relação real de assunto) como se fosse genuinamente
-// parecido. Um texto vazio (nenhuma palavra-chave nos dois lados) tem
-// união 0 — trata como 0% de similaridade em vez de dividir por zero.
+// da empresa mas sem relação real de assunto) como genuinamente parecido.
+// Um texto vazio (nenhuma palavra-chave nos dois lados) tem união 0 —
+// trata como 0% de similaridade em vez de dividir por zero.
 export function calcularSimilaridade(a: Set<string>, b: Set<string>): number {
   const uniao = new Set([...a, ...b]);
   if (uniao.size === 0) return 0;
