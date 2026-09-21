@@ -152,7 +152,7 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
   const [mostrarMenuCategoria, setMostrarMenuCategoria] = useState(false)
   const [salvandoCategoria, setSalvandoCategoria] = useState(false)
   const [categoriasAtivas, setCategoriasAtivas] = useState([])
-  const [imagemAmpliada, setImagemAmpliada] = useState(null)
+  const [galeriaAmpliada, setGaleriaAmpliada] = useState(null) // { imagens, indice } | null
   const [arquivosComentario, setArquivosComentario] = useState([])
   const [enviandoImagemComentario, setEnviandoImagemComentario] = useState(false)
   const [colaboradores, setColaboradores] = useState([])
@@ -933,12 +933,12 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
                       Mais de uma: grade de miniaturas — cada uma abre no
                       lightbox igual, só muda o tamanho de exibição aqui. */}
                   {chamado.imagens.length === 1 ? (
-                    <img src={`${URL_BASE}${chamado.imagens[0]}`} alt="Print do erro" onClick={() => setImagemAmpliada(`${URL_BASE}${chamado.imagens[0]}`)}
+                    <img src={`${URL_BASE}${chamado.imagens[0]}`} alt="Print do erro" onClick={() => setGaleriaAmpliada({ imagens: chamado.imagens, indice: 0 })}
                       style={{ maxWidth: '100%', maxHeight: 260, borderRadius: 8, display: 'block', cursor: 'zoom-in' }} />
                   ) : (
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                       {chamado.imagens.map((url, indice) => (
-                        <img key={url} src={`${URL_BASE}${url}`} alt={`Print do erro ${indice + 1}`} onClick={() => setImagemAmpliada(`${URL_BASE}${url}`)}
+                        <img key={url} src={`${URL_BASE}${url}`} alt={`Print do erro ${indice + 1}`} onClick={() => setGaleriaAmpliada({ imagens: chamado.imagens, indice })}
                           style={{ width: 96, height: 96, objectFit: 'cover', borderRadius: 8, cursor: 'zoom-in' }} />
                       ))}
                     </div>
@@ -963,15 +963,15 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
                   <p style={{ color: CORES_APP.texto, fontSize: 14, margin: 0, lineHeight: 1.75, whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }}>{chamado.resolution.text}</p>
                   {/* Mesma galeria de ITSolutions.jsx — uma imagem só vira
                       preview grande, mais de uma vira grade de miniaturas,
-                      cada uma abre no mesmo lightbox (setImagemAmpliada). */}
+                      cada uma abre no mesmo lightbox (setGaleriaAmpliada). */}
                   {chamado.resolution.imagens?.length > 0 && (
                     chamado.resolution.imagens.length === 1 ? (
-                      <img src={`${URL_BASE}${chamado.resolution.imagens[0]}`} alt="Print da solução" onClick={() => setImagemAmpliada(`${URL_BASE}${chamado.resolution.imagens[0]}`)}
+                      <img src={`${URL_BASE}${chamado.resolution.imagens[0]}`} alt="Print da solução" onClick={() => setGaleriaAmpliada({ imagens: chamado.resolution.imagens, indice: 0 })}
                         style={{ maxWidth: '100%', maxHeight: 260, borderRadius: 8, display: 'block', cursor: 'zoom-in' }} />
                     ) : (
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                         {chamado.resolution.imagens.map((url, indice) => (
-                          <img key={url} src={`${URL_BASE}${url}`} alt={`Print da solução ${indice + 1}`} onClick={() => setImagemAmpliada(`${URL_BASE}${url}`)}
+                          <img key={url} src={`${URL_BASE}${url}`} alt={`Print da solução ${indice + 1}`} onClick={() => setGaleriaAmpliada({ imagens: chamado.resolution.imagens, indice })}
                             style={{ width: 96, height: 96, objectFit: 'cover', borderRadius: 8, cursor: 'zoom-in' }} />
                         ))}
                       </div>
@@ -1223,12 +1223,12 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
                                 ImageLightbox. */}
                             {c.imagensUrls?.length > 0 && (
                               c.imagensUrls.length === 1 ? (
-                                <img src={`${URL_BASE}${c.imagensUrls[0]}`} alt="Imagem anexada ao comentário" onClick={() => setImagemAmpliada(`${URL_BASE}${c.imagensUrls[0]}`)}
+                                <img src={`${URL_BASE}${c.imagensUrls[0]}`} alt="Imagem anexada ao comentário" onClick={() => setGaleriaAmpliada({ imagens: c.imagensUrls, indice: 0 })}
                                   style={{ maxWidth: '100%', maxHeight: 200, borderRadius: 8, display: 'block', marginTop: 9, cursor: 'zoom-in' }} />
                               ) : (
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 9 }}>
                                   {c.imagensUrls.map((url, indice) => (
-                                    <img key={url} src={`${URL_BASE}${url}`} alt={`Imagem anexada ao comentário ${indice + 1}`} onClick={() => setImagemAmpliada(`${URL_BASE}${url}`)}
+                                    <img key={url} src={`${URL_BASE}${url}`} alt={`Imagem anexada ao comentário ${indice + 1}`} onClick={() => setGaleriaAmpliada({ imagens: c.imagensUrls, indice })}
                                       style={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 8, cursor: 'zoom-in' }} />
                                   ))}
                                 </div>
@@ -1358,7 +1358,9 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
         )}
       </AnimatePresence>
 
-      <ImageLightbox src={imagemAmpliada} alt="Imagem ampliada" onClose={() => setImagemAmpliada(null)} />
+      <ImageLightbox imagens={galeriaAmpliada?.imagens} indice={galeriaAmpliada?.indice} alt="Imagem ampliada"
+        onClose={() => setGaleriaAmpliada(null)}
+        onIndiceChange={indice => setGaleriaAmpliada(g => ({ ...g, indice }))} />
     </>
   )
 }

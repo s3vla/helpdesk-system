@@ -39,7 +39,7 @@ function ITSolutions() {
   const [totalPaginas, setTotalPaginas] = useState(1)
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState('')
-  const [imagemAmpliada, setImagemAmpliada] = useState(null)
+  const [galeriaAmpliada, setGaleriaAmpliada] = useState(null) // { imagens, indice } | null
   // Accordion — só uma solução expandida por vez (guarda o id, não um
   // Set): clicar num card fechado abre ele e fecha qualquer outro que
   // estivesse aberto; clicar no já aberto fecha.
@@ -200,12 +200,12 @@ function ITSolutions() {
                               vira preview grande, mais de uma vira grade de
                               miniaturas — cada uma abre no mesmo lightbox. */}
                           {chamado.resolution.imagens.length === 1 ? (
-                            <img src={`${URL_BASE}${chamado.resolution.imagens[0]}`} alt="Print da solução" onClick={() => setImagemAmpliada(`${URL_BASE}${chamado.resolution.imagens[0]}`)}
+                            <img src={`${URL_BASE}${chamado.resolution.imagens[0]}`} alt="Print da solução" onClick={() => setGaleriaAmpliada({ imagens: chamado.resolution.imagens, indice: 0 })}
                               style={{ maxWidth: '100%', maxHeight: 260, borderRadius: 8, display: 'block', cursor: 'zoom-in' }} />
                           ) : (
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                               {chamado.resolution.imagens.map((url, indice) => (
-                                <img key={url} src={`${URL_BASE}${url}`} alt={`Print da solução ${indice + 1}`} onClick={() => setImagemAmpliada(`${URL_BASE}${url}`)}
+                                <img key={url} src={`${URL_BASE}${url}`} alt={`Print da solução ${indice + 1}`} onClick={() => setGaleriaAmpliada({ imagens: chamado.resolution.imagens, indice })}
                                   style={{ width: 96, height: 96, objectFit: 'cover', borderRadius: 8, cursor: 'zoom-in' }} />
                               ))}
                             </div>
@@ -223,7 +223,9 @@ function ITSolutions() {
       </div>
       <Paginacao paginaAtual={pagina} totalPaginas={totalPaginas} aoMudarPagina={setPagina} />
 
-      <ImageLightbox src={imagemAmpliada} alt="Imagem ampliada" onClose={() => setImagemAmpliada(null)} />
+      <ImageLightbox imagens={galeriaAmpliada?.imagens} indice={galeriaAmpliada?.indice} alt="Imagem ampliada"
+        onClose={() => setGaleriaAmpliada(null)}
+        onIndiceChange={indice => setGaleriaAmpliada(g => ({ ...g, indice }))} />
     </div>
   )
 }
