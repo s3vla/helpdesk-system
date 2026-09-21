@@ -95,6 +95,7 @@ function mapearChamado(c) {
       ? {
           text: c.solucao.comoFoiResolvido,
           isKnownSolution: c.solucao.marcadaComo,
+          imagens: c.solucao.imagensUrls,
           resolvedAt: new Date(c.solucao.dataCriacao),
           resolvedBy: c.tecnicoResponsavel?.nome,
         }

@@ -961,6 +961,22 @@ function TicketPanel({ chamadoInicial, onClose, isIT, onAtualizado }) {
                     </div>
                   </div>
                   <p style={{ color: CORES_APP.texto, fontSize: 14, margin: 0, lineHeight: 1.75, whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }}>{chamado.resolution.text}</p>
+                  {/* Mesma galeria de ITSolutions.jsx — uma imagem só vira
+                      preview grande, mais de uma vira grade de miniaturas,
+                      cada uma abre no mesmo lightbox (setImagemAmpliada). */}
+                  {chamado.resolution.imagens?.length > 0 && (
+                    chamado.resolution.imagens.length === 1 ? (
+                      <img src={`${URL_BASE}${chamado.resolution.imagens[0]}`} alt="Print da solução" onClick={() => setImagemAmpliada(`${URL_BASE}${chamado.resolution.imagens[0]}`)}
+                        style={{ maxWidth: '100%', maxHeight: 260, borderRadius: 8, display: 'block', cursor: 'zoom-in' }} />
+                    ) : (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                        {chamado.resolution.imagens.map((url, indice) => (
+                          <img key={url} src={`${URL_BASE}${url}`} alt={`Print da solução ${indice + 1}`} onClick={() => setImagemAmpliada(`${URL_BASE}${url}`)}
+                            style={{ width: 96, height: 96, objectFit: 'cover', borderRadius: 8, cursor: 'zoom-in' }} />
+                        ))}
+                      </div>
+                    )
+                  )}
                   {/* Chamado reaberto depois de já ter sido finalizado uma
                       vez: a solução original fica visível e intacta (regra
                       de negócio combinada — reabrir e finalizar de novo não

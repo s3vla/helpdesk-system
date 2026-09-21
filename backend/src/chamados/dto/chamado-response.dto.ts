@@ -15,6 +15,7 @@ import {
 export class SolucaoResumoDto {
   comoFoiResolvido: string;
   marcadaComo: boolean;
+  imagensUrls: string[];
   dataCriacao: Date;
 }
 
@@ -90,6 +91,7 @@ export function mapChamadoParaResposta(chamado: Chamado): ChamadoResponseDto {
       ? {
           comoFoiResolvido: chamado.solucaoConhecida.comoFoiResolvido,
           marcadaComo: chamado.solucaoConhecida.marcadaComo,
+          imagensUrls: chamado.solucaoConhecida.imagensUrls,
           dataCriacao: chamado.solucaoConhecida.dataCriacao,
         }
       : null,
