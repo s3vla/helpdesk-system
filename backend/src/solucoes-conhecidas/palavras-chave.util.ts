@@ -119,12 +119,37 @@ export function extrairPalavrasChave(texto: string): Set<string> {
   return new Set(palavras);
 }
 
-// Quantidade de palavras que aparecem nos dois conjuntos — é essa
-// contagem que vira a "pontuação" de semelhança entre dois chamados.
+// Quantidade de palavras que aparecem nos dois conjuntos — usado por
+// estatisticas.util.ts (agrupamento de "chamados que se repetem"), que
+// continua com o critério de contagem bruta > 0 (fora do escopo desta
+// correção — ver comentário em calcularSimilaridade abaixo).
 export function contarPalavrasEmComum(a: Set<string>, b: Set<string>): number {
   let total = 0;
   for (const palavra of a) {
     if (b.has(palavra)) total++;
   }
   return total;
+}
+
+// Limiar mínimo pra considerar dois chamados "parecidos o suficiente" pra
+// sugerir um ao outro — calibrado empiricamente (ver testes em
+// solucoes-conhecidas.service.ts/chamados.service.ts): 15% preserva
+// correspondências genuínas (vários termos em comum, textos de tamanho
+// parecido) e descarta o falso positivo de "1 palavra batendo num texto
+// de 15+ palavras", que ficava abaixo de 10%.
+export const LIMIAR_SIMILARIDADE_MINIMA = 0.15;
+
+// Índice de Jaccard: proporção de palavras em comum sobre o total de
+// palavras ÚNICAS combinadas dos dois textos — não uma contagem bruta.
+// Substitui contarPalavrasEmComum > 0 em
+// SolucoesConhecidasService.sugerirParaChamado e
+// ChamadosService.buscarSemelhantesDoUsuario, que sugeriam qualquer
+// chamado com só UMA palavra em comum (ex: "pedido", comum no vocabulário
+// da empresa mas sem relação real de assunto) como se fosse genuinamente
+// parecido. Um texto vazio (nenhuma palavra-chave nos dois lados) tem
+// união 0 — trata como 0% de similaridade em vez de dividir por zero.
+export function calcularSimilaridade(a: Set<string>, b: Set<string>): number {
+  const uniao = new Set([...a, ...b]);
+  if (uniao.size === 0) return 0;
+  return contarPalavrasEmComum(a, b) / uniao.size;
 }

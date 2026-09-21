@@ -41,7 +41,8 @@ import { calcularNivelSugerido } from './nivel-triagem.util';
 import { agruparChamadosRepetidos, GrupoRepetido } from './estatisticas.util';
 import {
   extrairPalavrasChave,
-  contarPalavrasEmComum,
+  calcularSimilaridade,
+  LIMIAR_SIMILARIDADE_MINIMA,
 } from '../solucoes-conhecidas/palavras-chave.util';
 import {
   calcularPaginacao,
@@ -499,14 +500,17 @@ export class ChamadosService {
       candidatos
         .map((chamado) => ({
           chamado,
-          pontuacao: contarPalavrasEmComum(
+          // Similaridade (Jaccard), não contagem bruta — mesma correção de
+          // SolucoesConhecidasService.sugerirParaChamado, ver
+          // palavras-chave.util.ts.
+          pontuacao: calcularSimilaridade(
             palavrasDoTexto,
             extrairPalavrasChave(`${chamado.titulo} ${chamado.descricao}`),
           ),
         }))
         // Mesma regra de solucoes-sugeridas: só "mesma categoria" não basta
-        // sozinho, precisa ter pelo menos uma palavra de assunto em comum.
-        .filter((item) => item.pontuacao > 0)
+        // sozinho, precisa passar do limiar mínimo de similaridade.
+        .filter((item) => item.pontuacao >= LIMIAR_SIMILARIDADE_MINIMA)
         .sort((a, b) => b.pontuacao - a.pontuacao)
         .slice(0, MAXIMO_SEMELHANTES)
         .map(({ chamado }) => ({

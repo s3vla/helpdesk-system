@@ -11,8 +11,9 @@ import {
 } from './dto/solucao-conhecida-response.dto';
 import { SolucaoSugeridaResponseDto } from './dto/solucao-sugerida-response.dto';
 import {
-  contarPalavrasEmComum,
+  calcularSimilaridade,
   extrairPalavrasChave,
+  LIMIAR_SIMILARIDADE_MINIMA,
 } from './palavras-chave.util';
 import {
   calcularPaginacao,
@@ -215,10 +216,14 @@ export class SolucoesConhecidasService {
   }
 
   // GET /chamados/:id/solucoes-sugeridas — busca soluções conhecidas da
-  // MESMA categoria do chamado e ordena pela quantidade de palavras em
-  // comum entre as descrições (ver palavras-chave.util.ts). Sem
-  // IA/embeddings de propósito: é só correspondência de termos, simples o
-  // bastante pra explicar numa frase.
+  // MESMA categoria do chamado e ordena pela SIMILARIDADE (índice de
+  // Jaccard, ver palavras-chave.util.ts) entre as descrições — proporção
+  // de palavras em comum sobre o total de palavras únicas dos dois
+  // textos, não uma contagem bruta (contagem bruta sugeria qualquer
+  // chamado com só 1 palavra em comum, ex: "pedido", mesmo sem relação
+  // real de assunto). Sem IA/embeddings de propósito: é só
+  // correspondência de termos, simples o bastante pra explicar numa
+  // frase.
   async sugerirParaChamado(
     chamado: Chamado,
   ): Promise<SolucaoSugeridaResponseDto[]> {
@@ -236,15 +241,16 @@ export class SolucoesConhecidasService {
       .filter((solucao) => solucao.chamado.id !== chamado.id)
       .map((solucao) => ({
         solucao,
-        pontuacao: contarPalavrasEmComum(
+        pontuacao: calcularSimilaridade(
           palavrasDoChamadoAtual,
           extrairPalavrasChave(solucao.chamado.descricao),
         ),
       }))
-      // Precisa ter PELO MENOS uma palavra em comum — "mesma categoria" não
-      // basta sozinho, senão qualquer chamado de Hardware sugeriria
-      // qualquer outro chamado de Hardware sem relação nenhuma de assunto.
-      .filter((item) => item.pontuacao > 0)
+      // Precisa passar do limiar mínimo de similaridade — "mesma
+      // categoria" não basta sozinho, senão qualquer chamado de Hardware
+      // sugeriria qualquer outro chamado de Hardware sem relação nenhuma
+      // de assunto.
+      .filter((item) => item.pontuacao >= LIMIAR_SIMILARIDADE_MINIMA)
       .sort((a, b) => b.pontuacao - a.pontuacao)
       .slice(0, MAXIMO_SUGESTOES);
 
