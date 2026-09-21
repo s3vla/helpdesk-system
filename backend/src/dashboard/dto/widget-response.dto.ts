@@ -6,8 +6,9 @@ import { FormatoVisualWidget } from '../../common/enums/formato-visual-widget.en
 export class WidgetResponseDto {
   id: number;
   titulo: string;
-  tipo: TipoMetrica;
-  agruparPor: AgruparPor;
+  // null só em widgets formatoVisual=LINHA (ver DashboardWidget).
+  tipo: TipoMetrica | null;
+  agruparPor: AgruparPor | null;
   formatoVisual: FormatoVisualWidget;
   limite: number | null;
   ordem: number;

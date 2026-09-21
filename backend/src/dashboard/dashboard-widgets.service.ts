@@ -86,10 +86,16 @@ export class DashboardWidgetsService implements OnApplicationBootstrap {
       order: { ordem: 'DESC' },
       take: 1,
     });
+    const ehLinha = dto.formatoVisual === FormatoVisualWidget.LINHA;
     const widget = this.widgetRepository.create({
       titulo: dto.titulo,
-      tipo: dto.tipo,
-      agruparPor: dto.agruparPor,
+      // Widget de linha não tem "o que agrupar" nem "contagem vs ranking"
+      // — grava null mesmo que o DTO tenha vindo com algo (não deveria,
+      // CriarWidgetDto.agruparPor/tipo só são validados quando
+      // formatoVisual !== LINHA, mas o valor pode chegar aqui de qualquer
+      // jeito se alguém mandar mesmo assim).
+      tipo: ehLinha ? null : (dto.tipo ?? null),
+      agruparPor: ehLinha ? null : (dto.agruparPor ?? null),
       formatoVisual: dto.formatoVisual,
       limite: dto.limite ?? null,
       ordem: (ultimo?.ordem ?? 0) + 1,
@@ -105,6 +111,14 @@ export class DashboardWidgetsService implements OnApplicationBootstrap {
   ): Promise<DashboardWidget> {
     const widget = await this.buscarPorIdOuFalhar(id);
     Object.assign(widget, dto);
+    // Mesmo raciocínio de criar() acima — se a edição está mudando PRA
+    // linha, zera os dois campos mesmo que o widget já tivesse valores
+    // antigos (Object.assign não zera sozinho um campo que o DTO não
+    // mandou).
+    if (widget.formatoVisual === FormatoVisualWidget.LINHA) {
+      widget.tipo = null;
+      widget.agruparPor = null;
+    }
     return this.widgetRepository.save(widget);
   }
 

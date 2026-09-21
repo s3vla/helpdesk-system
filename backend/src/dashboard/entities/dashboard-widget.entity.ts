@@ -15,14 +15,18 @@ export class DashboardWidget {
   @Column()
   titulo: string;
 
-  @Column({ type: 'enum', enum: TipoMetrica })
-  tipo: TipoMetrica;
+  // Nullable: widgets formatoVisual=LINHA não têm "contagem vs ranking" —
+  // são sempre uma contagem diária (ver ChamadosService.obterMetricasDiarias).
+  @Column({ type: 'enum', enum: TipoMetrica, nullable: true })
+  tipo: TipoMetrica | null;
 
   // Aceita os 7 valores de AgruparPor (diferente de MetricasChamadoDto, que
   // só aceita 6) — é aqui que o widget fixo de repetição referencia
-  // AgruparPor.REPETICAO_CATEGORIA.
-  @Column({ type: 'enum', enum: AgruparPor })
-  agruparPor: AgruparPor;
+  // AgruparPor.REPETICAO_CATEGORIA. Nullable pelo mesmo motivo de `tipo`
+  // acima — widgets de linha não têm "o que agrupar", a série já é fixa
+  // (abertos vs finalizados por dia).
+  @Column({ type: 'enum', enum: AgruparPor, nullable: true })
+  agruparPor: AgruparPor | null;
 
   @Column({ type: 'enum', enum: FormatoVisualWidget })
   formatoVisual: FormatoVisualWidget;

@@ -42,3 +42,15 @@ export function resolverPeriodo(filtros: FiltroPeriodo): Periodo {
 
   return { inicio, fim };
 }
+
+// "YYYY-MM-DD" em horário LOCAL (não `toISOString().slice(0,10)`, que usa
+// UTC e poderia jogar a data pro dia errado dependendo do fuso do
+// servidor) — mesmo raciocínio do comentário acima sobre resolverPeriodo.
+// Usado por ChamadosService.obterMetricasDiarias pra bucketizar chamados
+// por dia.
+export function formatarDataLocal(data: Date): string {
+  const ano = data.getFullYear();
+  const mes = String(data.getMonth() + 1).padStart(2, '0');
+  const dia = String(data.getDate()).padStart(2, '0');
+  return `${ano}-${mes}-${dia}`;
+}

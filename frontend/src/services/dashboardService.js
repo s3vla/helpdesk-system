@@ -20,6 +20,17 @@ export async function buscarMetricas(token, { dataInicio, dataFim, agruparPor, t
   return chamarApi(`/chamados/metricas?${params.toString()}`, { token })
 }
 
+// Item de resposta de /chamados/metricas-diarias: { dia, abertos,
+// finalizados } — uma entrada por dia do período, zero-preenchida. Usado
+// só pelo widget formatoVisual=linha (WidgetRenderer).
+export async function buscarMetricasDiarias(token, { dataInicio, dataFim } = {}) {
+  const params = new URLSearchParams()
+  if (dataInicio) params.set('dataInicio', dataInicio)
+  if (dataFim) params.set('dataFim', dataFim)
+  const query = params.toString()
+  return chamarApi(`/chamados/metricas-diarias${query ? `?${query}` : ''}`, { token })
+}
+
 // Item de resposta: { categoria, rotulo, total } — categoria em MAIÚSCULO
 // cru (mesmo formato bruto da API, sem tradução; quem usa isso já traduz
 // via LABEL_CATEGORIA como o resto do app faz).

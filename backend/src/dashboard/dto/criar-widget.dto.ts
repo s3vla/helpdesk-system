@@ -6,6 +6,7 @@ import {
   IsString,
   Min,
   MinLength,
+  ValidateIf,
 } from 'class-validator';
 import { AGRUPAR_POR_METRICA_VALIDOS } from '../../chamados/dto/metricas-chamado.dto';
 import type { AgruparPorMetrica } from '../../chamados/dto/metricas-chamado.dto';
@@ -22,18 +23,26 @@ export class CriarWidgetDto {
   @MinLength(1)
   titulo: string;
 
+  // Obrigatório pra barra/pizza/lista, ausente/ignorado pra linha (série
+  // temporal fixa abertos vs finalizados, sem "o que agrupar" — ver
+  // FormatoVisualWidget.LINHA e DashboardWidgetsService.criar).
+  @ValidateIf((dto) => dto.formatoVisual !== FormatoVisualWidget.LINHA)
   @IsIn(AGRUPAR_POR_METRICA_VALIDOS, {
     message: `agruparPor precisa ser um de: ${AGRUPAR_POR_METRICA_VALIDOS.join(', ')}`,
   })
-  agruparPor: AgruparPorMetrica;
+  agruparPor?: AgruparPorMetrica;
 
+  // Mesmo raciocínio de agruparPor acima — linha não tem "contagem vs
+  // ranking", é sempre uma contagem diária.
+  @ValidateIf((dto) => dto.formatoVisual !== FormatoVisualWidget.LINHA)
   @IsIn([TipoMetrica.CONTAGEM, TipoMetrica.RANKING])
-  tipo: TipoMetrica;
+  tipo?: TipoMetrica;
 
   @IsIn([
     FormatoVisualWidget.BARRA,
     FormatoVisualWidget.PIZZA,
     FormatoVisualWidget.LISTA,
+    FormatoVisualWidget.LINHA,
   ])
   formatoVisual: FormatoVisualWidget;
 

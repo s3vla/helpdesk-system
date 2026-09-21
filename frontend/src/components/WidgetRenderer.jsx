@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
-import { ResponsiveContainer, BarChart, Bar, PieChart, Pie, XAxis, YAxis, CartesianGrid, Tooltip, Cell } from 'recharts'
+import { ResponsiveContainer, BarChart, Bar, PieChart, Pie, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Cell } from 'recharts'
 import { estilos, CORES_APP, CORES_PRIORIDADE, CORES_STATUS, CORES_TI } from '../styles/theme'
 import { cores } from '../styles/authTheme'
 import { useAuth } from '../hooks/useAuth'
-import { buscarMetricas, buscarRepeticao } from '../services/dashboardService'
+import { buscarMetricas, buscarMetricasDiarias, buscarRepeticao } from '../services/dashboardService'
 import { LABEL_CATEGORIA } from '../utils/categorias'
 import { traduzirErroApi } from '../utils/traduzirErroApi'
 import EstadoRequisicao from './EstadoRequisicao'
@@ -62,13 +62,19 @@ function WidgetRenderer({ widget, periodo }) {
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState('')
 
-  const configCompleta = !!(widget.agruparPor && widget.tipo && widget.formatoVisual)
+  // Linha não tem agruparPor/tipo (ver FormatoVisualWidget.LINHA no
+  // backend) — sempre "completa" assim que formatoVisual está escolhido,
+  // diferente dos outros três formatos que dependem dos dois campos extras.
+  const ehLinha = widget.formatoVisual === 'linha'
+  const configCompleta = ehLinha || !!(widget.agruparPor && widget.tipo && widget.formatoVisual)
 
   async function buscar() {
     setCarregando(true)
     setErro('')
     try {
-      if (widget.agruparPor === 'repeticaoCategoria') {
+      if (ehLinha) {
+        setItens(await buscarMetricasDiarias(token, periodo))
+      } else if (widget.agruparPor === 'repeticaoCategoria') {
         const grupos = await buscarRepeticao(token, periodo)
         setItens(grupos.map(g => ({
           chave: `${g.categoria}-${g.rotulo}`,
@@ -94,9 +100,12 @@ function WidgetRenderer({ widget, periodo }) {
     }
     buscar()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [configCompleta, widget.agruparPor, widget.tipo, widget.formatoVisual, widget.limite, periodo.dataInicio, periodo.dataFim])
+  }, [configCompleta, ehLinha, widget.agruparPor, widget.tipo, widget.formatoVisual, widget.limite, periodo.dataInicio, periodo.dataFim])
 
-  const dadosGrafico = itens.map((item, indice) => ({
+  // Pra linha, `itens` já vem no formato certo ({dia, abertos, finalizados})
+  // — não passa pela transformação de rótulo/cor por item, que é só pros
+  // outros três formatos (uma série categórica por vez).
+  const dadosGrafico = ehLinha ? [] : itens.map((item, indice) => ({
     ...item,
     rotuloExibido: widget.agruparPor === 'repeticaoCategoria' ? item.rotulo : traduzirRotulo(widget.agruparPor, item),
     cor: corDoItem(widget.agruparPor, item.chave, indice),
@@ -106,8 +115,11 @@ function WidgetRenderer({ widget, periodo }) {
   // N1/N2/N3 etc., só que todos com total 0). Um <PieChart> não consegue
   // desenhar fatia nenhuma quando a soma é 0 (ângulo = 0/0) e acaba
   // renderizando invisível mesmo com "itens" — por isso o estado vazio
-  // considera a SOMA, não só a quantidade de itens.
-  const totalGeral = dadosGrafico.reduce((soma, item) => soma + item.total, 0)
+  // considera a SOMA, não só a quantidade de itens. Pra linha, mesma ideia,
+  // mas somando as duas séries de todos os dias.
+  const totalGeral = ehLinha
+    ? itens.reduce((soma, item) => soma + item.abertos + item.finalizados, 0)
+    : dadosGrafico.reduce((soma, item) => soma + item.total, 0)
 
   return (
     <div style={estiloCard}>
@@ -118,6 +130,21 @@ function WidgetRenderer({ widget, periodo }) {
         <EstadoRequisicao carregando={carregando} erro={erro} aoTentarNovamente={buscar}>
           {totalGeral === 0 ? (
             <p style={{ color: CORES_APP.textoSuave, fontSize: 13.5, margin: 0, padding: '8px 0' }}>Nenhum chamado neste período.</p>
+          ) : ehLinha ? (
+            <ResponsiveContainer width="100%" height={220}>
+              <LineChart data={itens} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke={CORES_APP.bordaSuave} vertical={false} />
+                <XAxis dataKey="dia" tick={{ fill: CORES_APP.textoFraco, fontSize: 11, fontFamily: 'Outfit, sans-serif' }} axisLine={{ stroke: CORES_APP.borda }} tickLine={false} />
+                <YAxis allowDecimals={false} tick={{ fill: CORES_APP.textoFraco, fontSize: 12 }} axisLine={false} tickLine={false} width={30} />
+                <Tooltip
+                  contentStyle={{ background: CORES_APP.popover, border: `1px solid ${CORES_APP.borda}`, borderRadius: 8, fontSize: 13, fontFamily: 'Inter, sans-serif' }}
+                  labelStyle={{ color: CORES_APP.tinta, fontWeight: 600 }}
+                />
+                <Legend wrapperStyle={{ fontSize: 12, fontFamily: 'Outfit, sans-serif' }} />
+                <Line type="monotone" dataKey="abertos" name="Abertos" stroke={CORES_STATUS.andamento.fg} strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="finalizados" name="Finalizados" stroke={CORES_STATUS.finalizado.fg} strokeWidth={2} dot={false} />
+              </LineChart>
+            </ResponsiveContainer>
           ) : widget.formatoVisual === 'barra' ? (
             <ResponsiveContainer width="100%" height={200}>
               {/* `margin.left` NUNCA negativo — um <svg> raiz tem

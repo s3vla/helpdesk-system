@@ -43,6 +43,7 @@ export class AtualizarWidgetDto {
     FormatoVisualWidget.BARRA,
     FormatoVisualWidget.PIZZA,
     FormatoVisualWidget.LISTA,
+    FormatoVisualWidget.LINHA,
   ])
   formatoVisual?: FormatoVisualWidget;
 

@@ -24,7 +24,7 @@ const LABEL_AGRUPAR_POR = {
 // no motor genérico de GET /chamados/metricas).
 const OPCOES_AGRUPAR_POR = ['nivel', 'categoria', 'status', 'prioridade', 'solicitante', 'tecnicoResponsavel']
 const LABEL_TIPO = { contagem: 'Contagem', ranking: 'Ranking' }
-const LABEL_FORMATO = { barra: 'Gráfico de barras', pizza: 'Gráfico de pizza', lista: 'Lista' }
+const LABEL_FORMATO = { barra: 'Gráfico de barras', pizza: 'Gráfico de pizza', lista: 'Lista', linha: 'Gráfico de linha' }
 
 const FORMULARIO_VAZIO = { titulo: '', agruparPor: 'categoria', tipo: 'contagem', formatoVisual: 'barra', limite: '10' }
 
@@ -87,8 +87,12 @@ function CriarDashboard() {
     setEditandoId(widget.id)
     setFormulario({
       titulo: widget.titulo,
-      agruparPor: widget.agruparPor,
-      tipo: widget.tipo,
+      // Widget de linha não tem agruparPor/tipo salvos (null, ver
+      // FormatoVisualWidget.LINHA) — cai num default sensato pros campos
+      // (escondidos enquanto formatoVisual===linha), pro caso da pessoa
+      // trocar de volta pra barra/pizza/lista.
+      agruparPor: widget.agruparPor ?? 'categoria',
+      tipo: widget.tipo ?? 'contagem',
       formatoVisual: widget.formatoVisual,
       limite: widget.limite ? String(widget.limite) : '10',
     })
@@ -109,20 +113,25 @@ function CriarDashboard() {
     setSalvando(true)
     setErroFormulario('')
     try {
+      // Linha não manda agruparPor/tipo — o backend zera os dois sozinho
+      // quando formatoVisual=linha (ver DashboardWidgetsService.criar/
+      // atualizar), então basta omitir aqui, sem precisar mandar null
+      // explícito.
+      const ehLinha = formulario.formatoVisual === 'linha'
       const dadosBase = {
         titulo: formulario.titulo.trim(),
-        tipo: formulario.tipo,
+        tipo: ehLinha ? undefined : formulario.tipo,
         formatoVisual: formulario.formatoVisual,
-        limite: formulario.tipo === 'ranking' ? Number(formulario.limite) || 10 : undefined,
+        limite: !ehLinha && formulario.tipo === 'ranking' ? Number(formulario.limite) || 10 : undefined,
       }
       if (editandoId) {
         // Nunca reenvia agruparPor pro widget fixo — ele usa
         // 'repeticaoCategoria', que a rota de edição rejeita de propósito
         // (só aceita os 6 agrupamentos genéricos, ver AtualizarWidgetDto).
-        const dados = ehFixo ? dadosBase : { ...dadosBase, agruparPor: formulario.agruparPor }
+        const dados = ehFixo || ehLinha ? dadosBase : { ...dadosBase, agruparPor: formulario.agruparPor }
         await atualizarWidget(token, editandoId, dados)
       } else {
-        await criarWidget(token, { ...dadosBase, agruparPor: formulario.agruparPor })
+        await criarWidget(token, ehLinha ? dadosBase : { ...dadosBase, agruparPor: formulario.agruparPor })
       }
       fecharFormulario()
       await buscar()
@@ -179,7 +188,9 @@ function CriarDashboard() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 1, minWidth: 160 }}>
                     <span style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 600, fontSize: 14, color: CORES_APP.tinta }}>{widget.titulo}</span>
                     <span style={{ fontSize: 12, color: CORES_APP.textoSuave }}>
-                      {LABEL_TIPO[widget.tipo]} · {LABEL_AGRUPAR_POR[widget.agruparPor]} · {LABEL_FORMATO[widget.formatoVisual]}
+                      {/* Widget de linha não tem tipo/agruparPor (null) —
+                          filtra em vez de mostrar "undefined · undefined". */}
+                      {[LABEL_TIPO[widget.tipo], LABEL_AGRUPAR_POR[widget.agruparPor], LABEL_FORMATO[widget.formatoVisual]].filter(Boolean).join(' · ')}
                       {widget.fixo && ' · fixo'}
                     </span>
                   </div>
@@ -258,24 +269,28 @@ function FormularioWidget({ formulario, setFormulario, ehFixo, editando, erro, s
           placeholder="Ex: Contagem por prioridade" style={{ ...estilos.input, padding: '10px 12px', fontSize: 14 }} disabled={salvando} />
       </div>
 
-      <div>
-        <label style={estilos.label}>O que agrupar</label>
-        <select value={formulario.agruparPor} onChange={e => atualizarCampo('agruparPor', e.target.value)}
-          disabled={salvando || ehFixo} style={{ ...estilos.input, padding: '10px 12px', fontSize: 14, ...(ehFixo ? { background: CORES_APP.fundoCampo, cursor: 'not-allowed' } : {}) }}>
-          {ehFixo
-            ? <option value={formulario.agruparPor}>{LABEL_AGRUPAR_POR[formulario.agruparPor]}</option>
-            : OPCOES_AGRUPAR_POR.map(op => <option key={op} value={op}>{LABEL_AGRUPAR_POR[op]}</option>)}
-        </select>
-        {ehFixo && <p style={{ color: CORES_APP.textoSuave, fontSize: 12, margin: '4px 0 0' }}>Widget fixo. O agrupamento não pode ser alterado.</p>}
-      </div>
+      {formulario.formatoVisual !== 'linha' && (
+        <div>
+          <label style={estilos.label}>O que agrupar</label>
+          <select value={formulario.agruparPor} onChange={e => atualizarCampo('agruparPor', e.target.value)}
+            disabled={salvando || ehFixo} style={{ ...estilos.input, padding: '10px 12px', fontSize: 14, ...(ehFixo ? { background: CORES_APP.fundoCampo, cursor: 'not-allowed' } : {}) }}>
+            {ehFixo
+              ? <option value={formulario.agruparPor}>{LABEL_AGRUPAR_POR[formulario.agruparPor]}</option>
+              : OPCOES_AGRUPAR_POR.map(op => <option key={op} value={op}>{LABEL_AGRUPAR_POR[op]}</option>)}
+          </select>
+          {ehFixo && <p style={{ color: CORES_APP.textoSuave, fontSize: 12, margin: '4px 0 0' }}>Widget fixo. O agrupamento não pode ser alterado.</p>}
+        </div>
+      )}
 
-      <div>
-        <label style={estilos.label}>Tipo</label>
-        <select value={formulario.tipo} onChange={e => atualizarCampo('tipo', e.target.value)}
-          disabled={salvando} style={{ ...estilos.input, padding: '10px 12px', fontSize: 14 }}>
-          {Object.entries(LABEL_TIPO).map(([valor, rotulo]) => <option key={valor} value={valor}>{rotulo}</option>)}
-        </select>
-      </div>
+      {formulario.formatoVisual !== 'linha' && (
+        <div>
+          <label style={estilos.label}>Tipo</label>
+          <select value={formulario.tipo} onChange={e => atualizarCampo('tipo', e.target.value)}
+            disabled={salvando} style={{ ...estilos.input, padding: '10px 12px', fontSize: 14 }}>
+            {Object.entries(LABEL_TIPO).map(([valor, rotulo]) => <option key={valor} value={valor}>{rotulo}</option>)}
+          </select>
+        </div>
+      )}
 
       <div>
         <label style={estilos.label}>Formato visual</label>
@@ -283,9 +298,12 @@ function FormularioWidget({ formulario, setFormulario, ehFixo, editando, erro, s
           disabled={salvando} style={{ ...estilos.input, padding: '10px 12px', fontSize: 14 }}>
           {Object.entries(LABEL_FORMATO).map(([valor, rotulo]) => <option key={valor} value={valor}>{rotulo}</option>)}
         </select>
+        {formulario.formatoVisual === 'linha' && (
+          <p style={{ color: CORES_APP.textoSuave, fontSize: 12, margin: '4px 0 0' }}>Mostra chamados abertos vs. finalizados por dia, sem agrupamento nem tipo, já que a série é fixa.</p>
+        )}
       </div>
 
-      {formulario.tipo === 'ranking' && (
+      {formulario.formatoVisual !== 'linha' && formulario.tipo === 'ranking' && (
         <div>
           <label style={estilos.label}>Quantos itens mostrar</label>
           <input type="number" min={1} value={formulario.limite} onChange={e => atualizarCampo('limite', e.target.value)}

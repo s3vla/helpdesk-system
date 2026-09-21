@@ -25,6 +25,7 @@ import { FiltrosChamadoDto } from './dto/filtros-chamado.dto';
 import { PeriodoChamadoDto } from './dto/periodo-chamado.dto';
 import { MetricasChamadoDto } from './dto/metricas-chamado.dto';
 import { MetricaItemResponseDto } from './dto/metrica-item-response.dto';
+import { MetricaDiariaResponseDto } from './dto/metrica-diaria-response.dto';
 import { StatusChamado } from '../common/enums/status-chamado.enum';
 import { NivelChamado } from '../common/enums/nivel-chamado.enum';
 import { PrioridadeChamado } from '../common/enums/prioridade-chamado.enum';
@@ -47,7 +48,7 @@ import {
   montarRespostaPaginada,
   RespostaPaginadaDto,
 } from '../common/dto/resposta-paginada.dto';
-import { resolverPeriodo } from '../common/utils/periodo.util';
+import { resolverPeriodo, formatarDataLocal } from '../common/utils/periodo.util';
 
 // Relações que toda consulta de Chamado precisa trazer junto — sem isso o
 // TypeORM devolveria só os ids (solicitanteId/tecnicoResponsavelId) e o
@@ -587,6 +588,62 @@ export class ChamadosService {
       filtros.limite,
       valoresParaZerar,
     );
+  }
+
+  // GET /chamados/metricas-diarias — série temporal pro widget de linha
+  // (FormatoVisualWidget.LINHA), fora do motor genérico de obterMetricas
+  // (que agrupa por campo categórico, não por dia — ver comentário no
+  // enum). Duas contagens por dia:
+  //   - "abertos": dataAbertura cai naquele dia — igual buscarChamadosNoPeriodo.
+  //   - "finalizados": status=FINALIZADO e dataAtualizacao cai naquele dia.
+  //     Não usa SolucaoConhecida.dataCriacao de propósito: aquele campo só
+  //     é gravado na PRIMEIRA finalização e nunca atualizado numa
+  //     refinalização depois de reabrir o chamado, então subcontaria
+  //     refinalizações no dia errado (ou não contaria). dataAtualizacao é
+  //     seguro aqui porque nenhuma edição é aceita enquanto o chamado está
+  //     FINALIZADO (ver atualizarCategoria/atualizarPrioridade) — o último
+  //     save() antes de "congelar" nesse status é sempre a própria ação de
+  //     finalizar, refinalização incluída.
+  async obterMetricasDiarias(
+    filtros: PeriodoChamadoDto,
+  ): Promise<MetricaDiariaResponseDto[]> {
+    const { inicio, fim } = resolverPeriodo(filtros);
+
+    const porDia = new Map<string, { abertos: number; finalizados: number }>();
+    for (
+      let dia = new Date(inicio);
+      dia <= fim;
+      dia.setDate(dia.getDate() + 1)
+    ) {
+      porDia.set(formatarDataLocal(dia), { abertos: 0, finalizados: 0 });
+    }
+
+    const [abertosNoPeriodo, finalizadosNoPeriodo] = await Promise.all([
+      this.chamadoRepository.find({
+        where: { dataAbertura: Between(inicio, fim) },
+      }),
+      this.chamadoRepository.find({
+        where: {
+          status: StatusChamado.FINALIZADO,
+          dataAtualizacao: Between(inicio, fim),
+        },
+      }),
+    ]);
+
+    for (const chamado of abertosNoPeriodo) {
+      const chave = formatarDataLocal(chamado.dataAbertura);
+      const contagem = porDia.get(chave);
+      if (contagem) contagem.abertos += 1;
+    }
+    for (const chamado of finalizadosNoPeriodo) {
+      const chave = formatarDataLocal(chamado.dataAtualizacao);
+      const contagem = porDia.get(chave);
+      if (contagem) contagem.finalizados += 1;
+    }
+
+    return [...porDia.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([dia, contagem]) => ({ dia, ...contagem }));
   }
 
   // GET /chamados/repeticao — carve-out do que antes vivia junto com as

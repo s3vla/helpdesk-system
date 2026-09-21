@@ -132,6 +132,15 @@ export class ChamadosController {
     return this.chamadosService.obterMetricas(filtros);
   }
 
+  // Série temporal pro widget de linha (FormatoVisualWidget.LINHA) — fora
+  // do motor genérico acima, ver ChamadosService.obterMetricasDiarias.
+  // Mesmo motivo de posicionamento que /metricas.
+  @Get('metricas-diarias')
+  @Roles(TipoUsuario.TECNICO)
+  async obterMetricasDiarias(@Query() filtros: PeriodoChamadoDto) {
+    return this.chamadosService.obterMetricasDiarias(filtros);
+  }
+
   // Carve-out do agrupamento por categoria + palavra-chave — não cabe no
   // motor genérico acima (ver ChamadosService.obterRepeticao). Mesmo
   // motivo de posicionamento que /metricas.
