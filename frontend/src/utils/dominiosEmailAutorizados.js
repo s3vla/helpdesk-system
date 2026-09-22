@@ -5,8 +5,7 @@
 // esta checagem no frontend só existe pra dar feedback imediato, sem
 // esperar o round-trip da API pra um erro óbvio de domínio digitado errado.
 export const DOMINIOS_EMAIL_AUTORIZADOS = [
-  'novatechagro.com.br',
-  'alvotech.com.br',
+  'empresa-exemplo.com',
 ]
 
 export function emailComDominioAutorizado(email) {

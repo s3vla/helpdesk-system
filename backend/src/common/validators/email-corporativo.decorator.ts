@@ -5,7 +5,7 @@ import { DOMINIOS_EMAIL_AUTORIZADOS } from '../../config/emails-autorizados';
 // Regex montada a partir de DOMINIOS_EMAIL_AUTORIZADOS (em vez de um
 // domínio fixo escrito aqui) — pontos escapados de propósito (`.` sem
 // escape casaria qualquer caractere, não só ponto literal). Formato final:
-// /@(novatechagro\.com\.br|alvotech\.com\.br)$/i.
+// /@(empresa-exemplo\.com)$/i.
 const DOMINIOS_REGEX = DOMINIOS_EMAIL_AUTORIZADOS.map((dominio) =>
   dominio.replace(/\./g, '\\.'),
 ).join('|');

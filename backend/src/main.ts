@@ -87,7 +87,7 @@ async function bootstrap() {
   const porta = process.env.PORT ?? 3000;
   await app.listen(porta);
   console.log(
-    `Novatech Agro Help Desk API rodando em http://localhost:${porta}`,
+    `Empresa Exemplo Help Desk API rodando em http://localhost:${porta}`,
   );
 }
 // bootstrap() é async — sem tratar a Promise, um erro na inicialização

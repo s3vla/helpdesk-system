@@ -96,7 +96,7 @@ export class AuthService {
 
   async primeiroAcesso(dto: PrimeiroAcessoDto) {
     // Lista fechada: só quem está em EMAILS_COLABORADOR_AUTORIZADOS pode
-    // completar o cadastro, mesmo terminando em @novatechagro.com.br —
+    // completar o cadastro, mesmo terminando num domínio corporativo válido —
     // checado antes de qualquer outra coisa, então nem chega a consultar o
     // banco por um e-mail que nunca poderia ter conta.
     if (!emailColaboradorAutorizado(dto.email)) {
@@ -127,7 +127,7 @@ export class AuthService {
     // do nome do setor encontrado, ou o fallback de sempre quando o prefixo
     // não tem mapeamento cadastrado.
     const setor = await this.setoresService.buscarSetorPorEmail(dto.email);
-    const departamento = setor?.nome ?? 'Novatech Agro';
+    const departamento = setor?.nome ?? 'Empresa Exemplo';
 
     // Conta resetada (ver UsuariosService.resetar): reaproveita a MESMA
     // linha em vez de criar um usuário novo — assim o histórico de
@@ -179,7 +179,7 @@ export class AuthService {
 
     const senhaHash = await bcrypt.hash(dto.senha, CUSTO_BCRYPT);
     const setor = await this.setoresService.buscarSetorPorEmail(dto.email);
-    const departamento = setor?.nome ?? 'Novatech Agro';
+    const departamento = setor?.nome ?? 'Empresa Exemplo';
 
     const usuario = existente
       ? await this.usuariosService.completarCadastro(existente.id, {

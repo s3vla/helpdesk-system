@@ -46,7 +46,7 @@ import { ComentarioForum } from '../forum/entities/comentario-forum.entity';
 // deste arquivo executaria o main() dele também (chamado incondicionalmente
 // no nível do módulo, ver final do arquivo), rodando os dois scripts ao
 // mesmo tempo no mesmo processo.
-const EMAIL_TESTE = 'estresse@novatechagro.com.br';
+const EMAIL_TESTE = 'estresse@empresa-exemplo.com';
 
 const CUSTO_BCRYPT = 12;
 

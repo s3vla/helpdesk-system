@@ -52,15 +52,15 @@ function BrandPanel() {
 
       {/* Ícone original da marca (círculos concêntricos giratórios,
           componente Logo.jsx já usado no resto do sistema) — aqui só o
-          ícone (showText=false), porque o texto "AGRO · SUPORTE" deste
+          ícone (showText=false), porque o texto "EXEMPLO · SUPORTE" deste
           painel tem formato próprio (duas linhas, mono no segundo), maior
-          que o "AGRO" compacto do Logo.jsx, para ter presença como no
+          que o "EXEMPLO" compacto do Logo.jsx, para ter presença como no
           design anterior (login antigo usava Logo size={54}). */}
       <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: mobile ? 14 : 18 }}>
         <Logo size={mobile ? 40 : 54} showText={false} />
         <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-          <span style={{ fontSize: mobile ? 21 : 27, fontWeight: 700, letterSpacing: '0.14em', color: '#fff' }}>NOVATECH</span>
-          <span style={{ fontFamily: fonteMono, fontSize: mobile ? 11 : 12, letterSpacing: '0.32em', color: 'rgba(255,255,255,0.75)' }}>AGRO · SUPORTE</span>
+          <span style={{ fontSize: mobile ? 21 : 27, fontWeight: 700, letterSpacing: '0.14em', color: '#fff' }}>EMPRESA</span>
+          <span style={{ fontFamily: fonteMono, fontSize: mobile ? 11 : 12, letterSpacing: '0.32em', color: 'rgba(255,255,255,0.75)' }}>EXEMPLO · SUPORTE</span>
         </div>
       </div>
 

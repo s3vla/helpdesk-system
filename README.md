@@ -1,6 +1,6 @@
-# Novatech Agro — Help Desk
+# Empresa Exemplo — Help Desk
 
-Monorepo com o sistema de chamados de TI da Novatech Agro: colaboradores abrem chamados, a Área Técnica atende. Duas partes, cada uma com seu próprio `package.json`:
+Monorepo com o sistema de chamados de TI da Empresa Exemplo: colaboradores abrem chamados, a Área Técnica atende. Duas partes, cada uma com seu próprio `package.json`:
 
 - **`frontend/`** — React + Vite (JavaScript puro, sem TypeScript)
 - **`backend/`** — NestJS + TypeORM + SQLite (`better-sqlite3`)
@@ -41,4 +41,4 @@ Sobe em `http://localhost:5173`, já apontando pra API em `localhost:3000` por p
 
 ## Contas de teste
 
-Primeiro acesso do colaborador é livre para qualquer e-mail da lista fechada em `backend/src/config/emails-autorizados.ts` (`EMAILS_COLABORADOR_AUTORIZADOS`). Os 2 técnicos são os do seed (`SEED_TECNICO_1_EMAIL` / `SEED_TECNICO_2_EMAIL` no `.env`, por padrão `suporte@novatechagro.com.br` e `ti@novatechagro.com.br`) — login com a senha de bootstrap definida no `.env`, com troca de senha obrigatória no primeiro acesso.
+Primeiro acesso do colaborador é livre para qualquer e-mail da lista fechada na variável de ambiente `EMAILS_COLABORADOR_AUTORIZADOS` (lista separada por vírgula — ver `.env.example` e `backend/src/config/emails-autorizados.ts`; sem essa variável configurada, a API recusa subir). Os técnicos são os do seed (`SEED_TECNICO_1_EMAIL` / `SEED_TECNICO_2_EMAIL` no `.env`, precisam bater com `EMAILS_TECNICO_AUTORIZADOS`) — login com a senha de bootstrap definida no `.env`, com troca de senha obrigatória no primeiro acesso.

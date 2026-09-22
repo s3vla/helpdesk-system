@@ -1,5 +1,5 @@
 // Camada de acesso a dados — agora conversando de verdade com a API
-// (novatech-helpdesk-api), documentada em CONTRATO.md. Cada função aqui é a
+// (empresa-exemplo-helpdesk-api), documentada em CONTRATO.md. Cada função aqui é a
 // mesma que existia quando os dados eram mockados; só o corpo mudou (de
 // "retorna array fixo" para "chama a API"), então nenhum componente de tela
 // precisou saber que essa troca aconteceu.

@@ -9,7 +9,7 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
 //    comportamento padrão).
 // 2. Nova tabela palavra_chave_n3 — dicionário administrável que substitui
 //    os dois arrays hardcoded que existiam em nivel-triagem.util.ts
-//    (TERMOS_N3_VIASOFT, TERMOS_N3_INFRAESTRUTURA). Seed com os mesmos 9
+//    (TERMOS_N3_ERP, TERMOS_N3_INFRAESTRUTURA). Seed com os mesmos 9
 //    termos que já estavam em código, pra não mudar nenhum comportamento
 //    de triagem existente no momento em que esta migration roda.
 export class AdicionarNivelPadraoCategoriaEPalavraChaveN31789654211486
@@ -40,7 +40,7 @@ export class AdicionarNivelPadraoCategoriaEPalavraChaveN31789654211486
     `);
     await queryRunner.query(`
       INSERT INTO "palavra_chave_n3" ("palavra") VALUES
-        ('viasoft'), ('via soft'), ('sistema viasoft'), ('sistema da empresa'),
+        ('erpxyz'), ('erp xyz'), ('sistema erpxyz'), ('sistema da empresa'),
         ('servidor'), ('banco de dados'), ('backup'), ('firewall'), ('dominio')
     `);
   }

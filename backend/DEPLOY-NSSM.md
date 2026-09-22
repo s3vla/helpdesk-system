@@ -17,8 +17,8 @@ No servidor, como Administrador:
 
 ```powershell
 cd caminho\pro\projeto\backend
-nssm install NovatechHelpdesk "C:\Program Files\nodejs\node.exe" "dist\main.js"
-nssm set NovatechHelpdesk AppDirectory "caminho\pro\projeto\backend"
+nssm install EmpresaExemploHelpdesk "C:\Program Files\nodejs\node.exe" "dist\main.js"
+nssm set EmpresaExemploHelpdesk AppDirectory "caminho\pro\projeto\backend"
 ```
 
 ## 2. ⚠️ Variáveis de ambiente — configurar antes do primeiro start
@@ -28,7 +28,7 @@ serviço NSSM. Sem isso a API derruba na inicialização
 (`getOrThrow('DATABASE_URL')` lança exceção).
 
 ```powershell
-nssm set NovatechHelpdesk AppEnvironmentExtra `
+nssm set EmpresaExemploHelpdesk AppEnvironmentExtra `
   DATABASE_URL=postgresql://usuario:senha@host:5432/banco_producao `
   JWT_SECRET=<gere um valor aleatório longo, nunca reaproveite o de dev> `
   JWT_EXPIRES_IN=8h `
@@ -36,17 +36,19 @@ nssm set NovatechHelpdesk AppEnvironmentExtra `
   APP_URL=https://dominio-real-do-servidor `
   HTTPS_ATIVO=false `
   PORT=3000 `
+  EMAILS_TECNICO_AUTORIZADOS=suporte@empresa-exemplo.com,ti@empresa-exemplo.com `
+  EMAILS_COLABORADOR_AUTORIZADOS=rh@empresa-exemplo.com,financeiro@empresa-exemplo.com `
   SEED_TECNICO_1_NOME="Suporte TI" `
-  SEED_TECNICO_1_EMAIL=suporte@novatechagro.com.br `
+  SEED_TECNICO_1_EMAIL=suporte@empresa-exemplo.com `
   SEED_TECNICO_1_SENHA=<senha de bootstrap real, forte> `
-  SEED_TECNICO_2_NOME="TI Novatech Agro" `
-  SEED_TECNICO_2_EMAIL=ti@novatechagro.com.br `
+  SEED_TECNICO_2_NOME="TI Empresa Exemplo" `
+  SEED_TECNICO_2_EMAIL=ti@empresa-exemplo.com `
   SEED_TECNICO_2_SENHA=<senha de bootstrap real, forte> `
-  SMTP_HOST=smtp.skymail.net.br `
+  SMTP_HOST=smtp.provedor-exemplo.com.br `
   SMTP_PORT=587 `
-  SMTP_USER=webpedidos@novatechagro.com.br `
+  SMTP_USER=contato@empresa-exemplo.com `
   SMTP_PASS=<senha real do SMTP> `
-  EMAIL_REMETENTE=webpedidos@novatechagro.com.br `
+  EMAIL_REMETENTE=contato@empresa-exemplo.com `
   DESABILITAR_ENVIO_EMAIL=false
 ```
 
@@ -58,10 +60,10 @@ Confirme o que ficou salvo (sem mostrar segredo na tela toda vez, só
 quando quiser conferir):
 
 ```powershell
-nssm get NovatechHelpdesk AppEnvironmentExtra
+nssm get EmpresaExemploHelpdesk AppEnvironmentExtra
 ```
 
-Ou pela interface gráfica: `nssm edit NovatechHelpdesk` → aba
+Ou pela interface gráfica: `nssm edit EmpresaExemploHelpdesk` → aba
 **Environment** → um par `CHAVE=valor` por linha.
 
 ## 3. Build e migration antes do primeiro start
@@ -80,7 +82,7 @@ npm run migration:run:prod
 ## 4. Iniciar o serviço
 
 ```powershell
-nssm start NovatechHelpdesk
+nssm start EmpresaExemploHelpdesk
 ```
 
 Confirme: `http://ip-ou-dominio-do-servidor:3000` carrega a tela de
@@ -94,7 +96,7 @@ Sempre nessa ordem — parar antes de trocar arquivo em disco, porque o
 processo Node mantém `dist/` aberto:
 
 ```powershell
-nssm stop NovatechHelpdesk
+nssm stop EmpresaExemploHelpdesk
 
 cd caminho\pro\projeto
 git pull
@@ -110,7 +112,7 @@ npm run build
 # Só se houver migration nova (ver git log do que veio no pull):
 npm run migration:run:prod
 
-nssm start NovatechHelpdesk
+nssm start EmpresaExemploHelpdesk
 ```
 
 ---
@@ -137,7 +139,7 @@ código novo):
 
 ```powershell
 # 1. Para o serviço (ainda rodando o código ANTIGO, sem o transformer)
-nssm stop NovatechHelpdesk
+nssm stop EmpresaExemploHelpdesk
 
 # 2. Atualiza o código e builda, mas NÃO reinicia o serviço ainda
 cd caminho\pro\projeto
@@ -162,7 +164,7 @@ npm run criptografar:migrar:prod
 #    dúvida se rodou, pode rodar outra vez pra conferir.
 
 # 4. SÓ AGORA sobe o serviço com o código novo:
-nssm start NovatechHelpdesk
+nssm start EmpresaExemploHelpdesk
 ```
 
 **Se alguém seguir o fluxo normal da seção 5 por engano** (reiniciar o
@@ -178,14 +180,51 @@ seguintes voltam a usar o fluxo normal da seção 5.
 
 ---
 
+## ⚠️ 7. Sequência ESPECIAL — atualização que move e-mails autorizados para variável de ambiente
+
+**Esta seção documenta um deploy específico: a atualização que tira
+`EMAILS_TECNICO_AUTORIZADOS`/`EMAILS_COLABORADOR_AUTORIZADOS` de dentro
+do código (`src/config/emails-autorizados.ts`) e passa a exigi-las como
+variável de ambiente.** Sem configurar as duas antes de reiniciar o
+serviço com o código novo, **a API recusa subir** — falha rápido e
+explícito no log, de propósito (em vez de subir com a lista vazia e
+ninguém conseguir logar sem entender por quê).
+
+**Formato esperado — lista de e-mails separada por vírgula, sem
+espaços** (mesmo padrão que `CORS_ORIGIN` já usa):
+
+```powershell
+nssm set EmpresaExemploHelpdesk AppEnvironmentExtra `
+  EMAILS_TECNICO_AUTORIZADOS=tecnico1@empresa-exemplo.com,tecnico2@empresa-exemplo.com `
+  EMAILS_COLABORADOR_AUTORIZADOS=colaborador1@empresa-exemplo.com,colaborador2@empresa-exemplo.com
+```
+(mantenha as demais variáveis já configuradas — `nssm set ... AppEnvironmentExtra` substitui a lista inteira, não só adiciona; veja o bloco completo na seção 2 acima e inclua as duas linhas novas junto com o resto)
+
+**Os valores REAIS de uma empresa usando este sistema nunca devem ir
+para nenhum arquivo do repositório dela** (nem este documento, nem
+`.env.example`, nem código) — esses e-mails são dado da empresa, não
+exemplo de configuração. Configure o valor final direto no NSSM, nunca
+escrevendo-o em nenhum arquivo versionado.
+
+Depois desse deploy específico, as duas variáveis passam a ser
+permanentes (igual `DATABASE_URL`/`JWT_SECRET`) — deploys futuros só
+precisam garantir que elas continuam configuradas, sem passo extra
+nenhum.
+
+---
+
 ## Troubleshooting comum
 
 - **Serviço não inicia / para sozinho logo em seguida**: veja o log do
-  NSSM (`nssm set NovatechHelpdesk AppStdout caminho\log.txt` e
+  NSSM (`nssm set EmpresaExemploHelpdesk AppStdout caminho\log.txt` e
   `AppStderr` configurados na criação, ou configure agora e reinicie) —
-  geralmente é `DATABASE_URL`/`JWT_SECRET` ausente ou banco inacessível.
+  geralmente é `DATABASE_URL`/`JWT_SECRET` ausente ou banco inacessível,
+  ou (a partir da atualização da seção 7) `EMAILS_TECNICO_AUTORIZADOS`/
+  `EMAILS_COLABORADOR_AUTORIZADOS` ausente — a mensagem de erro no log
+  cita o nome exato da variável faltando.
 - **API sobe mas todo GET de Tarefa/Anotação devolve 500**: veja a seção
   6 acima — provavelmente o código novo subiu antes do script de
   migração rodar.
 - **Precisa aplicar um novo deploy comum**: siga a seção 5. Só use a
-  seção 6 na atualização específica da criptografia de campo.
+  seção 6 na atualização específica da criptografia de campo, e a seção
+  7 na atualização específica dos e-mails autorizados.

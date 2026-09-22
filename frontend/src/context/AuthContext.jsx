@@ -18,7 +18,7 @@ import { AuthContext } from './authContextInstance'
 // login, "primeira vez nessa aba" de "essa aba tinha uma sessão ativa e a
 // perdeu" (reload/fechamento acidental). Marcador sem valor nenhum sozinho
 // (não autentica nada), então não reabre a exceção de segurança acima.
-const CHAVE_SESSAO_ATIVA = 'novatech_sessao_ativa'
+const CHAVE_SESSAO_ATIVA = 'helpdesk_sessao_ativa'
 
 export function AuthProvider({ children }) {
   const [token, setToken] = useState(null)

@@ -25,7 +25,7 @@ const TAMANHO_TAG = 16;
 // esse uso específico (`info` abaixo), criptograficamente independente da
 // chave usada pra assinar/verificar token JWT (AuthModule/JwtStrategy),
 // mesmo as duas vindo da mesma variável de ambiente na origem.
-const INFO_HKDF = 'novatech-helpdesk:campo-criptografado-v1';
+const INFO_HKDF = 'helpdesk:campo-criptografado-v1';
 
 // Lazy + memoizada de propósito: este arquivo é importado (e o
 // @Column({ transformer }) avaliado) no momento em que as entidades são

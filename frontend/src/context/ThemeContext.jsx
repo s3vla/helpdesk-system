@@ -8,7 +8,7 @@ import { ThemeContext } from './themeContextInstance'
 // ganha nada relevante lendo "claro" ou "escuro". Persistir só essa
 // preferência entre sessões (inclusive fechar/reabrir o navegador) é uma
 // troca com risco praticamente zero.
-const CHAVE_TEMA = 'novatech-tema'
+const CHAVE_TEMA = 'helpdesk-tema'
 
 // Lida de forma síncrona, direto no useState (lazy initializer) — roda
 // ANTES do primeiro render, então o tema salvo já está em `modo` desde o

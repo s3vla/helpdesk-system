@@ -52,9 +52,9 @@ export class CriarSetores1789148435061 implements MigrationInterface {
                 ('recepcao', 'Recepção'),
                 ('fabrica', 'Fábrica'),
                 ('comercial', 'Comercial'),
-                ('scapini', 'Diretoria'),
-                ('fabiom', 'Diretoria'),
-                ('sandro.huber', 'Gerência')
+                ('diretor1', 'Diretoria'),
+                ('diretor2', 'Diretoria'),
+                ('gerente1', 'Gerência')
             ) AS mapa(prefixo, nomeSetor)
             JOIN "setor" ON "setor"."nome" = mapa.nomeSetor
         `);

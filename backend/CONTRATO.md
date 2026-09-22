@@ -1,4 +1,4 @@
-# Contrato da API — Help Desk Novatech Agro
+# Contrato da API — Help Desk Empresa Exemplo
 
 Documento pra quem está no frontend integrar sem precisar ler o código do
 backend. Toda rota (exceto `/auth/*`) exige o cabeçalho:
@@ -40,21 +40,21 @@ Sem token. Rate limit: **5 tentativas por minuto por IP** (429 se estourar).
 
 Request:
 ```json
-{ "email": "ana.ferreira@novatechagro.com.br", "senha": "MinhaSenh@123" }
+{ "email": "maria.souza@empresa-exemplo.com", "senha": "ExemploSenha@123" }
 ```
 
 Response `200`:
 ```json
 {
   "accessToken": "eyJhbGciOi...",
-  "usuario": { "id": 1, "nome": "Ana Paula Ferreira", "email": "ana.ferreira@novatechagro.com.br", "cargo": "Analista Agrônoma", "departamento": "Campo", "tipo": "COLABORADOR", "emAguardoDeCadastro": false, "deveTrocarSenha": false }
+  "usuario": { "id": 1, "nome": "Maria Souza", "email": "maria.souza@empresa-exemplo.com", "cargo": "Analista Agrônoma", "departamento": "Campo", "tipo": "COLABORADOR", "emAguardoDeCadastro": false, "deveTrocarSenha": false }
 }
 ```
 
 `401` se e-mail não existir ou senha errada (mensagem genérica, não diz qual dos dois).
 
 **`deveTrocarSenha: true`** só acontece com os 2 técnicos criados por seed
-(`suporte@`/`ti@novatechagro.com.br`), até a primeira vez que trocarem a
+(`suporte@`/`ti@empresa-exemplo.com`), até a primeira vez que trocarem a
 senha via `PATCH /auth/minha-senha` — nunca acontece com colaborador. O
 frontend deve **bloquear o acesso normal ao Painel TI** enquanto isso for
 `true`, forçando a troca de senha primeiro (a senha do `.env` é só de
@@ -66,7 +66,7 @@ Sem token. Cria um usuário **COLABORADOR** novo e já devolve token logado
 
 **Lista fechada**: só e-mails presentes em `EMAILS_COLABORADOR_AUTORIZADOS`
 (`src/config/emails-autorizados.ts`) podem completar o cadastro — mesmo
-terminando em `@novatechagro.com.br`. `403` com mensagem
+terminando em `@empresa-exemplo.com`. `403` com mensagem
 `"Este e-mail não está autorizado a acessar o sistema. Entre em contato com o TI."`
 para qualquer outro e-mail. `409` se o e-mail já tiver conta (mesmo estando
 autorizado) — nesse caso o frontend deve orientar a fazer login.
@@ -74,18 +74,18 @@ autorizado) — nesse caso o frontend deve orientar a fazer login.
 Request:
 ```json
 {
-  "email": "rh@novatechagro.com.br",
-  "senha": "MinhaSenh@123",
+  "email": "rh@empresa-exemplo.com",
+  "senha": "ExemploSenha@123",
   "nome": "Nome de quem está assumindo o cargo",
   "departamento": "Recursos Humanos"
 }
 ```
-> `departamento` é opcional — se não vier, o backend usa `"Novatech Agro"` como padrão.
+> `departamento` é opcional — se não vier, o backend usa `"Empresa Exemplo"` como padrão.
 > `cargo` também é aceito no corpo (opcional, string), mas a tela de Primeiro Acesso não coleta mais esse campo — fica `null` para contas novas.
 
 Não existe rota de cadastro de técnico — técnicos são provisionados por
 seed no backend, também restrito à lista fechada
-(`EMAILS_TECNICO_AUTORIZADOS`, hoje só `suporte@` e `ti@novatechagro.com.br`).
+(`EMAILS_TECNICO_AUTORIZADOS`, hoje só `suporte@` e `ti@empresa-exemplo.com`).
 Um e-mail de colaborador nunca loga como técnico, mesmo que a senha esteja
 certa — o `tipo` da conta é definido na criação e não muda sozinho.
 
@@ -98,7 +98,7 @@ alvo de força bruta se um token vazar).
 
 Request:
 ```json
-{ "senhaAtual": "SenhaAntiga@123", "novaSenha": "SenhaNova@456", "confirmarNovaSenha": "SenhaNova@456" }
+{ "senhaAtual": "SenhaAtual@123", "novaSenha": "NovaSenha@456", "confirmarNovaSenha": "NovaSenha@456" }
 ```
 `401` se `senhaAtual` não bater com a senha de verdade (mensagem específica
 "Senha atual incorreta" — sem risco de enumeração aqui, quem chama já
@@ -143,7 +143,7 @@ Objeto `Chamado` retornado por todas as rotas abaixo:
   "tecnicoResponsavel": { "id": 2, "nome": "Maria TI", "...": "..." },
   "abertoPorTecnico": null,
   "solucao": null,
-  "observadores": [{ "id": 5, "nome": "Carlos Faturamento", "email": "faturamento02@novatechagro.com.br" }]
+  "observadores": [{ "id": 5, "nome": "Carlos Ribeiro", "email": "faturamento02@empresa-exemplo.com" }]
 }
 ```
 `tecnicoResponsavel` é `null` até um técnico iniciar atendimento. `imagemUrl` é `null` se não houve upload — quando existe, é um caminho relativo (`/uploads/...`); monte a URL completa como `API_BASE_URL + imagemUrl`. `anydeskId` é `null` se o colaborador não informou — texto livre, sem validação de formato (pode vir com espaços/traços). Visível pra colaborador e técnico igual, sem diferença — só a UI do técnico decide mostrar um botão de conectar em cima desse dado, isso não é responsabilidade do backend. `solucao` é `null` até o chamado ser finalizado; a partir daí vem `{ comoFoiResolvido, marcadaComo, dataCriacao }` **mesmo que `marcadaComo` seja `false`** — é o único lugar que expõe o texto da resolução para um chamado finalizado que não virou solução catalogada. `observadores` é sempre um array (nunca `null`), vazio quando ninguém foi adicionado como "Cc" — ver seção Observadores ("Cc") abaixo.
@@ -293,7 +293,7 @@ Use essa `url` como valor de `imagemUrl` ao criar o chamado (`POST /chamados`) �
 
 Objeto `UsuarioResponseDto`:
 ```json
-{ "id": 3, "nome": "Fernanda Lima", "email": "faturamento02@novatechagro.com.br", "cargo": "Assistente Administrativo", "departamento": "Novatech Agro", "tipo": "COLABORADOR", "emAguardoDeCadastro": false, "deveTrocarSenha": false }
+{ "id": 3, "nome": "Fernanda Alves", "email": "faturamento02@empresa-exemplo.com", "cargo": "Assistente Administrativo", "departamento": "Empresa Exemplo", "tipo": "COLABORADOR", "emAguardoDeCadastro": false, "deveTrocarSenha": false }
 ```
 `nome`/`cargo` vêm `null` e `emAguardoDeCadastro: true` quando a conta foi resetada (ver `PATCH /usuarios/:id/resetar`) e ainda ninguém completou o Primeiro Acesso de novo naquele e-mail.
 
@@ -304,7 +304,7 @@ Lista só usuários `tipo: COLABORADOR` (é a tela "Colaboradores" do painel de 
 Todos os chamados abertos por aquele colaborador. Response `200`: `Chamado[]`.
 
 ### `PATCH /usuarios/:id/resetar`
-Sem corpo. Apaga `nome`, `cargo` e a senha da conta (`emAguardoDeCadastro` vira `true`) — usado quando um e-mail de cargo (ex: `faturamento02@novatechagro.com.br`) muda de responsável. `400` se `:id` não for de uma conta `COLABORADOR` (técnicos não passam por este fluxo). Response `200`: `UsuarioResponseDto` atualizado.
+Sem corpo. Apaga `nome`, `cargo` e a senha da conta (`emAguardoDeCadastro` vira `true`) — usado quando um e-mail de cargo (ex: `faturamento02@empresa-exemplo.com`) muda de responsável. `400` se `:id` não for de uma conta `COLABORADOR` (técnicos não passam por este fluxo). Response `200`: `UsuarioResponseDto` atualizado.
 
 **Importante para o frontend:**
 - Depois do reset, a senha antiga **para de funcionar imediatamente** (login retorna `401` genérico, igual a qualquer credencial errada).

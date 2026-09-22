@@ -81,7 +81,7 @@ function ITLoginScreen({ onLoginTecnico, onBack }) {
               <label style={estilosAuth.campo}>
                 <span style={estilosAuth.rotulo}>E-mail do técnico</span>
                 <EmailInput value={email} onChange={e => setEmail(e.target.value)}
-                  placeholder="tecnico@novatechagro.com.br" style={estilosAuth.input} disabled={carregando} iconColor={cores.azulMedio} />
+                  placeholder="tecnico@empresa-exemplo.com" style={estilosAuth.input} disabled={carregando} iconColor={cores.azulMedio} />
               </label>
 
               <label style={estilosAuth.campo}>

@@ -1043,7 +1043,7 @@ function ColaboradoresTab() {
             <form onSubmit={aoCadastrar} style={{ padding: '16px 22px', display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div>
                 <label style={estilos.label}>E-mail corporativo</label>
-                <input value={email} onChange={e => setEmail(e.target.value)} placeholder="nome@novatechagro.com.br" disabled={cadastrando} style={estilos.input} />
+                <input value={email} onChange={e => setEmail(e.target.value)} placeholder="nome@empresa-exemplo.com" disabled={cadastrando} style={estilos.input} />
               </div>
               <div>
                 <label style={estilos.label}>Nome completo</label>

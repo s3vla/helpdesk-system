@@ -18,7 +18,7 @@ describe('AppController', () => {
     it('should return the service status', () => {
       expect(appController.getStatus()).toEqual({
         status: 'ok',
-        servico: 'Novatech Agro Help Desk API',
+        servico: 'Empresa Exemplo Help Desk API',
       });
     });
   });

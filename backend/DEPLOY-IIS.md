@@ -31,7 +31,7 @@ não importa o diretório de trabalho.
 ```powershell
 Import-Module WebAdministration
 
-$appPool = "NovatechHelpdeskPool"   # troque pelo nome real do seu pool
+$appPool = "EmpresaExemploHelpdeskPool"   # troque pelo nome real do seu pool
 
 $variaveis = @{
   "DATABASE_URL"          = "postgresql://usuario:senha@host:5432/banco_producao"
@@ -41,16 +41,16 @@ $variaveis = @{
   "APP_URL"                = "https://dominio-real-do-servidor"
   "HTTPS_ATIVO"            = "false"   # só "true" quando o certificado entrar
   "SEED_TECNICO_1_NOME"    = "Suporte TI"
-  "SEED_TECNICO_1_EMAIL"   = "suporte@novatechagro.com.br"
+  "SEED_TECNICO_1_EMAIL"   = "suporte@empresa-exemplo.com"
   "SEED_TECNICO_1_SENHA"   = "<senha de bootstrap real, forte>"
-  "SEED_TECNICO_2_NOME"    = "TI Novatech Agro"
-  "SEED_TECNICO_2_EMAIL"   = "ti@novatechagro.com.br"
+  "SEED_TECNICO_2_NOME"    = "TI Empresa Exemplo"
+  "SEED_TECNICO_2_EMAIL"   = "ti@empresa-exemplo.com"
   "SEED_TECNICO_2_SENHA"   = "<senha de bootstrap real, forte>"
-  "SMTP_HOST"              = "smtp.skymail.net.br"
+  "SMTP_HOST"              = "smtp.provedor-exemplo.com.br"
   "SMTP_PORT"              = "587"
-  "SMTP_USER"              = "webpedidos@novatechagro.com.br"
+  "SMTP_USER"              = "contato@empresa-exemplo.com"
   "SMTP_PASS"              = "<senha real do SMTP>"
-  "EMAIL_REMETENTE"        = "webpedidos@novatechagro.com.br"
+  "EMAIL_REMETENTE"        = "contato@empresa-exemplo.com"
   "DESABILITAR_ENVIO_EMAIL"= "false"   # false = e-mail real. Confirme que é ISSO que você quer antes de subir.
 }
 
@@ -90,7 +90,7 @@ dos Application Pools (a maioria dos Windows Server em uso hoje).
 ## 1. Criar o Application Pool
 
 1. **Gerenciador do IIS** → **Application Pools** → **Add Application Pool...**
-2. Nome: algo como `NovatechHelpdeskPool`
+2. Nome: algo como `EmpresaExemploHelpdeskPool`
 3. **.NET CLR version**: **No Managed Code** (é Node, não .NET)
 4. **Managed pipeline mode**: Integrated
 5. **OK**
@@ -100,7 +100,7 @@ dos Application Pools (a maioria dos Windows Server em uso hoje).
 ## 2. Criar o site
 
 1. **Gerenciador do IIS** → **Sites** → **Add Website...**
-2. **Site name**: `Novatech Helpdesk` (ou o nome que preferir)
+2. **Site name**: `Empresa Exemplo Helpdesk` (ou o nome que preferir)
 3. **Application pool**: selecione o pool criado no passo 1 (clique em
    **Select...** se não vier selecionado automaticamente)
 4. **Physical path**: aponte pra pasta **`backend`** do projeto no
@@ -114,7 +114,7 @@ dos Application Pools (a maioria dos Windows Server em uso hoje).
 ## 3. Permissões de pasta
 
 O usuário/identidade do Application Pool (por padrão
-`IIS AppPool\NovatechHelpdeskPool`) precisa de:
+`IIS AppPool\EmpresaExemploHelpdeskPool`) precisa de:
 
 - **Leitura** em toda a pasta `backend/` (e em `frontend/dist/`, já que o
   `ServeStaticModule` lê os arquivos do build do frontend de lá — ver

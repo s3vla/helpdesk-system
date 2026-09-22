@@ -1,6 +1,6 @@
 // Logo animado (dois círculos girando em sentidos opostos) usado no topo de
 // todas as telas de login e nos layouts internos. `size` controla a escala
-// inteira (texto incluso); `showText` esconde "NOVATECH AGRO" em telas estreitas.
+// inteira (texto incluso); `showText` esconde "EMPRESA EXEMPLO" em telas estreitas.
 //
 import { CORES_APP } from '../styles/theme'
 import { cores } from '../styles/authTheme'
@@ -11,7 +11,7 @@ import { cores } from '../styles/authTheme'
 // verde médio já usado como accent em outros lugares do tema, mantendo os
 // dois anéis visualmente distintos entre si — reativo a tema (var CSS),
 // diferente de verdeEscuro que fica fixo mesmo fora de telas de auth. O
-// texto "NOVATECH" usa
+// texto "EMPRESA" usa
 // CORES_APP.tinta (não um hex fixo) justamente pra acompanhar o tema
 // ativo — travado em `tinta`, ficaria ilegível assim que o tema escuro
 // entrasse (mesmo tom escuro sobre fundo de card também escuro).
@@ -40,8 +40,8 @@ function Logo({ size = 44, showText = true }) {
       </div>
       {showText && (
         <div style={{ lineHeight: 1 }}>
-          <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800, letterSpacing: '0.13em', color: CORES_APP.tinta, fontSize: size * 0.47 }}>NOVATECH</div>
-          <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 500, letterSpacing: '0.3em', color: cores.verdeEscuro, fontSize: size * 0.23, marginTop: 2 }}>AGRO</div>
+          <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800, letterSpacing: '0.13em', color: CORES_APP.tinta, fontSize: size * 0.47 }}>EMPRESA</div>
+          <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 500, letterSpacing: '0.3em', color: cores.verdeEscuro, fontSize: size * 0.23, marginTop: 2 }}>EXEMPLO</div>
         </div>
       )}
     </div>

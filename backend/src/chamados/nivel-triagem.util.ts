@@ -31,7 +31,8 @@ function contemAlgumTermo(textoNormalizado: string, termos: string[]): boolean {
 //   1. Texto contém alguma palavra do dicionário PalavraChaveN3 ativa -> N3
 //   2. Qualquer outro caso                                            -> categoria.nivelPadrao
 // Palavra-chave sempre sobrepõe a categoria, nunca o contrário — um chamado
-// numa categoria N1 que menciona "viasoft" ainda vai pra N3. Sem IA de
+// numa categoria N1 que menciona "erpxyz" (o ERP principal, ver seed de
+// PalavraChaveN3) ainda vai pra N3. Sem IA de
 // propósito — é busca de termo simples, do mesmo jeito que a comparação de
 // soluções parecidas (ver solucoes-conhecidas/palavras-chave.util.ts).
 // Esse nível é só uma categorização/filtro pro técnico se organizar — NÃO é

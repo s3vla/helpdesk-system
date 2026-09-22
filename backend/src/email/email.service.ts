@@ -57,8 +57,8 @@ export class EmailService {
     ).replace(/\/$/, '');
     // Trava de segurança pra testes automatizados (Playwright, scripts de
     // validação): as credenciais SMTP configuradas são de produção de
-    // verdade (Skymail), então qualquer chamado/comentário/aviso criado
-    // durante um teste dispararia e-mail real pra suporte@/ti@novatechagro
+    // verdade, então qualquer chamado/comentário/aviso criado durante um
+    // teste dispararia e-mail real pra suporte@/ti@empresa-exemplo.com
     // e colaboradores cadastrados se isso não existisse. Nunca ligar isso
     // no .env de desenvolvimento normal — só em ambientes de teste isolados
     // (ver scripts que copiam o .env real e adicionam esta variável).
@@ -147,7 +147,7 @@ export class EmailService {
       <div style="font-family: Arial, Helvetica, sans-serif; color: ${COR_TEXTO}; font-size: 15px; line-height: 1.6; max-width: 560px; margin: 0 auto;">
         ${corpoHtml}
         <p style="margin-top: 32px; padding-top: 16px; border-top: 1px solid #e2e8e5; color: ${COR_TEXTO_FRACO}; font-size: 13px;">
-          Sistema de Chamados — Novatech Agro
+          Sistema de Chamados — Empresa Exemplo
         </p>
       </div>
     `;

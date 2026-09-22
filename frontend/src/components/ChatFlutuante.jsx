@@ -42,7 +42,7 @@ function ChatFlutuante() {
               <div style={{ width: 30, height: 30, borderRadius: '50%', background: cores.verdeEscuro, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', flexShrink: 0 }}>
                 <IconMessageCircle width={15} height={15} />
               </div>
-              <span style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: 14, color: CORES_APP.tinta }}>Assistente Novatech</span>
+              <span style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: 14, color: CORES_APP.tinta }}>Assistente Virtual</span>
             </div>
             <button type="button" onClick={() => setAberto(false)} title="Fechar"
               style={{ background: 'none', border: 'none', color: CORES_APP.textoFraco, cursor: 'pointer', display: 'flex', padding: 4 }}>

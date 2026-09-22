@@ -20,7 +20,7 @@ describe('AppController (e2e)', () => {
     return request(app.getHttpServer())
       .get('/')
       .expect(200)
-      .expect({ status: 'ok', servico: 'Novatech Agro Help Desk API' });
+      .expect({ status: 'ok', servico: 'Empresa Exemplo Help Desk API' });
   });
 
   afterEach(async () => {
