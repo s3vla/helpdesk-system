@@ -196,7 +196,7 @@ Técnico abre um chamado em nome de um colaborador — cenário "colega ligou/pe
 `400` se `solicitanteId` não corresponder a um usuário `COLABORADOR` com conta ativa (mesma checagem de "colaborador ativo" que `POST /chamados/:id/observadores` já faz — conta resetada/aguardando Primeiro Acesso não serve). O colaborador informado vira o `solicitante` real do chamado (mesmíssimo efeito de `GET /chamados/meus` dele que se tivesse aberto sozinho); `abertoPorTecnico` é preenchido com o técnico do token — nunca vem do corpo da requisição. `nivel`/`status` seguem exatamente a mesma regra do `POST /chamados` normal. Response `201`: `Chamado`.
 
 `nivel` é sugerido pelo backend (`src/chamados/nivel-triagem.util.ts`), nesta ordem de precedência (a primeira que bater define o nível):
-1. Descrição ou mensagem de erro menciona "viasoft" (cobre "via soft", "viasoft erp") → `N3`
+1. Descrição ou mensagem de erro menciona "erpxyz" (cobre "erp xyz", "sistema erpxyz") → `N3`
 2. Descrição ou mensagem de erro menciona infraestrutura crítica — "servidor", "banco de dados", "backup", "firewall", "dominio"/"domínio" (acento ou não, case-insensitive) → `N3`
 3. Categoria = `REDE` → `N2`
 4. Qualquer outro caso → `N1`
