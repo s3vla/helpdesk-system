@@ -1,15 +1,13 @@
 import { cores, fonte, fonteMono } from '../../styles/authTheme'
-import { IMAGEM_FUNDO_LOGIN } from '../../styles/theme'
 import { useWindowWidth } from '../../hooks/useWindowWidth'
 import Logo from '../Logo'
 
-// Painel de marca (lado esquerdo nas 4 telas de autenticação). Reaproveita
-// a MESMA foto que o tema escuro já usava (IMAGEM_FUNDO_LOGIN, de
-// theme.js) — só o tratamento visual muda: aqui entra dessaturada sob um
-// duotone azul da paleta clara, em vez do gradiente radial escuro do tema
-// antigo. No mobile, empilha acima do formulário em vez de ficar ao lado
-// (ver LoginScreen/ITLoginScreen/etc., que trocam o grid por flex-column
-// via useWindowWidth — mesmo padrão responsivo já usado no resto do app).
+// Painel de marca (lado esquerdo nas 4 telas de autenticação). Fundo
+// decorativo 100% gerado por gradientes CSS (sem foto), pra não depender
+// de nenhuma imagem específica de empresa neste template público. No
+// mobile, empilha acima do formulário em vez de ficar ao lado (ver
+// LoginScreen/ITLoginScreen/etc., que trocam o grid por flex-column via
+// useWindowWidth — mesmo padrão responsivo já usado no resto do app).
 function BrandPanel() {
   const largura = useWindowWidth()
   const mobile = largura < 900
@@ -24,14 +22,7 @@ function BrandPanel() {
     }}>
       <div style={{
         position: 'absolute', inset: 0,
-        backgroundImage: `url('${IMAGEM_FUNDO_LOGIN}')`,
-        backgroundSize: 'cover', backgroundPosition: '62% 40%',
-        filter: 'grayscale(1) contrast(1.08)', opacity: 0.5,
-      }} />
-      <div style={{
-        position: 'absolute', inset: 0,
         background: 'linear-gradient(168deg, rgba(0,73,192,0.9) 0%, rgba(0,130,192,0.82) 55%, rgba(0,204,192,0.62) 130%)',
-        mixBlendMode: 'multiply',
       }} />
       <div style={{
         position: 'absolute', inset: 0,

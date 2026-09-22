@@ -241,4 +241,6 @@ export const estilos = {
   },
 }
 
-export const IMAGEM_FUNDO_LOGIN = './public/nvtch.png'
+// Sem foto real — gradiente decorativo simples, pra não depender de
+// nenhuma imagem específica de empresa neste template público.
+export const IMAGEM_FUNDO_LOGIN = null
