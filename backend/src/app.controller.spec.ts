@@ -19,6 +19,7 @@ describe('AppController', () => {
       expect(appController.getStatus()).toEqual({
         status: 'ok',
         servico: 'Empresa Exemplo Help Desk API',
+        modoDemo: false,
       });
     });
   });

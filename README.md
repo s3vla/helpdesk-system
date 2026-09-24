@@ -7,6 +7,13 @@ Monorepo com o sistema de chamados de TI da Empresa Exemplo: colaboradores abrem
 
 Contrato completo da API (rotas, DTOs, regras de negócio) documentado em [`backend/CONTRATO.md`](backend/CONTRATO.md).
 
+## 🎬 Demo ao vivo
+
+- Frontend: https://helpdesk-system-tau.vercel.app
+- **Login como técnico**: suporte@empresa-exemplo.com / Demo2026!
+- **Login como colaborador**: clique em "Primeiro Acesso" e use um dos e-mails autorizados: rh@empresa-exemplo.com ou financeiro@empresa-exemplo.com (você escolhe a senha nesse momento)
+- ⏳ O backend roda no plano gratuito da Render — a primeira requisição após um período de inatividade pode levar ~30s pra responder.
+
 ## Rodando localmente
 
 Duas partes, dois terminais.

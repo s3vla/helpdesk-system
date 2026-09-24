@@ -2,6 +2,7 @@ import { useState } from 'react'
 import FirstAccessModal from './FirstAccessModal'
 import BrandPanel from './auth/BrandPanel'
 import FundoDecorativo from './auth/FundoDecorativo'
+import AvisoDemo from './auth/AvisoDemo'
 import EmailInput from './auth/EmailInput'
 import PasswordInput from './PasswordInput'
 import { IconChevronRight } from './icons'
@@ -27,7 +28,7 @@ import { emailComDominioAutorizado, MENSAGEM_DOMINIO_INVALIDO } from '../utils/d
 // próprio: quem decide se cai em "trocar senha" continua sendo
 // `usuario.deveTrocarSenha`, checado em App.jsx, nunca um campo
 // inventado tipo "senhaPadrao" do código de referência.
-function LoginScreen({ onLoginColaborador, onSwitchIT }) {
+function LoginScreen({ onLoginColaborador, onSwitchIT, modoDemo = false }) {
   const { login, mensagemSessao, limparMensagemSessao } = useAuth()
   const [email, setEmail] = useState('')
   const [pass, setPass] = useState('')
@@ -127,6 +128,8 @@ function LoginScreen({ onLoginColaborador, onSwitchIT }) {
                 <IconChevronRight width={14} height={14} style={{ flexShrink: 0 }} />
               </button>
             </div>
+
+            {modoDemo && <AvisoDemo />}
           </div>
         </div>
       </main>

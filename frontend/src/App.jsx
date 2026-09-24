@@ -24,6 +24,7 @@ import TicketPanel from './components/TicketPanel'
 import TrocarSenhaModal from './components/TrocarSenhaModal'
 import { useAuth } from './hooks/useAuth'
 import { buscarContagemNaoLidos } from './services/avisosService'
+import { URL_BASE } from './services/apiClient'
 
 const TELAS_COLABORADOR = ['emp-home', 'emp-tickets', 'emp-observing', 'emp-sent', 'emp-avisos', 'emp-tarefas', 'emp-anotacoes', 'emp-forum']
 const TELAS_TI = ['it-dash', 'it-admin', 'it-users', 'it-user', 'it-solutions', 'it-abrir-chamado', 'it-metricas', 'it-metricas-config', 'it-avisos', 'it-tarefas', 'it-forum']
@@ -49,6 +50,18 @@ function App() {
   const [versaoDados, setVersaoDados] = useState(0)
   const [mostrarTrocarSenha, setMostrarTrocarSenha] = useState(false)
   const [contagemAvisos, setContagemAvisos] = useState(0)
+  const [modoDemo, setModoDemo] = useState(false)
+
+  // Busca única, sem token (rota raiz, fora do prefixo /api) — só pra
+  // decidir se mostra o aviso de ambiente de demonstração no login. Padrão
+  // sempre começa em `false`: se a busca falhar ou nunca responder, o
+  // aviso simplesmente não aparece (nunca o contrário).
+  useEffect(() => {
+    fetch(URL_BASE)
+      .then(r => r.json())
+      .then(dados => setModoDemo(dados?.modoDemo === true))
+      .catch(() => {})
+  }, [])
 
   function aoAtualizarChamado() {
     setVersaoDados(v => v + 1)
@@ -78,7 +91,7 @@ function App() {
   // ── Sem sessão: telas de login ──────────────────────────────────────────
   if (!usuario) {
     return telaLogin === 'login'
-      ? <LoginScreen onLoginColaborador={() => setTela('emp-home')} onSwitchIT={() => setTelaLogin('it-login')} />
+      ? <LoginScreen onLoginColaborador={() => setTela('emp-home')} onSwitchIT={() => setTelaLogin('it-login')} modoDemo={modoDemo} />
       : <ITLoginScreen onLoginTecnico={() => setTela('it-dash')} onBack={() => setTelaLogin('login')} />
   }
 
