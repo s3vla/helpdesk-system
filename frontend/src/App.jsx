@@ -57,7 +57,11 @@ function App() {
   // sempre começa em `false`: se a busca falhar ou nunca responder, o
   // aviso simplesmente não aparece (nunca o contrário).
   useEffect(() => {
-    fetch(URL_BASE)
+    // `/api` explícito aqui: a rota raiz do AppController vive sob esse
+    // prefixo (ver main.ts, app.setGlobalPrefix('api')) — GET na origem
+    // sem esse caminho cai no catch-all do ServeStaticModule (serve o
+    // index.html do frontend), não na resposta JSON de status.
+    fetch(`${URL_BASE}/api`)
       .then(r => r.json())
       .then(dados => setModoDemo(dados?.modoDemo === true))
       .catch(() => {})
